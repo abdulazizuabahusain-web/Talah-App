@@ -1,0 +1,20 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "z_HAA8NDfL1g3c8tUMP_x"
+uri = "file://artifacts/talah/assets/images/icon.png"
+type = "image"
+title = "talah app icon"
+
+[[generated]]
+id = "YMl9x5mCMa3-egKHKdSEU"
+uri = "file://artifacts/talah/assets/images/coffee-meetup.png"
+type = "image"
+title = "coffee meetup"
+
+[[generated]]
+id = "T9_aOv5U--_u1Y3SwQfPk"
+uri = "file://artifacts/talah/assets/images/dinner-meetup.png"
+type = "image"
+title = "dinner meetup"

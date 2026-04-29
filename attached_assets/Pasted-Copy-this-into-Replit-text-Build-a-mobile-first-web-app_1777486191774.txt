@@ -1,0 +1,142 @@
+Copy this into Replit:
+
+```text
+Build a mobile-first web app MVP for “Tal’ah / طلعة”.
+
+Product concept:
+Tal’ah is a curated social meetup platform in Saudi Arabia. It helps users meet new people through small, privacy-first group gatherings. It is not a dating app and not an open events marketplace. Users do not browse profiles. Instead, they request a “Tal’ah,” and the platform/admin matches them into small women-only or men-only groups based on lifestyle, interests, availability, and compatibility.
+
+Main audience:
+Adults in Saudi Arabia who want safe, structured, culturally aligned ways to meet new people. The app must support two clear gathering options:
+1. Women-only
+2. Men-only
+
+Build style:
+- Clean, premium, warm Saudi-inspired design
+- Arabic-first interface with simple English support if possible
+- Mobile-first responsive design
+- Colors: soft sand, olive green, muted gold, charcoal text
+- Rounded cards, calm layout, privacy-first feel
+- No dating-app style, no swiping, no public profile browsing
+
+Core user flow:
+1. Landing / welcome screen
+2. Sign up / login using phone number placeholder flow
+3. Onboarding:
+   - name or nickname
+   - gender: woman or man
+   - city
+   - age range
+   - lifestyle: employee, student, parent, entrepreneur, other
+   - interests: coffee, books, fitness, wellness, art, business, food, outdoor, self-development
+   - personality style: calm, social, curious, active, creative
+   - preferred meetup type: coffee or dinner
+   - preferred days/times
+4. Home screen:
+   - “Request a Tal’ah”
+   - upcoming Tal’ah
+   - profile completion
+5. Request a Tal’ah screen:
+   - select coffee or dinner
+   - select preferred date/time
+   - select area preference
+   - submit request
+6. Upcoming Tal’ah screen:
+   - status: pending match / matched / revealed
+   - meetup date/time
+   - venue placeholder
+   - privacy note
+7. Group reveal screen:
+   - reveal 6–12 hours before meetup
+   - show only nicknames, 3 traits, and fun facts
+   - do not show full profiles or photos
+8. Post-event feedback:
+   - rate experience 1–5
+   - select Connect or Pass for each participant
+   - report/block option
+9. Profile/settings:
+   - edit interests
+   - privacy settings
+   - optional ID verification badge placeholder
+   - delete account button placeholder
+
+Admin dashboard:
+Build a simple protected admin page with:
+- list of users
+- list of Tal’ah requests
+- ability to create a group manually
+- assign users to a group
+- assign venue/date/time
+- change status: pending, matched, revealed, completed, cancelled
+- view feedback ratings
+- view reports
+- flag/remove users
+
+Matching logic:
+For now, implement simple rule-based matching in code:
+Hard filters:
+- same gender category
+- same city
+- overlapping availability
+Soft scoring:
+- shared interests
+- similar age range
+- lifestyle similarity
+- personality balance
+Group size:
+- 3 to 5 people
+
+Safety and privacy:
+- No public user directory
+- No profile browsing
+- No direct messaging before meetup
+- Optional ID verification badge placeholder
+- Report/block functionality
+- Code of conduct page
+- Privacy-first language throughout the app
+
+Pages needed:
+- Landing page
+- Login/signup
+- Onboarding
+- Home
+- Request Tal’ah
+- Upcoming Tal’ah
+- Group Reveal
+- Feedback
+- Profile/Settings
+- Admin Dashboard
+- Code of Conduct
+- Privacy Policy placeholder
+- Terms placeholder
+
+Tech requirements:
+- Use a simple full-stack architecture suitable for Replit
+- Use React frontend
+- Use Node.js/Express backend
+- Use SQLite or simple JSON/database storage for MVP
+- Include clear file structure
+- Include seed sample users and sample Tal’ah requests
+- Include comments explaining key parts
+- Make it runnable immediately in Replit
+- Provide instructions for running and testing
+
+Important wording:
+Use “Tal’ah” and “طلعة”.
+Positioning copy:
+“Meet the right people, in the right setting.”
+“طلعة تجمعك بناس يشبهونك.”
+“Women-only and men-only curated gatherings.”
+“Privacy-first. No swiping. No random browsing.”
+
+Do not build:
+- dating features
+- swiping
+- public profiles
+- open user-hosted events
+- payment integration yet
+- chat feature yet
+
+Deliver:
+A working MVP prototype with clean UI, dummy data, admin functionality, and basic matching logic.
+```
