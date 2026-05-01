@@ -7,6 +7,7 @@ const router = Router();
 
 const CreateReportBody = z.object({
   targetUserId: z.string().uuid(),
+  groupId: z.string().uuid().optional(),
   reason: z.string().min(5).max(500),
 });
 

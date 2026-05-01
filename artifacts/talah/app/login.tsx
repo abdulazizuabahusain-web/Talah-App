@@ -16,39 +16,55 @@ export default function LoginScreen() {
   const colors = useColors();
   const t = useT();
   const insets = useSafeAreaInsets();
-  const { loginByPhone } = useApp();
+  const { sendOtp, verifyOtp } = useApp();
 
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const [devCode, setDevCode] = useState<string | null>(null);
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const webBottomPad = Platform.OS === "web" ? 34 : 0;
 
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     setError(null);
     const cleaned = phone.replace(/\D/g, "");
     if (cleaned.length < 8) {
       setError(t("invalid_phone"));
       return;
     }
-    setStep("otp");
+    setLoading(true);
+    try {
+      const fullPhone = phone.startsWith("+") ? phone : `+966${phone.replace(/^0/, "")}`;
+      const res = await sendOtp(fullPhone);
+      if (res.code) setDevCode(res.code); // shown in dev to skip SMS
+      setStep("otp");
+    } catch {
+      setError(t("invalid_phone"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerify = async () => {
     setError(null);
-    if (otp !== "0000") {
+    if (otp.length !== 4) {
       setError(t("invalid_otp"));
       return;
     }
     setLoading(true);
-    const fullPhone = phone.startsWith("+") ? phone : `+966${phone.replace(/^0/, "")}`;
-    const user = await loginByPhone(fullPhone);
-    setLoading(false);
-    if (user.onboarded) {
-      router.replace("/(tabs)");
-    } else {
-      router.replace("/onboarding");
+    try {
+      const fullPhone = phone.startsWith("+") ? phone : `+966${phone.replace(/^0/, "")}`;
+      const user = await verifyOtp(fullPhone, otp);
+      if (user.onboarded) {
+        router.replace("/(tabs)");
+      } else {
+        router.replace("/onboarding");
+      }
+    } catch {
+      setError(t("invalid_otp"));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,6 +99,7 @@ export default function LoginScreen() {
                   label={t("send_otp")}
                   onPress={handleSendOtp}
                   size="lg"
+                  loading={loading}
                 />
               </View>
             ) : (
@@ -96,9 +113,15 @@ export default function LoginScreen() {
                   onChangeText={setOtp}
                   error={error ?? undefined}
                 />
-                <AppText variant="caption" color={colors.mutedForeground}>
-                  {t("otp_hint")}
-                </AppText>
+                {devCode ? (
+                  <AppText variant="caption" color={colors.accent} weight="semibold">
+                    Dev code: {devCode}
+                  </AppText>
+                ) : (
+                  <AppText variant="caption" color={colors.mutedForeground}>
+                    {t("otp_hint")}
+                  </AppText>
+                )}
                 <Button
                   label={t("verify")}
                   onPress={handleVerify}
@@ -108,7 +131,7 @@ export default function LoginScreen() {
                 <Button
                   label={t("back")}
                   variant="ghost"
-                  onPress={() => setStep("phone")}
+                  onPress={() => { setStep("phone"); setDevCode(null); setOtp(""); setError(null); }}
                 />
               </View>
             )}

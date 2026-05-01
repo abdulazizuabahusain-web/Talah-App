@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { Router } from "express";
 import { z } from "zod";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, sessionsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -56,6 +56,13 @@ router.patch("/me", requireAuth, async (req, res) => {
     .returning();
 
   res.json(updated);
+});
+
+router.delete("/me", requireAuth, async (req, res) => {
+  const userId = req.user!.id;
+  await db.delete(sessionsTable).where(eq(sessionsTable.userId, userId));
+  await db.delete(usersTable).where(eq(usersTable.id, userId));
+  res.json({ ok: true });
 });
 
 export default router;

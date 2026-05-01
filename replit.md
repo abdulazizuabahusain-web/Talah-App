@@ -40,10 +40,11 @@ pnpm workspace monorepo for **Tal'ah**, a privacy-first curated social meetup ap
 | Route | Auth | Description |
 |---|---|---|
 | `POST /api/auth/otp/send` | None | Send OTP (returns `code` in dev) |
-| `POST /api/auth/otp/verify` | None | Verify OTP, get session token |
+| `POST /api/auth/otp/verify` | None | Verify OTP → `{ token, user }` |
 | `POST /api/auth/logout` | User | Delete session |
 | `GET /api/users/me` | User | Get current user profile |
 | `PATCH /api/users/me` | User | Update profile / onboarding |
+| `DELETE /api/users/me` | User | Delete own account |
 | `GET /api/requests` | User | Get own requests |
 | `POST /api/requests` | User | Submit a meetup request |
 | `DELETE /api/requests/:id` | User | Cancel a pending request |
@@ -86,9 +87,14 @@ pnpm workspace monorepo for **Tal'ah**, a privacy-first curated social meetup ap
 
 - Expo + React Native (web preview enabled)
 - Arabic-first (English toggle), RTL per-text
-- AsyncStorage persistence (frontend-only — **not yet wired to API**)
+- **Fully wired to the real REST API** (Part 7 complete)
+- `lib/api.ts` — typed HTTP client, token stored in AsyncStorage (`talah:token`), all CRUD wrappers
+- `contexts/AppContext.tsx` — real 2-step OTP login, auto-hydrates user on startup
+- `contexts/DataContext.tsx` — fetches requests + groups from API reactively on login/logout
 - 20-step onboarding (steps 0–9: basics; steps 10–19: personality/compatibility)
 - Personality scores computed client-side via `lib/types.ts computeScores()`
+- Group responses embed member profiles (id, nickname, gender, ageRange, etc.)
+- `DELETE /api/users/me` for account deletion (profile screen)
 
 ## Key Commands
 
@@ -107,6 +113,3 @@ pnpm run typecheck                            # Full typecheck all packages
 | Gold | `#B8924A` | Accent / highlights |
 | Charcoal | `#2A2A2A` | Foreground text |
 
-## TODO (Part 7)
-
-- Wire mobile app `DataContext` and `AppContext` to the real REST API (replace AsyncStorage-only persistence with HTTP calls to `/api/`).

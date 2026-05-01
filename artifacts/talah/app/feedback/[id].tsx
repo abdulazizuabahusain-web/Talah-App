@@ -27,7 +27,7 @@ export default function FeedbackScreen() {
   const t = useT();
   const insets = useSafeAreaInsets();
   const { currentUser } = useApp();
-  const { groups, users, submitFeedback, submitReport, setGroupStatus } =
+  const { groups, users, submitFeedback, submitReport } =
     useData();
   const webBottomPad = Platform.OS === "web" ? 34 : 0;
 
@@ -68,9 +68,6 @@ export default function FeedbackScreen() {
       })),
       comment: comment.trim() || undefined,
     });
-    if (group.status !== "completed") {
-      await setGroupStatus(group.id, "completed");
-    }
     setSubmitting(false);
     Alert.alert(t("feedback_thanks"), undefined, [
       { text: t("done"), onPress: () => router.replace("/(tabs)") },

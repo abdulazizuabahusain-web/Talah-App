@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { createOtp, deleteSession, verifyOtp } from "../lib/auth";
+import { createOtp, verifyOtp, deleteSession, getUserFromToken } from "../lib/auth";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -37,7 +37,13 @@ router.post("/otp/verify", async (req, res) => {
     return;
   }
 
-  res.json({ token });
+  const row = await getUserFromToken(token);
+  if (!row) {
+    res.status(500).json({ error: "Session creation failed" });
+    return;
+  }
+
+  res.json({ token, user: row.user });
 });
 
 router.post("/logout", requireAuth, async (req, res) => {

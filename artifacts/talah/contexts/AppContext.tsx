@@ -7,7 +7,8 @@ import React, {
   useState,
 } from "react";
 
-import { genId, loadJSON, saveJSON } from "@/lib/storage";
+import { api, setToken, toUser } from "@/lib/api";
+import { loadJSON, saveJSON } from "@/lib/storage";
 import type { User } from "@/lib/types";
 
 type Lang = "ar" | "en";
@@ -19,17 +20,16 @@ interface AppContextValue {
   currentUser: User | null;
   isAdmin: boolean;
   setIsAdmin: (v: boolean) => void;
-  loginByPhone: (phone: string) => Promise<User>;
+  sendOtp: (phone: string) => Promise<{ code?: string }>;
+  verifyOtp: (phone: string, code: string) => Promise<User>;
   updateCurrentUser: (patch: Partial<User>) => Promise<void>;
-  setCurrentUserId: (id: string | null) => void;
   signOut: () => Promise<void>;
-  // For DataContext to refresh user reference after edits
   hydrateCurrentUserFromList: (users: User[]) => void;
+  setCurrentUserId: (id: string | null) => void;
 }
 
 const STORAGE_LANG = "talah:lang";
-const STORAGE_USER_ID = "talah:currentUserId";
-const STORAGE_USERS = "talah:users";
+const STORAGE_TOKEN = "talah:token";
 
 const AppContext = createContext<AppContextValue | null>(null);
 
@@ -42,13 +42,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       const lang = await loadJSON<Lang>(STORAGE_LANG, "ar");
-      const userId = await loadJSON<string | null>(STORAGE_USER_ID, null);
       setLanguageState(lang);
-      if (userId) {
-        const users = await loadJSON<User[]>(STORAGE_USERS, []);
-        const u = users.find((x) => x.id === userId) ?? null;
-        setCurrentUser(u);
+
+      const token = await loadJSON<string | null>(STORAGE_TOKEN, null);
+      if (token) {
+        setToken(token);
+        try {
+          const apiUser = await api.me();
+          setCurrentUser(toUser(apiUser));
+        } catch {
+          // Token expired or invalid – clear it
+          setToken(null);
+          await saveJSON(STORAGE_TOKEN, null);
+        }
       }
+
       setReady(true);
     })();
   }, []);
@@ -58,60 +66,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     saveJSON(STORAGE_LANG, l);
   }, []);
 
-  const loginByPhone = useCallback(async (phone: string): Promise<User> => {
-    const users = await loadJSON<User[]>(STORAGE_USERS, []);
-    const existing = users.find((u) => u.phone === phone);
-    if (existing) {
-      setCurrentUser(existing);
-      await saveJSON(STORAGE_USER_ID, existing.id);
-      return existing;
-    }
-    const newUser: User = {
-      id: genId("u"),
-      phone,
-      nickname: "",
-      gender: "woman",
-      city: "",
-      ageRange: "25-29",
-      lifestyle: "employee",
-      interests: [],
-      personality: "calm",
-      preferredMeetup: "coffee",
-      preferredDays: [],
-      preferredTimes: [],
-      funFact: "",
-      verified: false,
-      flagged: false,
-      onboarded: false,
-      createdAt: Date.now(),
-    };
-    const next = [...users, newUser];
-    await saveJSON(STORAGE_USERS, next);
-    await saveJSON(STORAGE_USER_ID, newUser.id);
-    setCurrentUser(newUser);
-    return newUser;
+  const sendOtp = useCallback(async (phone: string): Promise<{ code?: string }> => {
+    return api.sendOtp(phone);
+  }, []);
+
+  const verifyOtp = useCallback(async (phone: string, code: string): Promise<User> => {
+    const { token, user: apiUser } = await api.verifyOtp(phone, code);
+    setToken(token);
+    await saveJSON(STORAGE_TOKEN, token);
+    const user = toUser(apiUser);
+    setCurrentUser(user);
+    return user;
   }, []);
 
   const updateCurrentUser = useCallback(
     async (patch: Partial<User>) => {
       if (!currentUser) return;
-      const merged = { ...currentUser, ...patch };
-      setCurrentUser(merged);
-      const users = await loadJSON<User[]>(STORAGE_USERS, []);
-      const next = users.map((u) => (u.id === merged.id ? merged : u));
-      await saveJSON(STORAGE_USERS, next);
+      const apiUser = await api.updateMe(patch as Parameters<typeof api.updateMe>[0]);
+      const updated = toUser(apiUser);
+      setCurrentUser(updated);
     },
     [currentUser],
   );
 
-  const setCurrentUserId = useCallback((id: string | null) => {
-    saveJSON(STORAGE_USER_ID, id);
-  }, []);
-
   const signOut = useCallback(async () => {
+    try {
+      await api.logout();
+    } catch {
+      // Ignore logout errors
+    }
+    setToken(null);
     setCurrentUser(null);
     setIsAdmin(false);
-    await saveJSON(STORAGE_USER_ID, null);
+    await saveJSON(STORAGE_TOKEN, null);
   }, []);
 
   const hydrateCurrentUserFromList = useCallback(
@@ -123,6 +110,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [currentUser],
   );
 
+  const setCurrentUserId = useCallback((_id: string | null) => {
+    // No-op in API mode – identity is tracked via token
+  }, []);
+
   const value = useMemo(
     () => ({
       ready,
@@ -131,11 +122,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       currentUser,
       isAdmin,
       setIsAdmin,
-      loginByPhone,
+      sendOtp,
+      verifyOtp,
       updateCurrentUser,
-      setCurrentUserId,
       signOut,
       hydrateCurrentUserFromList,
+      setCurrentUserId,
     }),
     [
       ready,
@@ -143,11 +135,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLanguage,
       currentUser,
       isAdmin,
-      loginByPhone,
+      sendOtp,
+      verifyOtp,
       updateCurrentUser,
-      setCurrentUserId,
       signOut,
       hydrateCurrentUserFromList,
+      setCurrentUserId,
     ],
   );
 
