@@ -1,27 +1,112 @@
-# Workspace
+# Workspace — Tal'ah / طلعة
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+pnpm workspace monorepo for **Tal'ah**, a privacy-first curated social meetup app for Saudi Arabia.
 
 ## Stack
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **Monorepo**: pnpm workspaces · Node 24 · TypeScript 5.9
+- **Mobile app**: Expo (React Native) — `artifacts/talah`
+- **Admin web app**: React + Vite — `artifacts/admin` (at `/admin/`)
+- **API server**: Express 5 — `artifacts/api-server` (at `/api/`)
+- **Database**: PostgreSQL + Drizzle ORM — `lib/db`
+- **Validation**: Zod 3.x (import from `"zod"` not `"zod/v4"` in esbuild bundles)
+- **Build**: esbuild (api-server), Vite (admin)
+
+## Artifacts
+
+| Artifact | Path | Port | Purpose |
+|---|---|---|---|
+| `artifacts/talah` | `/` | 20433 | Expo mobile app (web preview) |
+| `artifacts/api-server` | `/api/` | 8080 | Express REST API |
+| `artifacts/admin` | `/admin/` | 23744 | Web admin dashboard |
+| `artifacts/mockup-sandbox` | `/__mockup` | 8081 | Canvas component previews |
+
+## Database Schema (`lib/db/src/schema/`)
+
+| Table | Description |
+|---|---|
+| `users` | User profiles, personality fields, scores |
+| `sessions` | Auth session tokens |
+| `otp` | One-time passwords (10 min TTL) |
+| `requests` | Meetup requests submitted by users |
+| `groups` | Curated groups created by admin |
+| `feedback` | Post-meetup ratings and comments |
+| `reports` | User-to-user reports |
+
+## API Routes (`artifacts/api-server/src/routes/`)
+
+| Route | Auth | Description |
+|---|---|---|
+| `POST /api/auth/otp/send` | None | Send OTP (returns `code` in dev) |
+| `POST /api/auth/otp/verify` | None | Verify OTP, get session token |
+| `POST /api/auth/logout` | User | Delete session |
+| `GET /api/users/me` | User | Get current user profile |
+| `PATCH /api/users/me` | User | Update profile / onboarding |
+| `GET /api/requests` | User | Get own requests |
+| `POST /api/requests` | User | Submit a meetup request |
+| `DELETE /api/requests/:id` | User | Cancel a pending request |
+| `GET /api/groups` | User | Get groups the user belongs to |
+| `GET /api/groups/:id` | User (member) | Get one group |
+| `POST /api/feedback` | User (member) | Submit feedback for a group |
+| `POST /api/reports` | User | Report another user |
+| `POST /api/admin/login` | None | PIN login for web dashboard |
+| `GET /api/admin/me` | Admin token | Verify admin session |
+| `GET /api/admin/users` | Admin | List all users |
+| `PATCH /api/admin/users/:id` | Admin | Update a user |
+| `DELETE /api/admin/users/:id` | Admin | Delete a user |
+| `GET /api/admin/requests` | Admin | List all requests |
+| `PATCH /api/admin/requests/:id` | Admin | Update request status |
+| `GET /api/admin/groups` | Admin | List all groups |
+| `POST /api/admin/groups` | Admin | Create a group |
+| `PATCH /api/admin/groups/:id` | Admin | Update group (venue, status) |
+| `GET /api/admin/feedback` | Admin | List all feedback |
+| `GET /api/admin/reports` | Admin | List all reports |
+| `POST /api/admin/compatibility` | Admin | Calculate group compatibility |
+
+## Auth
+
+- **Mobile users**: Phone OTP (`0000` in dev). Sends `Authorization: Bearer <token>` on requests.
+- **Admin web dashboard**: PIN `1234` (env `ADMIN_PIN`). Issues in-memory 8-hour admin tokens.
+
+## Admin Dashboard (`artifacts/admin/src/`)
+
+- `pages/LoginPage.tsx` — PIN login
+- `pages/DashboardPage.tsx` — main shell with stats and tab navigation
+- `components/UsersTab.tsx` — user cards with scores, completion bar, detail modal
+- `components/RequestsTab.tsx` — pending/matched/cancelled requests
+- `components/GroupsTab.tsx` — group management, venue/status editing
+- `components/CompatibilityTab.tsx` — select 3–5 users, run compatibility analysis
+- `components/FeedbackTab.tsx` — ratings and comments
+- `components/ReportsTab.tsx` — flagged reports
+- `lib/api.ts` — typed fetch wrapper, token storage
+
+## Mobile App (`artifacts/talah/`)
+
+- Expo + React Native (web preview enabled)
+- Arabic-first (English toggle), RTL per-text
+- AsyncStorage persistence (frontend-only — **not yet wired to API**)
+- 20-step onboarding (steps 0–9: basics; steps 10–19: personality/compatibility)
+- Personality scores computed client-side via `lib/types.ts computeScores()`
 
 ## Key Commands
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+```bash
+pnpm --filter @workspace/db run push          # Push DB schema changes
+pnpm --filter @workspace/api-spec run codegen # Regenerate API hooks
+pnpm run typecheck                            # Full typecheck all packages
+```
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+## Design Tokens (Tal'ah palette)
+
+| Token | Value | Use |
+|---|---|---|
+| Sand | `#F5EFE6` | Background |
+| Olive | `#6B7A4E` | Primary / CTA buttons |
+| Gold | `#B8924A` | Accent / highlights |
+| Charcoal | `#2A2A2A` | Foreground text |
+
+## TODO (Part 7)
+
+- Wire mobile app `DataContext` and `AppContext` to the real REST API (replace AsyncStorage-only persistence with HTTP calls to `/api/`).
