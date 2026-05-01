@@ -14,6 +14,16 @@ export function computeProfileCompletion(user: User | null): number {
     user.preferredDays.length > 0,
     user.preferredTimes.length > 0,
     !!user.funFact,
+    !!user.socialEnergy,
+    !!user.conversationStyle,
+    (user.enjoyedTopics ?? []).length >= 1,
+    !!user.socialIntent,
+    !!user.planningPreference,
+    !!user.meetupAtmosphere,
+    !!user.interactionPreference,
+    (user.personalityTraits ?? []).length >= 1,
+    !!user.opennessLevel,
+    !!user.socialBoundary,
   ];
   const done = checks.filter(Boolean).length;
   return Math.round((done / checks.length) * 100);

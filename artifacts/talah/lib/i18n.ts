@@ -140,6 +140,70 @@ export const STRINGS: Dict = {
     en: "e.g. I roast my own coffee at home",
   },
 
+  // ── NEW: Personality & Compatibility Questions ──────────────────────
+  q_social_energy: { ar: "مستوى طاقتك الاجتماعية", en: "Your social energy level" },
+  se_very_social: { ar: "اجتماعي/ـة جداً ومحب/ـة للحديث", en: "Very social and talkative" },
+  se_friendly_balanced: { ar: "ودود/ة ومتوازن/ة", en: "Friendly and balanced" },
+  se_quiet_open_later: { ar: "هادئ/ـة في البداية، أنفتح لاحقاً", en: "Quiet at first, open later" },
+  se_prefer_listening: { ar: "أفضّل الاستماع أكثر من الكلام", en: "Prefer listening more than talking" },
+
+  q_conversation_style: { ar: "أسلوب حديثك المفضّل", en: "Preferred conversation style" },
+  cs_light_fun: { ar: "خفيف وممتع", en: "Light and fun" },
+  cs_balanced: { ar: "متوازن", en: "Balanced" },
+  cs_deep_meaningful: { ar: "عميق وذو معنى", en: "Deep and meaningful" },
+
+  q_enjoyed_topics: { ar: "المواضيع التي تستمتع بها", en: "Topics you enjoy" },
+  q_enjoyed_topics_hint: { ar: "اختر واحداً أو أكثر", en: "Select one or more" },
+  et_daily_life: { ar: "الحياة اليومية", en: "Daily life" },
+  et_work_ambition: { ar: "العمل والطموح", en: "Work & ambition" },
+  et_family_relationships: { ar: "الأسرة والعلاقات", en: "Family & relationships" },
+  et_travel: { ar: "السفر", en: "Travel" },
+  et_wellness_growth: { ar: "الصحة والتطوير الذاتي", en: "Wellness & self-growth" },
+  et_hobbies_activities: { ar: "الهوايات والأنشطة", en: "Hobbies & activities" },
+
+  q_social_intent: { ar: "ما الذي تبحث عنه؟", en: "What are you looking for?" },
+  si_new_friends: { ar: "صداقات جديدة", en: "New friends" },
+  si_expand_circle: { ar: "توسيع دائرتي الاجتماعية", en: "Expanding my social circle" },
+  si_casual_conversations: { ar: "محادثات غير رسمية", en: "Casual conversations" },
+  si_long_term_connections: { ar: "علاقات اجتماعية طويلة الأمد", en: "Long-term meaningful connections" },
+
+  q_planning_preference: { ar: "كيف تفضّل التخطيط؟", en: "Planning preference" },
+  pp_structured: { ar: "منظّم ومحدد", en: "Structured" },
+  pp_flexible: { ar: "مرن", en: "Flexible" },
+  pp_spontaneous: { ar: "عفوي وتلقائي", en: "Spontaneous" },
+
+  q_meetup_atmosphere: { ar: "أجواء اللقاء المفضّلة", en: "Preferred meetup atmosphere" },
+  ma_calm_relaxed: { ar: "هادئة ومريحة", en: "Calm and relaxed" },
+  ma_moderate_energy: { ar: "نشاط معتدل", en: "Moderate energy" },
+  ma_lively_energetic: { ar: "حيوية ونابضة بالحياة", en: "Lively and energetic" },
+
+  q_interaction_preference: { ar: "كيف تفضّل التفاعل؟", en: "Interaction preference" },
+  ip_mostly_conversation: { ar: "محادثة في الغالب", en: "Mostly conversation" },
+  ip_mix_conversation_activity: { ar: "مزيج من المحادثة والنشاط الخفيف", en: "A mix of conversation and light activity" },
+  ip_activity_based: { ar: "نشاط بالدرجة الأولى", en: "Activity-based interaction" },
+
+  q_personality_traits: { ar: "أبرز سماتك الشخصية", en: "Your personality traits" },
+  q_personality_traits_hint: { ar: "اختر ٣ كحد أقصى", en: "Pick up to 3" },
+  pt_calm: { ar: "هادئ/ـة", en: "Calm" },
+  pt_social: { ar: "اجتماعي/ـة", en: "Social" },
+  pt_curious: { ar: "فضولي/ـة", en: "Curious" },
+  pt_thoughtful: { ar: "مفكّر/ة", en: "Thoughtful" },
+  pt_energetic: { ar: "نشيط/ـة", en: "Energetic" },
+  pt_funny: { ar: "مرح/ـة", en: "Funny" },
+  pt_organized: { ar: "منظّم/ة", en: "Organized" },
+  pt_creative: { ar: "مبدع/ـة", en: "Creative" },
+
+  q_openness_level: { ar: "مدى انفتاحك مع أشخاص جدد", en: "Openness with new people" },
+  ol_open_quickly: { ar: "أنفتح بسرعة", en: "Open up quickly" },
+  ol_open_gradually: { ar: "أنفتح تدريجياً", en: "Open up gradually" },
+  ol_take_your_time: { ar: "أحتاج وقتاً قبل الانفتاح", en: "Prefer to take your time" },
+
+  q_social_boundary: { ar: "حدودك الاجتماعية", en: "Social comfort boundary" },
+  sb_very_relaxed: { ar: "مريح/ـة جداً ومنفتح/ـة", en: "Very relaxed and open" },
+  sb_respectful_balanced: { ar: "محترم/ـة ومتوازن/ة", en: "Respectful and balanced" },
+  sb_more_reserved: { ar: "أكثر تحفظاً وخصوصية", en: "More reserved and private" },
+  // ────────────────────────────────────────────────────────────────────
+
   finish_onboarding: { ar: "إنهاء", en: "Finish" },
 
   // Home
@@ -267,6 +331,7 @@ export const STRINGS: Dict = {
   admin_groups: { ar: "المجموعات", en: "Groups" },
   admin_feedback: { ar: "التقييمات", en: "Feedback" },
   admin_reports: { ar: "البلاغات", en: "Reports" },
+  admin_compatibility: { ar: "التوافق", en: "Compatibility" },
   admin_create_group: { ar: "إنشاء مجموعة", en: "Create group" },
   admin_assign: { ar: "تعيين", en: "Assign" },
   admin_set_status: { ar: "تغيير الحالة", en: "Change status" },
@@ -275,6 +340,24 @@ export const STRINGS: Dict = {
   admin_unflag: { ar: "إلغاء التحذير", en: "Unflag" },
   admin_remove: { ar: "إزالة", en: "Remove" },
   flagged_label: { ar: "محذّر", en: "Flagged" },
+  admin_matching_notes: { ar: "ملاحظات المطابقة", en: "Matching notes" },
+  admin_scores: { ar: "النتائج", en: "Scores" },
+  admin_compatibility_tab: { ar: "حساب التوافق", en: "Check compatibility" },
+  admin_select_users: { ar: "اختر ٣-٥ مستخدمين", en: "Select 3–5 users" },
+  admin_calculate: { ar: "احسب التوافق", en: "Calculate compatibility" },
+  compat_excellent: { ar: "توافق ممتاز", en: "Excellent fit" },
+  compat_good: { ar: "توافق جيد", en: "Good fit" },
+  compat_moderate: { ar: "توافق متوسط", en: "Moderate fit" },
+  compat_weak: { ar: "توافق ضعيف", en: "Weak fit" },
+  compat_hard_filters: { ar: "المرشّحات الأساسية", en: "Hard filters" },
+  compat_interests: { ar: "الاهتمامات المشتركة", en: "Shared interests/topics" },
+  compat_lifestyle: { ar: "أسلوب الحياة", en: "Lifestyle" },
+  compat_energy: { ar: "الطاقة الاجتماعية", en: "Social energy" },
+  compat_conversation: { ar: "أسلوب الحديث", en: "Conversation" },
+  compat_intent_boundary: { ar: "النية والحدود", en: "Intent & boundary" },
+  compat_common_days: { ar: "الأيام المشتركة", en: "Common days" },
+  compat_common_times: { ar: "الأوقات المشتركة", en: "Common times" },
+  compat_no_overlap: { ar: "لا تقاطع", en: "No overlap" },
 
   // Misc / placeholders
   no_data: { ar: "لا يوجد بيانات بعد", en: "Nothing here yet" },

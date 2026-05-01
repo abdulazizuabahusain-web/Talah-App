@@ -29,7 +29,7 @@ const K_REQ = "talah:requests";
 const K_GROUPS = "talah:groups";
 const K_FEEDBACK = "talah:feedback";
 const K_REPORTS = "talah:reports";
-const K_SEEDED = "talah:seeded:v1";
+const K_SEEDED = "talah:seeded:v2";
 
 interface DataContextValue {
   ready: boolean;

@@ -1,0 +1,252 @@
+Update the existing Tal’ah / طلعة MVP codebase.
+
+Important:
+Do NOT replace the existing onboarding/profile questions. Keep all current necessary questions exactly as they are, including basic profile, gender, city, age range, lifestyle, interests, meetup type, and availability.
+
+Instead, enhance the existing onboarding by adding the new personality and compatibility questions below, then calculate scoring fields and make them visible to the admin.
+
+Add these additional questions:
+
+1. Social Energy
+Single choice:
+- Very social and talkative
+- Friendly and balanced
+- Quiet at first, open later
+- Prefer listening more than talking
+
+2. Conversation Style
+Single choice:
+- Light and fun
+- Balanced
+- Deep and meaningful
+
+3. Topics You Enjoy
+Multi-select:
+- Daily life
+- Work & ambition
+- Family & relationships
+- Travel
+- Wellness & self-growth
+- Hobbies & activities
+
+4. Social Intent
+Single choice:
+- New friends
+- Expanding my social circle
+- Casual conversations
+- Long-term meaningful connections
+
+5. Planning Preference
+Single choice:
+- Structured
+- Flexible
+- Spontaneous
+
+6. Meetup Atmosphere
+Single choice:
+- Calm and relaxed
+- Moderate energy
+- Lively and energetic
+
+7. Interaction Preference
+Single choice:
+- Mostly conversation
+- A mix of conversation and light activity
+- Activity-based interaction
+
+8. Personality Traits
+Multi-select, maximum 3:
+- Calm
+- Social
+- Curious
+- Thoughtful
+- Energetic
+- Funny
+- Organized
+- Creative
+
+9. Openness with New People
+Single choice:
+- Open up quickly
+- Open up gradually
+- Prefer to take your time
+
+10. Social Comfort Boundary
+Single choice:
+- Very relaxed and open
+- Respectful and balanced
+- More reserved and private
+
+Scoring Requirements:
+
+Create or update calculated fields:
+
+socialEnergyScore:
+- Very social and talkative = +2
+- Friendly and balanced = +1
+- Quiet at first, open later = -1
+- Prefer listening more than talking = -2
+
+conversationDepthScore:
+- Light and fun = -1
+- Balanced = 0
+- Deep and meaningful = +1
+
+planningScore:
+- Structured = +1
+- Flexible = 0
+- Spontaneous = -1
+
+atmosphereScore:
+- Calm and relaxed = -1
+- Moderate energy = 0
+- Lively and energetic = +1
+
+interactionScore:
+- Mostly conversation = -1
+- A mix of conversation and light activity = 0
+- Activity-based interaction = +1
+
+opennessScore:
+- Open up quickly = +1
+- Open up gradually = 0
+- Prefer to take your time = -1
+
+boundaryScore:
+- Very relaxed and open = +1
+- Respectful and balanced = 0
+- More reserved and private = -1
+
+Store these as categories/arrays:
+- socialIntent
+- enjoyedTopics
+- personalityTraits
+- lifestyle from existing question
+- interests from existing question
+- availability from existing question
+
+Admin Dashboard Updates:
+
+In the admin user list, show:
+- Existing profile fields
+- Lifestyle
+- Interests
+- Availability
+- Social intent
+- Social energy score
+- Conversation depth score
+- Atmosphere score
+- Interaction score
+- Openness score
+- Boundary score
+- Enjoyed topics
+- Personality traits
+- Profile completion status
+
+Add a user compatibility detail view/modal showing:
+- Existing profile answers
+- New personality answers
+- All calculated scores
+- Admin matching notes
+
+Matching Notes Logic:
+Generate rule-based notes such as:
+- High-energy social user
+- Reserved user; best matched with balanced group
+- Prefers deep conversations
+- Prefers light and fun conversations
+- Prefers calm meetups
+- Activity-oriented user
+- Strong privacy preference
+- Best for long-term connection groups
+- Best for casual/social-circle expansion groups
+
+Group Compatibility Helper:
+
+Allow admin to select 3–5 users and calculate compatibility.
+
+Use both existing fields and new scoring fields.
+
+Checks:
+1. Gender:
+- Must all be same gender.
+- If mixed, show warning: “Invalid group: Tal’ah currently supports women-only or men-only gatherings only.”
+
+2. City:
+- Must all be same city.
+- If mixed, show warning.
+
+3. Availability:
+- Use existing availability field.
+- Show common availability windows.
+- If none, show warning.
+
+4. Interests and enjoyed topics:
+- Use both existing interests and new enjoyedTopics.
+- Show shared interests/topics.
+- Calculate overlap percentage.
+
+5. Lifestyle:
+- Use existing lifestyle field.
+- Show whether lifestyles are aligned or mixed.
+
+6. Energy balance:
+- Calculate average socialEnergyScore.
+- Ideal range: -1 to +1.
+- Above +1: “Group may be too high-energy.”
+- Below -1: “Group may be too quiet/reserved.”
+- Within range: “Balanced social energy.”
+
+7. Conversation compatibility:
+- Use conversationDepthScore.
+- If spread is high, show “Conversation depth may be mismatched.”
+- Otherwise: “Conversation style is reasonably aligned.”
+
+8. Intent compatibility:
+- Use socialIntent.
+- If all or most are aligned, show positive note.
+- If very mixed, show warning.
+
+9. Boundary compatibility:
+- Use boundaryScore.
+- If group includes both very relaxed/open and more reserved/private users, show caution.
+- Otherwise show compatible boundary note.
+
+Overall Group Score:
+Calculate percentage:
+- 25% hard filters: same gender, same city, availability overlap
+- 25% interests/topics overlap
+- 15% lifestyle alignment
+- 15% energy balance
+- 10% conversation compatibility
+- 10% intent/boundary compatibility
+
+Display:
+- Excellent fit: 85–100
+- Good fit: 70–84
+- Moderate fit: 55–69
+- Weak fit: below 55
+
+Validation:
+- Keep existing validation.
+- Add validation for new required single-choice questions.
+- enjoyedTopics: at least one.
+- personalityTraits: max 3.
+- Do not duplicate fields if existing fields already cover the same concept. Reuse existing fields where possible.
+
+Seed Data:
+Update sample data to include:
+- Existing profile fields
+- New personality fields
+- Calculated scores
+- At least 8 diverse sample users for admin testing
+
+Do not add:
+- Chat
+- Payment
+- Dating/swiping features
+- Public profile browsing
+- User-hosted events
+
+Deliver:
+An updated working MVP that preserves the original onboarding questions, adds personality enhancement questions, calculates scoring, shows scores to admin, and supports group compatibility review.
