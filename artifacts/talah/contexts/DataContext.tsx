@@ -142,7 +142,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         groupId: input.groupId,
         rating: input.rating,
         comment: input.comment,
-        connections: input.connections,
       });
     },
     [],

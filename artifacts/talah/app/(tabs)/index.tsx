@@ -1,8 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React from "react";
-import { Platform, Pressable, ScrollView, View } from "react-native";
+import React, { useState } from "react";
+import { Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
@@ -24,8 +24,15 @@ export default function HomeScreen() {
   const t = useT();
   const insets = useSafeAreaInsets();
   const { currentUser, language, setLanguage } = useApp();
-  const { groups, requests } = useData();
+  const { groups, requests, refresh } = useData();
   const webTopPad = Platform.OS === "web" ? 67 : 0;
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  };
 
   const myGroups = currentUser
     ? groups
@@ -52,6 +59,14 @@ export default function HomeScreen() {
         paddingHorizontal: 20,
         gap: 22,
       }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+        />
+      }
     >
       <View
         style={{

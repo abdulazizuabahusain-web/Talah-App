@@ -228,7 +228,6 @@ export const api = {
     groupId: string;
     rating: number;
     comment?: string;
-    connections: { userId: string; verdict: "connect" | "pass" }[];
   }) => req<void>("/feedback", { method: "POST", body }),
 
   // Reports

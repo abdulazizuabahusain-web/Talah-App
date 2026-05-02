@@ -186,49 +186,53 @@ export interface ReportEntry {
   createdAt: number;
 }
 
+function lookup(map: Record<string, number>, key: string | undefined): number | undefined {
+  return key !== undefined ? map[key] : undefined;
+}
+
 export function computeScores(user: Partial<User>): Partial<UserScores> {
-  const socialEnergyScore = {
+  const socialEnergyScore = lookup({
     very_social: 2,
     friendly_balanced: 1,
     quiet_open_later: -1,
     prefer_listening: -2,
-  }[user.socialEnergy ?? ""] ?? undefined;
+  }, user.socialEnergy);
 
-  const conversationDepthScore = {
+  const conversationDepthScore = lookup({
     light_fun: -1,
     balanced: 0,
     deep_meaningful: 1,
-  }[user.conversationStyle ?? ""] ?? undefined;
+  }, user.conversationStyle);
 
-  const planningScore = {
+  const planningScore = lookup({
     structured: 1,
     flexible: 0,
     spontaneous: -1,
-  }[user.planningPreference ?? ""] ?? undefined;
+  }, user.planningPreference);
 
-  const atmosphereScore = {
+  const atmosphereScore = lookup({
     calm_relaxed: -1,
     moderate_energy: 0,
     lively_energetic: 1,
-  }[user.meetupAtmosphere ?? ""] ?? undefined;
+  }, user.meetupAtmosphere);
 
-  const interactionScore = {
+  const interactionScore = lookup({
     mostly_conversation: -1,
     mix_conversation_activity: 0,
     activity_based: 1,
-  }[user.interactionPreference ?? ""] ?? undefined;
+  }, user.interactionPreference);
 
-  const opennessScore = {
+  const opennessScore = lookup({
     open_quickly: 1,
     open_gradually: 0,
     take_your_time: -1,
-  }[user.opennessLevel ?? ""] ?? undefined;
+  }, user.opennessLevel);
 
-  const boundaryScore = {
+  const boundaryScore = lookup({
     very_relaxed: 1,
     respectful_balanced: 0,
     more_reserved: -1,
-  }[user.socialBoundary ?? ""] ?? undefined;
+  }, user.socialBoundary);
 
   return {
     socialEnergyScore,

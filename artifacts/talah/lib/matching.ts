@@ -103,13 +103,13 @@ export function calculateGroupCompatibility(users: User[]): CompatibilityReport 
   if (!cityOk) warnings.push("Users are from different cities.");
 
   const dayIntersection = users
-    .map((u) => new Set(u.preferredDays))
-    .reduce<Set<string>>((acc, s) => new Set([...acc].filter((x) => s.has(x))), new Set(users[0]?.preferredDays ?? []));
+    .map((u) => new Set<string>(u.preferredDays))
+    .reduce<Set<string>>((acc, s) => new Set([...acc].filter((x) => s.has(x))), new Set<string>(users[0]?.preferredDays ?? []));
   const commonDays = [...dayIntersection];
 
   const timeIntersection = users
-    .map((u) => new Set(u.preferredTimes))
-    .reduce<Set<string>>((acc, s) => new Set([...acc].filter((x) => s.has(x))), new Set(users[0]?.preferredTimes ?? []));
+    .map((u) => new Set<string>(u.preferredTimes))
+    .reduce<Set<string>>((acc, s) => new Set([...acc].filter((x) => s.has(x))), new Set<string>(users[0]?.preferredTimes ?? []));
   const commonTimes = [...timeIntersection];
 
   const availabilityOk = commonDays.length > 0 && commonTimes.length > 0;

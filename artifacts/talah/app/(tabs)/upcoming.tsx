@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
-import { Platform, ScrollView, View } from "react-native";
+import React, { useState } from "react";
+import { Alert, Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
@@ -17,8 +17,10 @@ export default function UpcomingScreen() {
   const t = useT();
   const insets = useSafeAreaInsets();
   const { currentUser, language } = useApp();
-  const { groups, requests } = useData();
+  const { groups, requests, cancelRequest, refresh } = useData();
   const webTopPad = Platform.OS === "web" ? 67 : 0;
+  const [refreshing, setRefreshing] = useState(false);
+  const [cancelling, setCancelling] = useState<string | null>(null);
 
   const myGroups = currentUser
     ? groups
@@ -33,6 +35,34 @@ export default function UpcomingScreen() {
 
   const empty = myGroups.length === 0 && myRequests.length === 0;
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  };
+
+  const handleCancel = (requestId: string) => {
+    Alert.alert(
+      t("cancel_request_confirm") || "Cancel Request",
+      t("cancel_request_body") || "Are you sure you want to cancel this request?",
+      [
+        { text: t("cancel") || "No", style: "cancel" },
+        {
+          text: t("confirm") || "Yes, Cancel",
+          style: "destructive",
+          onPress: async () => {
+            setCancelling(requestId);
+            try {
+              await cancelRequest(requestId);
+            } finally {
+              setCancelling(null);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
@@ -42,6 +72,14 @@ export default function UpcomingScreen() {
         paddingHorizontal: 20,
         gap: 16,
       }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+        />
+      }
     >
       <AppText variant="h1" weight="bold">
         {t("upcoming_title")}
@@ -142,6 +180,28 @@ export default function UpcomingScreen() {
               <AppText variant="caption" color={colors.mutedForeground}>
                 {t("reveal_hint")}
               </AppText>
+              {r.status === "pending" ? (
+                <Pressable
+                  onPress={() => handleCancel(r.id)}
+                  disabled={cancelling === r.id}
+                  style={({ pressed }) => ({
+                    marginTop: 4,
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: colors.destructive,
+                    alignSelf: "flex-start",
+                    opacity: pressed || cancelling === r.id ? 0.6 : 1,
+                  })}
+                >
+                  <AppText variant="label" weight="semibold" color={colors.destructive}>
+                    {cancelling === r.id
+                      ? (t("cancelling") || "Cancelling…")
+                      : (t("cancel_request") || "Cancel Request")}
+                  </AppText>
+                </Pressable>
+              ) : null}
             </View>
           </Card>
         ))}
