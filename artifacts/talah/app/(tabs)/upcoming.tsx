@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { Alert, Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
@@ -17,7 +17,7 @@ export default function UpcomingScreen() {
   const t = useT();
   const insets = useSafeAreaInsets();
   const { currentUser, language } = useApp();
-  const { groups, requests, cancelRequest, refresh } = useData();
+  const { groups, requests, cancelRequest, refresh, ready: dataReady } = useData();
   const webTopPad = Platform.OS === "web" ? 67 : 0;
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
@@ -54,6 +54,8 @@ export default function UpcomingScreen() {
             setCancelling(requestId);
             try {
               await cancelRequest(requestId);
+            } catch (e) {
+              Alert.alert(t("error_title"), (e as Error).message || t("error_generic"));
             } finally {
               setCancelling(null);
             }
@@ -85,7 +87,16 @@ export default function UpcomingScreen() {
         {t("upcoming_title")}
       </AppText>
 
-      {empty ? (
+      {!dataReady && currentUser ? (
+        <View style={{ paddingTop: 40, alignItems: "center", gap: 12 }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <AppText variant="bodySmall" color={colors.mutedForeground}>
+            {t("data_loading")}
+          </AppText>
+        </View>
+      ) : null}
+
+      {dataReady && empty ? (
         <View style={{ paddingTop: 60, alignItems: "center", gap: 12 }}>
           <Feather name="calendar" size={32} color={colors.mutedForeground} />
           <AppText
@@ -98,7 +109,7 @@ export default function UpcomingScreen() {
         </View>
       ) : null}
 
-      {myGroups.map((g) => (
+      {dataReady && myGroups.map((g) => (
         <Card
           key={g.id}
           onPress={() => router.push(`/reveal/${g.id}`)}
@@ -154,7 +165,7 @@ export default function UpcomingScreen() {
         </Card>
       ))}
 
-      {myRequests
+      {dataReady && myRequests
         .filter((r) => !groups.some((g) => g.requestIds?.includes(r.id)))
         .map((r) => (
           <Card key={r.id}>

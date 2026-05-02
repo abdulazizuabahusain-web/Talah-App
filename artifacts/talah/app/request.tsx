@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -51,15 +52,20 @@ export default function RequestScreen() {
   const handleSubmit = async () => {
     if (!currentUser || !area.trim()) return;
     setSubmitting(true);
-    await createRequest({
-      userId: currentUser.id,
-      meetupType: meetup,
-      preferredDate: date,
-      preferredTime: time,
-      area: area.trim(),
-    });
-    setSubmitting(false);
-    setSubmitted(true);
+    try {
+      await createRequest({
+        userId: currentUser.id,
+        meetupType: meetup,
+        preferredDate: date,
+        preferredTime: time,
+        area: area.trim(),
+      });
+      setSubmitted(true);
+    } catch (e) {
+      Alert.alert(t("error_title"), (e as Error).message || t("error_generic"));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {

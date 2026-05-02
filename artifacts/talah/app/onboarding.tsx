@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -178,6 +179,7 @@ export default function OnboardingScreen() {
   const webBottomPad = Platform.OS === "web" ? 34 : 0;
 
   const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   // ── Existing fields (steps 0–9) ──────────────────
   const [nickname, setNickname] = useState(currentUser?.nickname ?? "");
@@ -270,8 +272,15 @@ export default function OnboardingScreen() {
         onboarded: true,
       };
       const scores = computeScores(patch);
-      await updateCurrentUser({ ...patch, ...scores });
-      router.replace("/(tabs)");
+      setSaving(true);
+      try {
+        await updateCurrentUser({ ...patch, ...scores });
+        router.replace("/(tabs)");
+      } catch (e) {
+        Alert.alert(t("error_title"), (e as Error).message || t("error_generic"));
+      } finally {
+        setSaving(false);
+      }
     } else {
       setStep(step + 1);
     }
@@ -517,7 +526,7 @@ export default function OnboardingScreen() {
             </AppText>
             {step >= PERSONALITY_SECTION_START ? (
               <AppText variant="caption" color={colors.accent} weight="medium">
-                Personality
+                {t("onboarding_personality_label")}
               </AppText>
             ) : null}
           </View>
@@ -548,9 +557,7 @@ export default function OnboardingScreen() {
           >
             <Feather name="zap" size={16} color={colors.accent} />
             <AppText variant="bodySmall" color={colors.accent} weight="medium" style={{ flex: 1 }}>
-              {colors.accent
-                ? "You've completed the basics! Now let's go deeper so we can match you perfectly."
-                : ""}
+              {t("onboarding_personality_banner")}
             </AppText>
           </View>
         ) : null}
@@ -573,10 +580,10 @@ export default function OnboardingScreen() {
               }}
             >
               <AppText variant="h3" weight="bold" color={colors.accent}>
-                🎭 Personality Profile
+                {t("onboarding_personality_title")}
               </AppText>
               <AppText variant="body" color={colors.mutedForeground} style={{ marginTop: 6 }}>
-                These questions help us find people who truly match your social style, energy, and conversation preferences.
+                {t("onboarding_personality_desc")}
               </AppText>
             </View>
           ) : null}
@@ -595,7 +602,8 @@ export default function OnboardingScreen() {
         >
           <Button
             label={step === TOTAL_STEPS - 1 ? t("finish_onboarding") : t("continue")}
-            disabled={!canContinue}
+            disabled={!canContinue || saving}
+            loading={saving}
             onPress={handleNext}
             size="lg"
           />

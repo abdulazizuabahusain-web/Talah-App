@@ -172,7 +172,7 @@ export interface FeedbackEntry {
   groupId: string;
   fromUserId: string;
   rating: number;
-  connections: { userId: string; verdict: "connect" | "pass" }[];
+  connections?: { userId: string; verdict: "connect" | "pass" }[];
   comment?: string;
   createdAt: number;
 }

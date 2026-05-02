@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
@@ -24,7 +24,7 @@ export default function HomeScreen() {
   const t = useT();
   const insets = useSafeAreaInsets();
   const { currentUser, language, setLanguage } = useApp();
-  const { groups, requests, refresh } = useData();
+  const { groups, requests, refresh, ready: dataReady } = useData();
   const webTopPad = Platform.OS === "web" ? 67 : 0;
   const [refreshing, setRefreshing] = useState(false);
 
@@ -100,9 +100,18 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
-      <RequestHero />
+      {!dataReady && currentUser ? (
+        <View style={{ paddingTop: 32, alignItems: "center", gap: 12 }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <AppText variant="bodySmall" color={colors.mutedForeground}>
+            {t("data_loading")}
+          </AppText>
+        </View>
+      ) : null}
 
-      {upcoming || myPendingRequest ? (
+      {dataReady && !myPendingRequest && !upcoming ? <RequestHero /> : null}
+
+      {dataReady && (upcoming || myPendingRequest) ? (
         <View style={{ gap: 12 }}>
           <SectionHeader
             title={t("home_upcoming")}
@@ -186,7 +195,7 @@ export default function HomeScreen() {
         </View>
       ) : null}
 
-      {completion < 100 ? (
+      {dataReady && completion < 100 ? (
         <Card
           onPress={() => router.push("/onboarding")}
           style={{ backgroundColor: colors.accent + "10", borderColor: colors.accent + "40" }}
@@ -229,7 +238,7 @@ export default function HomeScreen() {
         </Card>
       ) : null}
 
-      <PrivacyNote />
+      {dataReady ? <PrivacyNote /> : null}
     </ScrollView>
   );
 }

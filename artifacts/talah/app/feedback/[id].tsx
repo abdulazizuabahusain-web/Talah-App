@@ -58,33 +58,38 @@ export default function FeedbackScreen() {
   const handleSubmit = async () => {
     if (!currentUser) return;
     setSubmitting(true);
-    await submitFeedback({
-      groupId: group.id,
-      fromUserId: currentUser.id,
-      rating: rating || 5,
-      connections: others.map((o) => ({
-        userId: o.id,
-        verdict: verdicts[o.id] ?? "pass",
-      })),
-      comment: comment.trim() || undefined,
-    });
-    setSubmitting(false);
-    Alert.alert(t("feedback_thanks"), undefined, [
-      { text: t("done"), onPress: () => router.replace("/(tabs)") },
-    ]);
+    try {
+      await submitFeedback({
+        groupId: group.id,
+        fromUserId: currentUser.id,
+        rating: rating || 5,
+        comment: comment.trim() || undefined,
+      });
+      Alert.alert(t("feedback_thanks"), undefined, [
+        { text: t("done"), onPress: () => router.replace("/(tabs)") },
+      ]);
+    } catch (e) {
+      Alert.alert(t("error_title"), (e as Error).message || t("error_generic"));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleReport = async () => {
     if (!currentUser || !reportTarget || !reportReason.trim()) return;
-    await submitReport({
-      reporterId: currentUser.id,
-      targetUserId: reportTarget,
-      groupId: group.id,
-      reason: reportReason.trim(),
-    });
-    setReportTarget(null);
-    setReportReason("");
-    Alert.alert(t("report_submitted"));
+    try {
+      await submitReport({
+        reporterId: currentUser.id,
+        targetUserId: reportTarget,
+        groupId: group.id,
+        reason: reportReason.trim(),
+      });
+      setReportTarget(null);
+      setReportReason("");
+      Alert.alert(t("report_submitted"));
+    } catch (e) {
+      Alert.alert(t("error_title"), (e as Error).message || t("error_generic"));
+    }
   };
 
   return (
