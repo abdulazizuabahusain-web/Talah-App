@@ -47,14 +47,14 @@ router.patch("/users/:id", requireAdmin, async (req, res) => {
   const [updated] = await db
     .update(usersTable)
     .set(req.body)
-    .where(eq(usersTable.id, req.params["id"]!))
+    .where(eq(usersTable.id, req.params["id"] as string))
     .returning();
   if (!updated) { res.status(404).json({ error: "User not found" }); return; }
   res.json(updated);
 });
 
 router.delete("/users/:id", requireAdmin, async (req, res) => {
-  await db.delete(usersTable).where(eq(usersTable.id, req.params["id"]!));
+  await db.delete(usersTable).where(eq(usersTable.id, req.params["id"] as string));
   res.json({ ok: true });
 });
 
@@ -68,7 +68,7 @@ router.patch("/requests/:id", requireAdmin, async (req, res) => {
   const [updated] = await db
     .update(requestsTable)
     .set(req.body)
-    .where(eq(requestsTable.id, req.params["id"]!))
+    .where(eq(requestsTable.id, req.params["id"] as string))
     .returning();
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
   res.json(updated);
@@ -116,7 +116,7 @@ router.patch("/groups/:id", requireAdmin, async (req, res) => {
   const [updated] = await db
     .update(groupsTable)
     .set(req.body)
-    .where(eq(groupsTable.id, req.params["id"]!))
+    .where(eq(groupsTable.id, req.params["id"] as string))
     .returning();
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
   res.json(updated);

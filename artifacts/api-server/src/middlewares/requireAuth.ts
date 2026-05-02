@@ -33,7 +33,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
   }
 
   // Accept web dashboard admin tokens
-  if (_isAdminToken && _isAdminToken(token)) {
+  if (isAdminToken(token)) {
     next();
     return;
   }

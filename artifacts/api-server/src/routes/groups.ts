@@ -46,7 +46,7 @@ router.get("/:id", requireAuth, async (req, res) => {
   const [group] = await db
     .select()
     .from(groupsTable)
-    .where(eq(groupsTable.id, req.params["id"]!))
+    .where(eq(groupsTable.id, req.params["id"] as string))
     .limit(1);
 
   if (!group) {

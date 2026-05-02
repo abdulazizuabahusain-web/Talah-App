@@ -59,7 +59,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
     .from(requestsTable)
     .where(
       and(
-        eq(requestsTable.id, req.params["id"]!),
+        eq(requestsTable.id, req.params["id"] as string),
         eq(requestsTable.userId, req.user!.id),
       ),
     )
