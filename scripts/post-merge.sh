@@ -11,7 +11,7 @@ else
   git remote remove github 2>/dev/null || true
   git remote add github "$GITHUB_URL"
   CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-  git push github "${CURRENT_BRANCH}:main" --force-with-lease
+  git push github "${CURRENT_BRANCH}:main" --force
   git remote remove github
   echo "--- GitHub sync complete ---"
 fi
