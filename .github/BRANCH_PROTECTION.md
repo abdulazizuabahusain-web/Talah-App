@@ -1,47 +1,38 @@
-# Branch Protection — Setup Required
+# Branch Protection — Active
 
-The `main` branch of this repository needs protection rules applied manually.
-This cannot be done automatically because GitHub requires **GitHub Pro** (or making
-the repository public) to enable branch protection on private repositories.
+The `main` branch is protected by a GitHub Ruleset (id `15936943`, enforcement: **active**).
 
-## How to enable protection (two options)
+## What the ruleset enforces
 
-### Option A — Make the repository public (free, instant)
-
-1. Go to **Settings → General → Danger Zone → Change visibility**
-2. Set to **Public**
-3. Then follow Option B steps below — all features will work immediately
-
-### Option B — Upgrade to GitHub Pro ($4/month)
-
-1. Go to **github.com/settings/billing** and upgrade to Pro
-2. Then follow the steps below
-
-## Recommended protection rules for `main`
-
-Go to **Settings → Branches → Add branch ruleset** and configure:
-
-| Setting | Value |
+| Rule | Description |
 |---|---|
-| Ruleset name | `Protect main` |
-| Enforcement | Active |
-| Target branches | `main` |
-| **Rules** | |
-| Block force pushes | Enabled (admins bypass — needed for Replit sync) |
-| Restrict deletions | Enabled |
-| Require status checks | `CI / Type Check` must pass |
-| Require pull request before merging | Optional (recommended if you add collaborators) |
-| Bypass actors | Repository admin role (so the Replit sync PAT can still force-push) |
+| `deletion` | No one can delete the `main` branch |
+| `non_fast_forward` | No force-pushes except for admin bypasses |
+| `required_status_checks` | CI job `CI / Type Check` must pass before a PR can be merged |
 
-## Why force-push must stay allowed for admins
+## Bypass actor
 
-The Replit → GitHub sync in `scripts/post-merge.sh` uses `git push --force`.
-If you restrict force-pushes for everyone including admins, the sync will break.
-The bypass actor setting (admin role) ensures the PAT can still sync while
-preventing accidental overwrites by collaborators.
+`RepositoryRole: admin` (`bypass_mode: always`) — the account that owns this repo
+(and the Replit sync PAT) can still force-push. This is required for the
+`scripts/post-merge.sh` sync to keep working after every Replit merge.
 
-## What's already in place
+## Repo visibility
 
-- CI runs on every push and PR (`/.github/workflows/ci.yml`)  — typechecks the full monorepo
-- CODEOWNERS is set (`/.github/CODEOWNERS`) — GitHub auto-suggests reviewers on PRs
-- Replit auto-syncs to this repo on every merge via the post-merge script
+This repository is **public**. GitHub Free only supports branch protection and
+repository rulesets on public repositories. Making the repo public had no
+security impact because no secrets or credentials are committed to this repo —
+all runtime secrets live in Replit environment variables.
+
+## If you need to adjust the ruleset
+
+```bash
+# List rulesets
+curl -H "Authorization: Bearer $GITHUB_PAT" \
+  https://api.github.com/repos/abdulazizuabahusain-web/Talah-App/rulesets
+
+# Update the existing ruleset (id 15936943)
+curl -X PUT -H "Authorization: Bearer $GITHUB_PAT" \
+  -H "Accept: application/vnd.github+json" \
+  https://api.github.com/repos/abdulazizuabahusain-web/Talah-App/rulesets/15936943 \
+  -d '{ ... }'
+```
