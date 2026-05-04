@@ -7,30 +7,36 @@ The `main` branch is protected by a GitHub Ruleset (id `15936943`, enforcement: 
 | Rule | Description |
 |---|---|
 | `deletion` | No one can delete the `main` branch |
-| `non_fast_forward` | No force-pushes except for admin bypasses |
+| `non_fast_forward` | Force-pushes blocked for everyone except the bypass actor |
 | `required_status_checks` | CI job `CI / Type Check` must pass before a PR can be merged |
 
-## Bypass actor
+## Bypass actor (least privilege)
 
-`RepositoryRole: admin` (`bypass_mode: always`) — the account that owns this repo
-(and the Replit sync PAT) can still force-push. This is required for the
-`scripts/post-merge.sh` sync to keep working after every Replit merge.
+| Field | Value |
+|---|---|
+| `actor_type` | `User` |
+| `actor_id` | `280890304` (`@abdulazizuabahusain-web`) |
+| `bypass_mode` | `always` |
+
+Only this specific user account can bypass the ruleset. This is the same account
+whose PAT runs the `scripts/post-merge.sh` sync, so force-pushes from Replit
+keep working while no other account can bypass protections.
 
 ## Repo visibility
 
-This repository is **public**. GitHub Free only supports branch protection and
-repository rulesets on public repositories. Making the repo public had no
-security impact because no secrets or credentials are committed to this repo —
-all runtime secrets live in Replit environment variables.
+This repository is **public**. GitHub Free only supports rulesets on public
+repositories. Making it public had no security impact — no secrets or credentials
+are committed here; all runtime secrets live in Replit environment variables.
 
-## If you need to adjust the ruleset
+## Managing the ruleset
 
 ```bash
-# List rulesets
+# Inspect the active ruleset
 curl -H "Authorization: Bearer $GITHUB_PAT" \
-  https://api.github.com/repos/abdulazizuabahusain-web/Talah-App/rulesets
+  -H "Accept: application/vnd.github+json" \
+  https://api.github.com/repos/abdulazizuabahusain-web/Talah-App/rulesets/15936943
 
-# Update the existing ruleset (id 15936943)
+# Update it (PUT replaces the full ruleset)
 curl -X PUT -H "Authorization: Bearer $GITHUB_PAT" \
   -H "Accept: application/vnd.github+json" \
   https://api.github.com/repos/abdulazizuabahusain-web/Talah-App/rulesets/15936943 \
