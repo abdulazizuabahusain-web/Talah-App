@@ -73,17 +73,22 @@ ERROR: GitHub sync FAILED (exit ${PUSH_EXIT}).
 EOF
 
   # ── Secondary alert: GitHub Issue (best-effort, PAT already validated above) ──
-  ISSUE_TITLE="⚠️ GitHub sync failed — ${TIMESTAMP}"
-  ISSUE_BODY=$(jq -n \
-    --arg branch "${CURRENT_BRANCH}" \
-    --arg commit "${COMMIT}" \
-    --arg ts "${TIMESTAMP}" \
-    --arg expiry "${PAT_EXPIRY}" \
-    --arg repo "${REPO}" \
-    '{
-      title: ("⚠️ GitHub sync failed — " + $ts),
-      body: ("The automatic Replit → GitHub sync failed. **Code is not backed up.**\n\n**Details**\n- Branch: `" + $branch + "` → `main`\n- Commit: `" + $commit + "`\n- Time: " + $ts + "\n\n**Possible causes**\n- Branch protection rule violation\n- Network / DNS error\n- PAT permissions changed (PAT expires **" + $expiry + "**)\n\n**How to fix**\n1. Check the Replit post-merge log for the full push error\n2. Confirm `GITHUB_PAT` is valid in Replit Secrets\n3. Manually push: `git push https://$GITHUB_PAT@github.com/" + $repo + ".git main:main --force`\n4. Close this issue once the sync is restored")
-    }')
+  if command -v jq >/dev/null 2>&1; then
+    ISSUE_BODY=$(jq -n \
+      --arg branch "${CURRENT_BRANCH}" \
+      --arg commit "${COMMIT}" \
+      --arg ts "${TIMESTAMP}" \
+      --arg expiry "${PAT_EXPIRY}" \
+      --arg repo "${REPO}" \
+      '{
+        title: ("⚠️ GitHub sync failed — " + $ts),
+        body: ("The automatic Replit → GitHub sync failed. **Code is not backed up.**\n\n**Details**\n- Branch: `" + $branch + "` → `main`\n- Commit: `" + $commit + "`\n- Time: " + $ts + "\n\n**Possible causes**\n- Branch protection rule violation\n- Network / DNS error\n- PAT permissions changed (PAT expires **" + $expiry + "**)\n\n**How to fix**\n1. Check the Replit post-merge log for the full push error\n2. Confirm `GITHUB_PAT` is valid in Replit Secrets\n3. Manually push: `git push https://$GITHUB_PAT@github.com/" + $repo + ".git main:main --force`\n4. Close this issue once the sync is restored")
+      }')
+  else
+    SAFE_BRANCH=$(printf '%s' "${CURRENT_BRANCH}" | sed 's/"/\\"/g')
+    SAFE_COMMIT=$(printf '%s' "${COMMIT}" | sed 's/"/\\"/g')
+    ISSUE_BODY="{\"title\":\"⚠️ GitHub sync failed — ${TIMESTAMP}\",\"body\":\"GitHub sync failed.\\n\\nBranch: ${SAFE_BRANCH} → main\\nCommit: ${SAFE_COMMIT}\\nTime: ${TIMESTAMP}\\nPAT expires: ${PAT_EXPIRY}\\n\\nCheck the Replit post-merge log for details.\"}"
+  fi
 
   HTTP=$(curl -s -o /tmp/gh_issue.json -w "%{http_code}" \
     -X POST \
