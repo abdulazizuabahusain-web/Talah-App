@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
@@ -15,6 +15,7 @@ import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 import { useT } from "@/lib/i18n";
 import { computeProfileCompletion } from "@/lib/profileCompletion";
+import type { TalahRequest } from "@/lib/types";
 
 const COFFEE_IMG = require("../../assets/images/coffee-meetup.png");
 const DINNER_IMG = require("../../assets/images/dinner-meetup.png");
@@ -24,14 +25,35 @@ export default function HomeScreen() {
   const t = useT();
   const insets = useSafeAreaInsets();
   const { currentUser, language, setLanguage } = useApp();
-  const { groups, requests, refresh, ready: dataReady } = useData();
+  const { groups, requests, cancelRequest, refresh, ready: dataReady } = useData();
   const webTopPad = Platform.OS === "web" ? 67 : 0;
   const [refreshing, setRefreshing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
+  };
+
+  const handleCancelRequest = (r: TalahRequest) => {
+    Alert.alert(t("cancel_request_confirm"), t("cancel_request_body"), [
+      { text: t("cancel"), style: "cancel" },
+      {
+        text: t("confirm"),
+        style: "destructive",
+        onPress: async () => {
+          setCancelling(true);
+          try {
+            await cancelRequest(r.id);
+          } catch {
+            // Silent — upcoming tab will reflect real state on next refresh
+          } finally {
+            setCancelling(false);
+          }
+        },
+      },
+    ]);
   };
 
   const myGroups = currentUser
@@ -189,6 +211,24 @@ export default function HomeScreen() {
                 <AppText variant="bodySmall" color={colors.mutedForeground}>
                   {t("reveal_hint")}
                 </AppText>
+                <Pressable
+                  onPress={() => handleCancelRequest(myPendingRequest)}
+                  disabled={cancelling}
+                  style={({ pressed }) => ({
+                    alignSelf: "flex-start",
+                    paddingVertical: 6,
+                    paddingHorizontal: 14,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: colors.destructive,
+                    opacity: pressed || cancelling ? 0.6 : 1,
+                    marginTop: 4,
+                  })}
+                >
+                  <AppText variant="label" weight="semibold" color={colors.destructive}>
+                    {cancelling ? t("cancelling") : t("cancel_request")}
+                  </AppText>
+                </Pressable>
               </View>
             </Card>
           ) : null}

@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { Router } from "express";
 import { z } from "zod";
-import { db, requestsTable } from "@workspace/db";
+import { db, groupsTable, requestsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -19,7 +19,21 @@ router.get("/", requireAuth, async (req, res) => {
     .from(requestsTable)
     .where(eq(requestsTable.userId, req.user!.id))
     .orderBy(requestsTable.createdAt);
-  res.json(rows);
+
+  // Attach groupId by checking which group (if any) contains each request in its requestIds array.
+  // requestsTable has no groupId column — the link is stored on the group side.
+  const enriched = await Promise.all(
+    rows.map(async (r) => {
+      const [group] = await db
+        .select({ id: groupsTable.id })
+        .from(groupsTable)
+        .where(sql`${r.id} = ANY(${groupsTable.requestIds})`)
+        .limit(1);
+      return { ...r, groupId: group?.id ?? null };
+    }),
+  );
+
+  res.json(enriched);
 });
 
 router.post("/", requireAuth, async (req, res) => {
@@ -79,6 +93,28 @@ router.delete("/:id", requireAuth, async (req, res) => {
     .update(requestsTable)
     .set({ status: "cancelled" })
     .where(eq(requestsTable.id, row.id));
+
+  // If this request was part of a group, remove it from the group's membership arrays.
+  // If the group drops below 3 members, revert it to "cancelled".
+  const [group] = await db
+    .select()
+    .from(groupsTable)
+    .where(sql`${row.id} = ANY(${groupsTable.requestIds})`)
+    .limit(1);
+
+  if (group) {
+    const updatedMembers = group.memberIds.filter((id) => id !== req.user!.id);
+    const updatedRequests = group.requestIds.filter((id) => id !== row.id);
+    const newStatus = updatedMembers.length < 3 ? "cancelled" : group.status;
+    await db
+      .update(groupsTable)
+      .set({
+        memberIds: updatedMembers,
+        requestIds: updatedRequests,
+        status: newStatus,
+      })
+      .where(eq(groupsTable.id, group.id));
+  }
 
   res.json({ ok: true });
 });

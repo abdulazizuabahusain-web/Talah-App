@@ -51,6 +51,9 @@ export function findCandidatesFor(
   allUsers: User[],
   allRequests: TalahRequest[],
 ): MatchCandidate[] {
+  // Build mutual block sets — exclude anyone either party has blocked
+  const requesterBlocked = new Set(requester.blockedUserIds ?? []);
+
   const candidates: MatchCandidate[] = [];
   for (const r of allRequests) {
     if (r.id === request.id) continue;
@@ -60,6 +63,11 @@ export function findCandidatesFor(
     if (!u) continue;
     if (u.gender !== requester.gender) continue;
     if (u.city !== requester.city) continue;
+    // Skip if either party has blocked the other
+    if (requesterBlocked.has(u.id)) continue;
+    if ((u.blockedUserIds ?? []).includes(requester.id)) continue;
+    // Skip flagged users — admin must clear them before they can be matched
+    if (u.flagged) continue;
     const sameDate = r.preferredDate === request.preferredDate;
     const overlapTime = r.preferredTime === request.preferredTime;
     if (!sameDate && !overlapTime) continue;

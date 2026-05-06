@@ -73,6 +73,7 @@ export interface ApiUser {
   interactionScore: number | null;
   opennessScore: number | null;
   boundaryScore: number | null;
+  blockedUserIds: string[];
   createdAt: string;
 }
 
@@ -155,6 +156,7 @@ export function toUser(u: ApiUser | ApiGroupMember): User {
     interactionScore: nullToUndefined(a.interactionScore),
     opennessScore: nullToUndefined(a.opennessScore),
     boundaryScore: nullToUndefined(a.boundaryScore),
+    blockedUserIds: (a.blockedUserIds as string[] | null | undefined) ?? [],
   };
 }
 
@@ -222,11 +224,17 @@ export const api = {
   // Groups
   getGroups: () => req<ApiGroup[]>("/groups"),
   getGroup: (id: string) => req<ApiGroup>(`/groups/${id}`),
+  getMutualConnects: (groupId: string) =>
+    req<{ mutualConnects: { id: string; nickname: string | null; personalityTraits: string[] }[]; hasFeedback: boolean }>(
+      `/groups/${groupId}/mutual-connects`,
+    ),
 
   // Feedback
   submitFeedback: (body: {
     groupId: string;
     rating: number;
+    connections?: { userId: string; verdict: "connect" | "pass" }[];
+    wouldMeetAgain?: "yes" | "maybe" | "no";
     comment?: string;
   }) => req<void>("/feedback", { method: "POST", body }),
 
@@ -236,4 +244,10 @@ export const api = {
     groupId?: string;
     reason: string;
   }) => req<void>("/reports", { method: "POST", body }),
+
+  // Safety — Block
+  blockUser: (targetId: string) =>
+    req<{ ok: boolean; blockedUserIds: string[] }>(`/users/block/${targetId}`, { method: "POST" }),
+  getBlocked: () =>
+    req<{ blockedUserIds: string[] }>("/users/blocked"),
 };

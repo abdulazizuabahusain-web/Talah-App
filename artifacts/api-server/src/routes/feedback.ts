@@ -6,11 +6,17 @@ import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
 
+const ConnectionEntry = z.object({
+  userId: z.string().uuid(),
+  verdict: z.enum(["connect", "pass"]),
+});
+
 const CreateFeedbackBody = z.object({
   groupId: z.string().uuid(),
   rating: z.number().int().min(1).max(5),
   comment: z.string().max(500).optional(),
   wouldMeetAgain: z.enum(["yes", "maybe", "no"]).optional(),
+  connections: z.array(ConnectionEntry).optional(),
 });
 
 router.post("/", requireAuth, async (req, res) => {
@@ -49,7 +55,14 @@ router.post("/", requireAuth, async (req, res) => {
 
   const [created] = await db
     .insert(feedbackTable)
-    .values({ ...parsed.data, fromUserId: req.user!.id })
+    .values({
+      groupId: parsed.data.groupId,
+      rating: parsed.data.rating,
+      comment: parsed.data.comment,
+      wouldMeetAgain: parsed.data.wouldMeetAgain,
+      connections: parsed.data.connections ?? null,
+      fromUserId: req.user!.id,
+    })
     .returning();
 
   res.status(201).json(created);

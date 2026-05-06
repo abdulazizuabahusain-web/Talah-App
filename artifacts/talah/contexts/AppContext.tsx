@@ -4,12 +4,35 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import * as Notifications from "expo-notifications";
+import { router } from "expo-router";
+import { Platform } from "react-native";
 
 import { api, setToken, toUser } from "@/lib/api";
 import { loadJSON, saveJSON } from "@/lib/storage";
 import type { User } from "@/lib/types";
+
+// Request push permissions and return the Expo push token, or null if unavailable.
+async function registerForPushAsync(): Promise<string | null> {
+  // Push tokens only work on physical devices and iOS/Android — not web or simulator
+  if (Platform.OS === "web") return null;
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== "granted") return null;
+    const { data } = await Notifications.getExpoPushTokenAsync();
+    return data;
+  } catch {
+    return null;
+  }
+}
 
 type Lang = "ar" | "en";
 
@@ -28,6 +51,18 @@ interface AppContextValue {
   setCurrentUserId: (id: string | null) => void;
 }
 
+// Configure how notifications appear while the app is in the foreground.
+// Without this, foreground notifications are silently dropped on iOS.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
 const STORAGE_LANG = "talah:lang";
 const STORAGE_TOKEN = "talah:token";
 
@@ -38,6 +73,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Lang>("ar");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const pushRegistered = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -59,6 +95,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       setReady(true);
     })();
+  }, []);
+
+  // Register for push notifications once after the user is authenticated
+  useEffect(() => {
+    if (!currentUser || pushRegistered.current) return;
+    pushRegistered.current = true;
+    registerForPushAsync().then((token) => {
+      if (token) {
+        // Fire-and-forget — store token on the user record server-side
+        api.updateMe({ expoPushToken: token } as Parameters<typeof api.updateMe>[0]).catch(() => {});
+      }
+    });
+  }, [currentUser]);
+
+  // Handle taps on push notifications — navigate to the appropriate screen.
+  // This fires whether the app was in background or completely quit (cold launch).
+  useEffect(() => {
+    // Check if the app was launched via a notification tap (cold start)
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (!response) return;
+      const groupId = response.notification.request.content.data?.groupId as string | undefined;
+      if (groupId) router.push(`/reveal/${groupId}`);
+    });
+
+    // Subscribe to notification taps while app is running
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const groupId = response.notification.request.content.data?.groupId as string | undefined;
+      if (groupId) router.push(`/reveal/${groupId}`);
+    });
+
+    return () => sub.remove();
   }, []);
 
   const setLanguage = useCallback((l: Lang) => {

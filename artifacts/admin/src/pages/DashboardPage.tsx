@@ -18,12 +18,20 @@ const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "reports", label: "Reports", emoji: "🚩" },
 ];
 
+const PAGE_SIZE = 50;
+
 interface Data {
   users: User[];
   requests: MeetupRequest[];
   groups: Group[];
   feedback: Feedback[];
   reports: Report[];
+}
+
+interface HasMore {
+  users: boolean;
+  requests: boolean;
+  groups: boolean;
 }
 
 interface Props {
@@ -35,6 +43,8 @@ export default function DashboardPage({ onLogout }: Props) {
   const [data, setData] = useState<Data>({
     users: [], requests: [], groups: [], feedback: [], reports: [],
   });
+  const [hasMore, setHasMore] = useState<HasMore>({ users: false, requests: false, groups: false });
+  const [loadingMore, setLoadingMore] = useState<Partial<Record<keyof HasMore, boolean>>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,18 +52,35 @@ export default function DashboardPage({ onLogout }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const [users, requests, groups, feedback, reports] = await Promise.all([
-        api.getUsers(),
-        api.getRequests(),
-        api.getGroups(),
+      const [usersPage, requestsPage, groupsPage, feedback, reports] = await Promise.all([
+        api.getUsers({ limit: PAGE_SIZE, offset: 0 }),
+        api.getRequests({ limit: PAGE_SIZE, offset: 0 }),
+        api.getGroups({ limit: PAGE_SIZE, offset: 0 }),
         api.getFeedback(),
         api.getReports(),
       ]);
-      setData({ users, requests, groups, feedback, reports });
+      setData({ users: usersPage.data, requests: requestsPage.data, groups: groupsPage.data, feedback, reports });
+      setHasMore({ users: usersPage.hasMore, requests: requestsPage.hasMore, groups: groupsPage.hasMore });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMore = async (entity: keyof HasMore) => {
+    setLoadingMore((prev) => ({ ...prev, [entity]: true }));
+    try {
+      const offset = data[entity].length;
+      const page = entity === "users"
+        ? await api.getUsers({ limit: PAGE_SIZE, offset })
+        : entity === "requests"
+          ? await api.getRequests({ limit: PAGE_SIZE, offset })
+          : await api.getGroups({ limit: PAGE_SIZE, offset });
+      setData((prev) => ({ ...prev, [entity]: [...prev[entity], ...page.data] }));
+      setHasMore((prev) => ({ ...prev, [entity]: page.hasMore }));
+    } finally {
+      setLoadingMore((prev) => ({ ...prev, [entity]: false }));
     }
   };
 
@@ -156,10 +183,10 @@ export default function DashboardPage({ onLogout }: Props) {
           </div>
         ) : (
           <>
-            {tab === "users" && <UsersTab users={data.users} onRefresh={load} />}
-            {tab === "requests" && <RequestsTab requests={data.requests} users={data.users} onRefresh={load} />}
-            {tab === "groups" && <GroupsTab groups={data.groups} users={data.users} onRefresh={load} />}
-            {tab === "compatibility" && <CompatibilityTab users={data.users} />}
+            {tab === "users" && <UsersTab users={data.users} onRefresh={load} hasMore={hasMore.users} loadingMore={!!loadingMore.users} onLoadMore={() => loadMore("users")} />}
+            {tab === "requests" && <RequestsTab requests={data.requests} users={data.users} onRefresh={load} hasMore={hasMore.requests} loadingMore={!!loadingMore.requests} onLoadMore={() => loadMore("requests")} />}
+            {tab === "groups" && <GroupsTab groups={data.groups} users={data.users} onRefresh={load} hasMore={hasMore.groups} loadingMore={!!loadingMore.groups} onLoadMore={() => loadMore("groups")} />}
+            {tab === "compatibility" && <CompatibilityTab users={data.users} requests={data.requests} onRefresh={load} />}
             {tab === "feedback" && <FeedbackTab feedback={data.feedback} users={data.users} />}
             {tab === "reports" && <ReportsTab reports={data.reports} users={data.users} />}
           </>

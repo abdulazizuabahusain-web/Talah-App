@@ -279,10 +279,25 @@ export const STRINGS: Dict = {
     ar: "سيتم الكشف عن المجموعة قبل اللقاء بقليل",
     en: "Your group will be revealed shortly before the meetup",
   },
+  mutual_connects: { ar: "تواصل متبادل", en: "Mutual connects" },
+  mutual_connects_sub: {
+    ar: "هؤلاء اخترن التواصل معكِ أيضًا 🎉",
+    en: "These members also chose to connect with you 🎉",
+  },
+  no_mutual_connects: {
+    ar: "لا يوجد تواصل متبادل في هذه الطلعة",
+    en: "No mutual connects from this Tal'ah",
+  },
+  report_member: { ar: "الإبلاغ عن عضو", en: "Report a member" },
+  anonymous: { ar: "مجهول", en: "Anonymous" },
 
   // Feedback
   feedback_title: { ar: "كيف كانت تجربتك؟", en: "How was it?" },
   rate_experience: { ar: "قيّم التجربة", en: "Rate your experience" },
+  would_meet_again: { ar: "هل تودّ مقابلتهم مجدداً؟", en: "Would you meet again?" },
+  wma_yes: { ar: "نعم، بالتأكيد", en: "Yes, definitely" },
+  wma_maybe: { ar: "ربما", en: "Maybe" },
+  wma_no: { ar: "لا أعتقد", en: "Probably not" },
   connect_or_pass: {
     ar: "هل تودّ التواصل لاحقًا؟",
     en: "Would you like to stay in touch?",
@@ -309,10 +324,16 @@ export const STRINGS: Dict = {
     ar: "تم إرسال البلاغ. شكراً لجعل المجتمع آمناً.",
     en: "Report sent. Thank you for keeping the community safe.",
   },
+  block_also: {
+    ar: "حظر هذا الشخص أيضًا (لن يظهر في طلعاتك القادمة)",
+    en: "Also block this person (they won't appear in future Tal'ahs)",
+  },
 
   // Profile / Settings
   profile_title: { ar: "ملفي", en: "Profile" },
   edit_interests: { ar: "تعديل الاهتمامات", en: "Edit interests" },
+  edit_personality: { ar: "تعديل الشخصية والتوافق", en: "Edit personality & matching" },
+  edit_profile: { ar: "تعديل الملف الشخصي", en: "Edit profile" },
   privacy_settings: { ar: "إعدادات الخصوصية", en: "Privacy settings" },
   id_verification: { ar: "توثيق الهوية", en: "ID verification" },
   id_verification_sub: {

@@ -1,6 +1,9 @@
-import { eq, sql } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import { eq, inArray, sql } from "drizzle-orm";
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
+import { sanitizeFields } from "../lib/sanitize";
 import {
   db,
   feedbackTable,
@@ -10,15 +13,35 @@ import {
   usersTable,
 } from "@workspace/db";
 import { createAdminToken, isAdminToken } from "../lib/adminSessions";
+import { sendPushToMany } from "../lib/push";
 import { requireAdmin } from "../middlewares/requireAuth";
 
 const router = Router();
-const ADMIN_PIN = process.env["ADMIN_PIN"] ?? "1234";
+
+// ADMIN_PIN_HASH: bcrypt hash of the admin PIN stored in env.
+// Generate with: node -e "const b=require('bcryptjs');console.log(b.hashSync('YOUR_PIN',12))"
+// Falls back to a hash of "1234" for development (never use in production).
+const DEV_HASH = "$2a$12$K8GkNZOekIUPZMaSLSzfC.HlqYDzW2GJkqg2LIi5/kqAHFb7xOBUe"; // hash of "1234"
+const ADMIN_PIN_HASH = process.env["ADMIN_PIN_HASH"] ?? DEV_HASH;
+
+// Rate-limit admin login: max 5 attempts per 15 minutes per IP
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts — please wait 15 minutes" },
+});
 
 // POST /api/admin/login  — PIN-based web dashboard login
-router.post("/login", (req, res) => {
+router.post("/login", adminLoginLimiter, async (req, res) => {
   const { pin } = req.body ?? {};
-  if (pin !== ADMIN_PIN) {
+  if (!pin || typeof pin !== "string") {
+    res.status(400).json({ error: "PIN required" });
+    return;
+  }
+  const valid = await bcrypt.compare(pin, ADMIN_PIN_HASH);
+  if (!valid) {
     res.status(401).json({ error: "Invalid PIN" });
     return;
   }
@@ -38,9 +61,14 @@ router.get("/me", (req, res) => {
 });
 
 // ── Users ────────────────────────────────────────────────────────────────────
-router.get("/users", requireAdmin, async (_req, res) => {
-  const users = await db.select().from(usersTable).orderBy(usersTable.createdAt);
-  res.json(users);
+router.get("/users", requireAdmin, async (req, res) => {
+  const limit = Math.min(parseInt(req.query["limit"] as string) || 50, 200);
+  const offset = parseInt(req.query["offset"] as string) || 0;
+  const [rows, [{ count }]] = await Promise.all([
+    db.select().from(usersTable).orderBy(usersTable.createdAt).limit(limit).offset(offset),
+    db.select({ count: sql<number>`count(*)::int` }).from(usersTable),
+  ]);
+  res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
 });
 
 router.patch("/users/:id", requireAdmin, async (req, res) => {
@@ -59,9 +87,14 @@ router.delete("/users/:id", requireAdmin, async (req, res) => {
 });
 
 // ── Requests ─────────────────────────────────────────────────────────────────
-router.get("/requests", requireAdmin, async (_req, res) => {
-  const rows = await db.select().from(requestsTable).orderBy(requestsTable.createdAt);
-  res.json(rows);
+router.get("/requests", requireAdmin, async (req, res) => {
+  const limit = Math.min(parseInt(req.query["limit"] as string) || 50, 200);
+  const offset = parseInt(req.query["offset"] as string) || 0;
+  const [rows, [{ count }]] = await Promise.all([
+    db.select().from(requestsTable).orderBy(requestsTable.createdAt).limit(limit).offset(offset),
+    db.select({ count: sql<number>`count(*)::int` }).from(requestsTable),
+  ]);
+  res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
 });
 
 router.patch("/requests/:id", requireAdmin, async (req, res) => {
@@ -75,9 +108,14 @@ router.patch("/requests/:id", requireAdmin, async (req, res) => {
 });
 
 // ── Groups ───────────────────────────────────────────────────────────────────
-router.get("/groups", requireAdmin, async (_req, res) => {
-  const rows = await db.select().from(groupsTable).orderBy(groupsTable.createdAt);
-  res.json(rows);
+router.get("/groups", requireAdmin, async (req, res) => {
+  const limit = Math.min(parseInt(req.query["limit"] as string) || 50, 200);
+  const offset = parseInt(req.query["offset"] as string) || 0;
+  const [rows, [{ count }]] = await Promise.all([
+    db.select().from(groupsTable).orderBy(groupsTable.createdAt).limit(limit).offset(offset),
+    db.select({ count: sql<number>`count(*)::int` }).from(groupsTable),
+  ]);
+  res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
 });
 
 const CreateGroupBody = z.object({
@@ -113,13 +151,175 @@ router.post("/groups", requireAdmin, async (req, res) => {
 });
 
 router.patch("/groups/:id", requireAdmin, async (req, res) => {
+  const groupId = req.params["id"] as string;
+  const [before] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+
+  const sanitized = sanitizeFields(req.body as Record<string, unknown>);
   const [updated] = await db
     .update(groupsTable)
-    .set(req.body)
-    .where(eq(groupsTable.id, req.params["id"] as string))
+    .set(sanitized)
+    .where(eq(groupsTable.id, groupId))
     .returning();
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+
+  // Fire push notifications asynchronously — never block the response
+  void (async () => {
+    if (!before || updated.memberIds.length === 0) return;
+    const members = await db
+      .select({ expoPushToken: usersTable.expoPushToken })
+      .from(usersTable)
+      .where(inArray(usersTable.id, updated.memberIds));
+    const tokens = members.map((m) => m.expoPushToken);
+
+    const statusChanged = before.status !== updated.status;
+    const venueSet = !before.venue && updated.venue;
+    const timeSet = !before.meetupAt && updated.meetupAt;
+
+    if (statusChanged && updated.status === "revealed") {
+      await sendPushToMany(tokens, "طلعتك جاهزة! 🎉", "تعرّفي على مجموعتك الآن — الكشف مفتوح");
+    }
+    if (statusChanged && updated.status === "matched") {
+      await sendPushToMany(tokens, "تم ترتيب طلعتك ✨", "يتم التجهيز للكشف عن تفاصيل اللقاء قريباً");
+    }
+    if ((venueSet || timeSet) && updated.venue && updated.meetupAt) {
+      const when = new Date(updated.meetupAt).toLocaleString("ar-SA", {
+        weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit",
+      });
+      await sendPushToMany(tokens, "تم تحديد موعد ومكان طلعتك 📍", `${updated.venue} · ${when}`);
+    }
+  })();
+
   res.json(updated);
+});
+
+// ── Candidate Suggestions ─────────────────────────────────────────────────────
+// GET /api/admin/requests/:id/candidates
+// Returns the top matching candidates for a pending request, ranked by compatibility score.
+// Mirrors findCandidatesFor() from the mobile matching engine.
+router.get("/requests/:id/candidates", requireAdmin, async (req, res) => {
+  const requestId = req.params["id"] as string;
+
+  const [request] = await db
+    .select()
+    .from(requestsTable)
+    .where(eq(requestsTable.id, requestId));
+
+  if (!request) {
+    res.status(404).json({ error: "Request not found" });
+    return;
+  }
+  if (request.status !== "pending") {
+    res.status(400).json({ error: "Request is not pending" });
+    return;
+  }
+
+  const [requester] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, request.userId));
+
+  if (!requester) {
+    res.status(404).json({ error: "Requester not found" });
+    return;
+  }
+
+  // Load all pending requests (other than this one) and their users
+  const allRequests = await db
+    .select()
+    .from(requestsTable)
+    .where(eq(requestsTable.status, "pending"));
+
+  const allUsers = await db.select().from(usersTable);
+
+  // ── Matching logic (mirrors findCandidatesFor from matching.ts) ──
+  const requesterBlocked = new Set(requester.blockedUserIds ?? []);
+
+  interface Candidate {
+    userId: string;
+    nickname: string | null;
+    city: string | null;
+    ageRange: string | null;
+    gender: string | null;
+    preferredMeetup: string | null;
+    socialEnergyScore: number | null;
+    conversationDepthScore: number | null;
+    socialIntent: string | null;
+    score: number;
+    requestId: string;
+    preferredDate: string;
+    preferredTime: string;
+    area: string;
+  }
+
+  const candidates: Candidate[] = [];
+
+  for (const r of allRequests) {
+    if (r.id === requestId) continue;
+    if (r.meetupType !== request.meetupType) continue;
+
+    const u = allUsers.find((x) => x.id === r.userId);
+    if (!u) continue;
+    if (u.gender !== requester.gender) continue;
+    if (u.city !== requester.city) continue;
+    if (u.flagged) continue;
+    if (requesterBlocked.has(u.id)) continue;
+    if ((u.blockedUserIds ?? []).includes(requester.id)) continue;
+
+    // Soft scoring — interests + topics + age + lifestyle + energy + conversation + intent
+    const sharedInterests = (requester.interests ?? []).filter((i: string) =>
+      (u.interests ?? []).includes(i)
+    ).length;
+    const sharedTopics = (requester.enjoyedTopics ?? []).filter((t: string) =>
+      (u.enjoyedTopics ?? []).includes(t)
+    ).length;
+
+    const AGE_ORDER = ["18-24", "25-29", "30-34", "35-44", "45+"];
+    const ageDist = Math.abs(
+      AGE_ORDER.indexOf(requester.ageRange ?? "") - AGE_ORDER.indexOf(u.ageRange ?? "")
+    );
+    const ageScore = Math.max(0, 4 - ageDist) * 2;
+
+    const lifestyleScore = requester.lifestyle === u.lifestyle ? 2 : 0;
+
+    const energyDiff =
+      requester.socialEnergyScore !== null && u.socialEnergyScore !== null
+        ? Math.abs((requester.socialEnergyScore ?? 0) - (u.socialEnergyScore ?? 0))
+        : 99;
+    const energyScore = energyDiff <= 1 ? 2 : energyDiff <= 2 ? 1 : 0;
+
+    const convDiff =
+      requester.conversationDepthScore !== null && u.conversationDepthScore !== null
+        ? Math.abs((requester.conversationDepthScore ?? 0) - (u.conversationDepthScore ?? 0))
+        : 99;
+    const convScore = convDiff <= 1 ? 2 : 0;
+
+    const intentScore =
+      requester.socialIntent && u.socialIntent && requester.socialIntent === u.socialIntent ? 2 : 0;
+
+    const totalScore =
+      sharedInterests * 3 + sharedTopics * 2 + ageScore + lifestyleScore + energyScore + convScore + intentScore;
+
+    candidates.push({
+      userId: u.id,
+      nickname: u.nickname,
+      city: u.city,
+      ageRange: u.ageRange,
+      gender: u.gender,
+      preferredMeetup: u.preferredMeetup,
+      socialEnergyScore: u.socialEnergyScore,
+      conversationDepthScore: u.conversationDepthScore,
+      socialIntent: u.socialIntent,
+      score: totalScore,
+      requestId: r.id,
+      preferredDate: r.preferredDate,
+      preferredTime: r.preferredTime,
+      area: r.area,
+    });
+  }
+
+  // Sort by score desc, return top 8
+  candidates.sort((a, b) => b.score - a.score);
+  res.json(candidates.slice(0, 8));
 });
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
@@ -223,8 +423,10 @@ function computeGroupCompatibility(users: AnyUser[]) {
     intentScore * 10,
   );
 
+  // Thresholds aligned to blueprint spec (and matching.ts client-side):
+  // Excellent ≥85 · Good ≥70 · Moderate ≥55 · Weak <55
   const label =
-    overall >= 80 ? "excellent" : overall >= 65 ? "good" : overall >= 45 ? "moderate" : "weak";
+    overall >= 85 ? "excellent" : overall >= 70 ? "good" : overall >= 55 ? "moderate" : "weak";
 
   return {
     overallScore: overall,

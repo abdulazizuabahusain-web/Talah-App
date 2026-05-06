@@ -149,7 +149,7 @@ export default function RequestScreen() {
               </AppText>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={{ flexDirection: "row", gap: 8 }}>
-                  {nextDays(10).map((d) => (
+                  {nextDays(21).map((d) => (
                     <Chip
                       key={d.iso}
                       label={d.label}

@@ -1,5 +1,6 @@
 import {
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -22,6 +23,8 @@ export const feedbackTable = pgTable("feedback", {
   rating: integer("rating").notNull(), // 1-5
   comment: text("comment"),
   wouldMeetAgain: text("would_meet_again"), // 'yes' | 'maybe' | 'no'
+  // Post-meetup connect/pass verdicts: [{userId, verdict: "connect"|"pass"}]
+  connections: jsonb("connections").$type<{ userId: string; verdict: "connect" | "pass" }[]>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

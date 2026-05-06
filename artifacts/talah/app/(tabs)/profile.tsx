@@ -107,8 +107,8 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <Card>
-        <View style={{ gap: 12 }}>
+      <Card padded={false}>
+        <View style={{ padding: 18, gap: 12 }}>
           <AppText variant="title" weight="semibold">
             {t("q_interests")}
           </AppText>
@@ -120,19 +120,12 @@ export default function ProfileScreen() {
                 size="sm"
                 selected
                 tone="accent"
-                onPress={() => router.push("/onboarding")}
+                onPress={() => router.push("/onboarding?step=5")}
               />
             ))}
           </View>
-          <Pressable onPress={() => router.push("/onboarding")} hitSlop={8}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                marginTop: 4,
-              }}
-            >
+          <Pressable onPress={() => router.push("/onboarding?step=5")} hitSlop={8}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
               <Feather name="edit-2" size={14} color={colors.accent} />
               <AppText variant="label" weight="semibold" color={colors.accent}>
                 {t("edit_interests")}
@@ -140,6 +133,18 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
         </View>
+        <View style={{ height: 1, marginHorizontal: 18, backgroundColor: colors.border }} />
+        <Pressable onPress={() => router.push("/onboarding?step=10")} hitSlop={8}>
+          <View style={{ padding: 18, flexDirection: "row", alignItems: "center", gap: 14 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: colors.accent + "15", alignItems: "center", justifyContent: "center" }}>
+              <Feather name="zap" size={18} color={colors.accent} />
+            </View>
+            <AppText variant="body" weight="semibold" color={colors.accent} style={{ flex: 1 }}>
+              {t("edit_personality")}
+            </AppText>
+            <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+          </View>
+        </Pressable>
       </Card>
 
       <Card padded={false}>

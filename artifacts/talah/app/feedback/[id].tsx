@@ -20,6 +20,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 import { useT } from "@/lib/i18n";
+import { api } from "@/lib/api";
 
 export default function FeedbackScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -41,10 +42,12 @@ export default function FeedbackScreen() {
       : [];
 
   const [rating, setRating] = useState(0);
+  const [wouldMeetAgain, setWouldMeetAgain] = useState<"yes" | "maybe" | "no" | null>(null);
   const [verdicts, setVerdicts] = useState<Record<string, "connect" | "pass">>({});
   const [comment, setComment] = useState("");
   const [reportTarget, setReportTarget] = useState<string | null>(null);
   const [reportReason, setReportReason] = useState("");
+  const [blockAlso, setBlockAlso] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   if (!group) {
@@ -59,10 +62,17 @@ export default function FeedbackScreen() {
     if (!currentUser) return;
     setSubmitting(true);
     try {
+      // Build connections array from verdicts — only include users the member explicitly voted on
+      const connections = Object.entries(verdicts).map(([userId, verdict]) => ({
+        userId,
+        verdict,
+      }));
       await submitFeedback({
         groupId: group.id,
         fromUserId: currentUser.id,
         rating: rating || 5,
+        connections: connections.length > 0 ? connections : undefined,
+        wouldMeetAgain: wouldMeetAgain ?? undefined,
         comment: comment.trim() || undefined,
       });
       Alert.alert(t("feedback_thanks"), undefined, [
@@ -84,8 +94,15 @@ export default function FeedbackScreen() {
         groupId: group.id,
         reason: reportReason.trim(),
       });
+      // If user also chose to block, fire block call in parallel
+      if (blockAlso) {
+        await api.blockUser(reportTarget).catch(() => {
+          // Block failure is non-fatal — report was still submitted
+        });
+      }
       setReportTarget(null);
       setReportReason("");
+      setBlockAlso(false);
       Alert.alert(t("report_submitted"));
     } catch (e) {
       Alert.alert(t("error_title"), (e as Error).message || t("error_generic"));
@@ -125,6 +142,40 @@ export default function FeedbackScreen() {
                       size={36}
                       color={n <= rating ? colors.accent : colors.border}
                     />
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </Card>
+
+          {/* Would you meet again? */}
+          <Card>
+            <View style={{ gap: 12 }}>
+              <AppText variant="title" weight="semibold">
+                {t("would_meet_again")}
+              </AppText>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {(["yes", "maybe", "no"] as const).map((opt) => (
+                  <Pressable
+                    key={opt}
+                    onPress={() => setWouldMeetAgain(wouldMeetAgain === opt ? null : opt)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: wouldMeetAgain === opt ? colors.accent : colors.border,
+                      backgroundColor: wouldMeetAgain === opt ? colors.accent + "15" : "transparent",
+                      alignItems: "center",
+                    }}
+                  >
+                    <AppText
+                      variant="label"
+                      weight="semibold"
+                      color={wouldMeetAgain === opt ? colors.accent : colors.foreground}
+                    >
+                      {t(`wma_${opt}`)}
+                    </AppText>
                   </Pressable>
                 ))}
               </View>
@@ -275,6 +326,35 @@ export default function FeedbackScreen() {
                   multiline
                   style={{ minHeight: 90, textAlignVertical: "top" }}
                 />
+                {/* Block toggle — prevents future co-matching silently */}
+                <Pressable
+                  onPress={() => setBlockAlso(!blockAlso)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 10,
+                    paddingVertical: 4,
+                  }}
+                  hitSlop={8}
+                >
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      borderWidth: 2,
+                      borderColor: blockAlso ? colors.destructive : colors.border,
+                      backgroundColor: blockAlso ? colors.destructive + "20" : "transparent",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {blockAlso ? <Feather name="check" size={13} color={colors.destructive} /> : null}
+                  </View>
+                  <AppText variant="bodySmall" color={colors.mutedForeground} style={{ flex: 1 }}>
+                    {t("block_also")}
+                  </AppText>
+                </Pressable>
                 <Button
                   label={t("report_submit")}
                   variant="destructive"

@@ -1,9 +1,13 @@
+import { eq, sql } from "drizzle-orm";
 import { Router } from "express";
 import { z } from "zod";
-import { db, reportsTable } from "@workspace/db";
+import { db, reportsTable, usersTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
+
+// A user is auto-flagged for admin review once they accumulate this many reports.
+const AUTO_FLAG_THRESHOLD = 3;
 
 const CreateReportBody = z.object({
   targetUserId: z.string().uuid(),
@@ -23,10 +27,24 @@ router.post("/", requireAuth, async (req, res) => {
     return;
   }
 
+  // Insert the report
   const [created] = await db
     .insert(reportsTable)
     .values({ ...parsed.data, reporterId: req.user!.id })
     .returning();
+
+  // Count total reports against this user and auto-flag if threshold reached
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(reportsTable)
+    .where(eq(reportsTable.targetUserId, parsed.data.targetUserId));
+
+  if (count >= AUTO_FLAG_THRESHOLD) {
+    await db
+      .update(usersTable)
+      .set({ flagged: true })
+      .where(eq(usersTable.id, parsed.data.targetUserId));
+  }
 
   res.status(201).json(created);
 });

@@ -141,6 +141,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       await api.submitFeedback({
         groupId: input.groupId,
         rating: input.rating,
+        connections: input.connections,
+        wouldMeetAgain: input.wouldMeetAgain,
         comment: input.comment,
       });
     },

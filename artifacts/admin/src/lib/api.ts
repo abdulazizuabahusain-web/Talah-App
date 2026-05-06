@@ -1,5 +1,20 @@
 const BASE = "/api";
 
+export interface Paginated<T> {
+  data: T[];
+  total: number;
+  hasMore: boolean;
+}
+
+function toQuery(params?: { limit?: number; offset?: number }): string {
+  if (!params) return "";
+  const q = new URLSearchParams();
+  if (params.limit !== undefined) q.set("limit", String(params.limit));
+  if (params.offset !== undefined) q.set("offset", String(params.offset));
+  const s = q.toString();
+  return s ? `?${s}` : "";
+}
+
 function getToken(): string | null {
   return localStorage.getItem("talah_admin_token");
 }
@@ -37,17 +52,20 @@ export const api = {
     }),
   adminMe: () => request<{ ok: boolean }>("/admin/me"),
 
-  getUsers: () => request<User[]>("/admin/users"),
+  getUsers: (params?: { limit?: number; offset?: number }) =>
+    request<Paginated<User>>(`/admin/users${toQuery(params)}`),
   patchUser: (id: string, data: Partial<User>) =>
     request<User>(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteUser: (id: string) =>
     request<{ ok: boolean }>(`/admin/users/${id}`, { method: "DELETE" }),
 
-  getRequests: () => request<MeetupRequest[]>("/admin/requests"),
+  getRequests: (params?: { limit?: number; offset?: number }) =>
+    request<Paginated<MeetupRequest>>(`/admin/requests${toQuery(params)}`),
   patchRequest: (id: string, data: Partial<MeetupRequest>) =>
     request<MeetupRequest>(`/admin/requests/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
 
-  getGroups: () => request<Group[]>("/admin/groups"),
+  getGroups: (params?: { limit?: number; offset?: number }) =>
+    request<Paginated<Group>>(`/admin/groups${toQuery(params)}`),
   createGroup: (data: CreateGroupInput) =>
     request<Group>("/admin/groups", { method: "POST", body: JSON.stringify(data) }),
   patchGroup: (id: string, data: Partial<Group>) =>
@@ -61,6 +79,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ userIds }),
     }),
+
+  getCandidates: (requestId: string) =>
+    request<Candidate[]>(`/admin/requests/${requestId}/candidates`),
 };
 
 // ── Types (mirror the DB schema) ─────────────────────────────────────────────
@@ -99,6 +120,8 @@ export interface User {
   verified: boolean;
   flagged: boolean;
   isAdmin: boolean;
+  blockedUserIds: string[] | null;
+  expoPushToken: string | null;
   createdAt: string;
 }
 
@@ -138,6 +161,11 @@ export interface CreateGroupInput {
   meetupAt?: number;
 }
 
+export interface FeedbackConnection {
+  userId: string;
+  verdict: "connect" | "pass";
+}
+
 export interface Feedback {
   id: string;
   groupId: string;
@@ -145,6 +173,7 @@ export interface Feedback {
   rating: number;
   comment: string | null;
   wouldMeetAgain: string | null;
+  connections: FeedbackConnection[] | null;
   createdAt: string;
 }
 
@@ -154,6 +183,23 @@ export interface Report {
   targetUserId: string;
   reason: string;
   createdAt: string;
+}
+
+export interface Candidate {
+  userId: string;
+  nickname: string | null;
+  city: string | null;
+  ageRange: string | null;
+  gender: string | null;
+  preferredMeetup: string | null;
+  socialEnergyScore: number | null;
+  conversationDepthScore: number | null;
+  socialIntent: string | null;
+  score: number;
+  requestId: string;
+  preferredDate: string;
+  preferredTime: string;
+  area: string;
 }
 
 export interface CompatibilityReport {

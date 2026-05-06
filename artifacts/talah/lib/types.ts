@@ -139,6 +139,9 @@ export interface User {
   interactionScore?: number;
   opennessScore?: number;
   boundaryScore?: number;
+
+  // Block list — IDs of users this user has blocked; excluded from future matching
+  blockedUserIds?: string[];
 }
 
 export interface TalahRequest {
@@ -173,6 +176,7 @@ export interface FeedbackEntry {
   fromUserId: string;
   rating: number;
   connections?: { userId: string; verdict: "connect" | "pass" }[];
+  wouldMeetAgain?: "yes" | "maybe" | "no";
   comment?: string;
   createdAt: number;
 }

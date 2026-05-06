@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   Alert,
@@ -177,8 +177,12 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { currentUser, updateCurrentUser } = useApp();
   const webBottomPad = Platform.OS === "web" ? 34 : 0;
+  const { step: stepParam } = useLocalSearchParams<{ step?: string }>();
 
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => {
+    const n = parseInt(stepParam ?? "0", 10);
+    return Number.isFinite(n) && n >= 0 && n < TOTAL_STEPS ? n : 0;
+  });
   const [saving, setSaving] = useState(false);
 
   // ── Existing fields (steps 0–9) ──────────────────
