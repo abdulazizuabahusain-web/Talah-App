@@ -90,7 +90,7 @@ export default function DashboardPage({ onLogout }: Props) {
     }
   };
 
-  const load = async (silent = false, catchup = false) => {
+  const load = async (silent = false, catchup = false, awayMinutes = 0) => {
     if (!silent) setLoading(true);
     setError(null);
     try {
@@ -109,7 +109,8 @@ export default function DashboardPage({ onLogout }: Props) {
       if (catchup) {
         setRefreshedJustNow(true);
         if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
-        catchupTimeoutRef.current = setTimeout(() => setRefreshedJustNow(false), 3000);
+        const durationMs = Math.min(30_000, Math.max(3_000, Math.round((awayMinutes / 60) * 10_000)));
+        catchupTimeoutRef.current = setTimeout(() => setRefreshedJustNow(false), durationMs);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data");
@@ -180,7 +181,7 @@ export default function DashboardPage({ onLogout }: Props) {
         setAwayReturnedAt(returnedAt);
         hiddenAtRef.current = null;
         loadSync(false);
-        load(true, true); // catchup=true → shows "↻ refreshed" badge on success
+        load(true, true, mins); // catchup=true → shows "↻ refreshed" badge on success
         startIntervals();
       }
     };
