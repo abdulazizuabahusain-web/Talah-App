@@ -7,6 +7,12 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you re-running CI manually? (optional)"
+        required: false
+        default: "Manual CI run"
 
 jobs:
   typecheck:

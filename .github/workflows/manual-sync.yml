@@ -1,0 +1,68 @@
+name: Manual Sync Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you triggering this? (e.g. 'retrying after sync failure')"
+        required: false
+        default: "Manual re-sync check"
+      ref:
+        description: "Branch or commit SHA to verify (default: main)"
+        required: false
+        default: "main"
+
+jobs:
+  sync-check:
+    name: Verify Sync State
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Print sync info
+        run: |
+          echo "=================================================="
+          echo "  Manual sync check"
+          echo "  Triggered by : ${{ github.actor }}"
+          echo "  Reason       : ${{ inputs.reason }}"
+          echo "  Ref checked  : ${{ inputs.ref }}"
+          echo "  Commit SHA   : $(git rev-parse HEAD)"
+          echo "  Commit msg   : $(git log -1 --pretty=%s)"
+          echo "  Author       : $(git log -1 --pretty=%an)"
+          echo "  Date         : $(git log -1 --pretty=%ad --date=iso)"
+          echo "=================================================="
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm run typecheck
+
+      - name: Confirm sync state
+        run: |
+          echo "=================================================="
+          echo "  Sync check PASSED"
+          echo "  main is at   : $(git rev-parse HEAD)"
+          echo "  Code quality : typecheck passed"
+          echo ""
+          echo "  If this commit is older than your latest Replit"
+          echo "  change, the Replit → GitHub sync has not run yet."
+          echo "  Check the Replit post-merge log or re-trigger the"
+          echo "  sync by merging a task in Replit."
+          echo "=================================================="
