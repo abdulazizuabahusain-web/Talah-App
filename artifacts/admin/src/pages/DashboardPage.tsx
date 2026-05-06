@@ -126,7 +126,7 @@ export default function DashboardPage({ onLogout }: Props) {
       dataInterval = setInterval(() => load(true), DATA_INTERVAL_MS);
       tickInterval = setInterval(() => {
         if (nextRefreshAtRef.current !== null) {
-          const s = Math.max(0, Math.round((nextRefreshAtRef.current - Date.now()) / 1000));
+          const s = Math.max(0, Math.floor((nextRefreshAtRef.current - Date.now()) / 1000));
           setSecsLeft(s);
         }
       }, 1000);
@@ -249,7 +249,7 @@ export default function DashboardPage({ onLogout }: Props) {
                 title="Data auto-refreshes every 5 minutes"
               >
                 Updated {lastUpdated.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-                {secsLeft !== null && secsLeft > 0 && (
+                {secsLeft !== null && (
                   <span className="ml-1 tabular-nums">· next in {formatCountdown(secsLeft)}</span>
                 )}
               </span>
