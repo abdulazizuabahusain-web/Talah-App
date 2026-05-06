@@ -50,15 +50,15 @@ export default function DashboardPage({ onLogout }: Props) {
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncLoading, setSyncLoading] = useState(true);
 
-  const loadSync = async () => {
-    setSyncLoading(true);
+  const loadSync = async (showSpinner = false) => {
+    if (showSpinner) setSyncLoading(true);
     try {
       const status = await api.getSyncStatus();
       setSyncStatus(status);
     } catch {
       setSyncStatus({ ok: false, error: "Could not reach sync-status endpoint" });
     } finally {
-      setSyncLoading(false);
+      if (showSpinner) setSyncLoading(false);
     }
   };
 
@@ -100,7 +100,9 @@ export default function DashboardPage({ onLogout }: Props) {
 
   useEffect(() => {
     load();
-    loadSync();
+    loadSync(true);
+    const syncInterval = setInterval(() => loadSync(false), 60_000);
+    return () => clearInterval(syncInterval);
   }, []);
 
   const logout = () => {
@@ -169,7 +171,7 @@ export default function DashboardPage({ onLogout }: Props) {
             )}
 
             <button
-              onClick={() => { load(); loadSync(); }}
+              onClick={() => { load(); loadSync(true); }}
               className="text-sm px-3 py-1.5 rounded-xl border border-border hover:bg-muted transition-colors"
               title="Refresh"
             >
