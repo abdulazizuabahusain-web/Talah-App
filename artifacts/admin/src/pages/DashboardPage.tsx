@@ -49,6 +49,7 @@ export default function DashboardPage({ onLogout }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncLoading, setSyncLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const loadSync = async (showSpinner = false) => {
     if (showSpinner) setSyncLoading(true);
@@ -62,8 +63,8 @@ export default function DashboardPage({ onLogout }: Props) {
     }
   };
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const [usersPage, requestsPage, groupsPage, feedback, reports] = await Promise.all([
@@ -75,10 +76,11 @@ export default function DashboardPage({ onLogout }: Props) {
       ]);
       setData({ users: usersPage.data, requests: requestsPage.data, groups: groupsPage.data, feedback, reports });
       setHasMore({ users: usersPage.hasMore, requests: requestsPage.hasMore, groups: groupsPage.hasMore });
+      setLastUpdated(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -102,7 +104,11 @@ export default function DashboardPage({ onLogout }: Props) {
     load();
     loadSync(true);
     const syncInterval = setInterval(() => loadSync(false), 60_000);
-    return () => clearInterval(syncInterval);
+    const dataInterval = setInterval(() => load(true), 5 * 60_000);
+    return () => {
+      clearInterval(syncInterval);
+      clearInterval(dataInterval);
+    };
   }, []);
 
   const logout = () => {
@@ -184,6 +190,11 @@ export default function DashboardPage({ onLogout }: Props) {
               </span>
             )}
 
+            {lastUpdated && (
+              <span className="text-xs text-muted-foreground hidden sm:inline" title="Data auto-refreshes every 5 minutes">
+                Updated {lastUpdated.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
             <button
               onClick={() => { load(); loadSync(true); }}
               className="text-sm px-3 py-1.5 rounded-xl border border-border hover:bg-muted transition-colors"
