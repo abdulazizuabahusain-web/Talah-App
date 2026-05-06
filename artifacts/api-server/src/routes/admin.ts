@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { execSync } from "child_process";
 import { eq, inArray, sql } from "drizzle-orm";
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
@@ -332,6 +333,67 @@ router.get("/feedback", requireAdmin, async (_req, res) => {
 router.get("/reports", requireAdmin, async (_req, res) => {
   const rows = await db.select().from(reportsTable).orderBy(reportsTable.createdAt);
   res.json(rows);
+});
+
+// ── GitHub Sync Status ────────────────────────────────────────────────────────
+const GITHUB_REPO = "abdulazizuabahusain-web/Talah-App";
+
+router.get("/sync-status", requireAdmin, async (req, res) => {
+  const pat = process.env["GITHUB_PAT"];
+  if (!pat) {
+    res.json({ ok: false, error: "GITHUB_PAT secret is not configured" });
+    return;
+  }
+
+  let localSha = "unknown";
+  try {
+    localSha = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
+  } catch {
+    req.log.warn("Could not read local git HEAD");
+  }
+
+  try {
+    const ghRes = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/commits/main`,
+      {
+        headers: {
+          Authorization: `Bearer ${pat}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "Talah-Admin/1.0",
+        },
+      },
+    );
+
+    if (!ghRes.ok) {
+      const status = ghRes.status;
+      res.json({
+        ok: false,
+        error:
+          status === 401
+            ? "GitHub PAT is invalid or expired"
+            : `GitHub API returned HTTP ${status}`,
+        localSha,
+      });
+      return;
+    }
+
+    const data = (await ghRes.json()) as {
+      sha: string;
+      commit: { message: string; committer: { date: string } };
+    };
+
+    const githubSha = data.sha;
+    const shortSha = githubSha.slice(0, 7);
+    const committedAt = data.commit.committer.date;
+    const message = data.commit.message.split("\n")[0] ?? "";
+    const upToDate = localSha !== "unknown" && localSha === githubSha;
+
+    res.json({ ok: true, githubSha, shortSha, committedAt, message, upToDate, localSha });
+  } catch (err) {
+    req.log.error({ err }, "GitHub sync-status fetch failed");
+    res.json({ ok: false, error: "Could not reach GitHub API", localSha });
+  }
 });
 
 // ── Compatibility ─────────────────────────────────────────────────────────────

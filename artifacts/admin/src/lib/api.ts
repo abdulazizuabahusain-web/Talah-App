@@ -82,6 +82,8 @@ export const api = {
 
   getCandidates: (requestId: string) =>
     request<Candidate[]>(`/admin/requests/${requestId}/candidates`),
+
+  getSyncStatus: () => request<SyncStatus>("/admin/sync-status"),
 };
 
 // ── Types (mirror the DB schema) ─────────────────────────────────────────────
@@ -201,6 +203,10 @@ export interface Candidate {
   preferredTime: string;
   area: string;
 }
+
+export type SyncStatus =
+  | { ok: true; githubSha: string; shortSha: string; committedAt: string; message: string; upToDate: boolean; localSha: string }
+  | { ok: false; error: string; localSha?: string };
 
 export interface CompatibilityReport {
   overallScore: number;

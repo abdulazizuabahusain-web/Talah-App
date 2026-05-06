@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type User } from "@/lib/api";
+import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type User } from "@/lib/api";
 import UsersTab from "@/components/UsersTab";
 import RequestsTab from "@/components/RequestsTab";
 import GroupsTab from "@/components/GroupsTab";
@@ -47,6 +47,20 @@ export default function DashboardPage({ onLogout }: Props) {
   const [loadingMore, setLoadingMore] = useState<Partial<Record<keyof HasMore, boolean>>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [syncLoading, setSyncLoading] = useState(true);
+
+  const loadSync = async () => {
+    setSyncLoading(true);
+    try {
+      const status = await api.getSyncStatus();
+      setSyncStatus(status);
+    } catch {
+      setSyncStatus({ ok: false, error: "Could not reach sync-status endpoint" });
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -84,7 +98,10 @@ export default function DashboardPage({ onLogout }: Props) {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    loadSync();
+  }, []);
 
   const logout = () => {
     clearToken();
@@ -120,8 +137,39 @@ export default function DashboardPage({ onLogout }: Props) {
                 {flaggedUsers} flagged
               </span>
             )}
+
+            {/* GitHub Sync Status */}
+            {syncLoading ? (
+              <span className="text-xs text-muted-foreground px-2.5 py-1 rounded-full border border-border flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" />
+                GitHub…
+              </span>
+            ) : syncStatus && syncStatus.ok ? (
+              <a
+                href={`https://github.com/abdulazizuabahusain-web/Talah-App/commit/${syncStatus.githubSha}`}
+                target="_blank"
+                rel="noreferrer"
+                title={`Last sync: ${new Date(syncStatus.committedAt).toLocaleString()}\n${syncStatus.message}`}
+                className="text-xs px-2.5 py-1 rounded-full border border-border flex items-center gap-1.5 hover:bg-muted transition-colors"
+              >
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${syncStatus.upToDate ? "bg-green-500" : "bg-red-500"}`} />
+                <span className="font-mono">{syncStatus.shortSha}</span>
+                <span className="text-muted-foreground hidden sm:inline">
+                  · {new Date(syncStatus.committedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </a>
+            ) : (
+              <span
+                title={syncStatus && !syncStatus.ok ? syncStatus.error : "Unknown error"}
+                className="text-xs px-2.5 py-1 rounded-full border border-destructive/40 bg-destructive/10 text-destructive flex items-center gap-1.5 cursor-default"
+              >
+                <span className="w-2 h-2 rounded-full bg-destructive flex-shrink-0" />
+                Sync error
+              </span>
+            )}
+
             <button
-              onClick={load}
+              onClick={() => { load(); loadSync(); }}
               className="text-sm px-3 py-1.5 rounded-xl border border-border hover:bg-muted transition-colors"
               title="Refresh"
             >
