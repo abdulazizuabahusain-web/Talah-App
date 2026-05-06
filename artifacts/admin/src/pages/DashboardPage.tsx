@@ -103,11 +103,42 @@ export default function DashboardPage({ onLogout }: Props) {
   useEffect(() => {
     load();
     loadSync(true);
-    const syncInterval = setInterval(() => loadSync(false), 60_000);
-    const dataInterval = setInterval(() => load(true), 5 * 60_000);
+
+    let syncInterval: ReturnType<typeof setInterval> | null = null;
+    let dataInterval: ReturnType<typeof setInterval> | null = null;
+
+    const startIntervals = () => {
+      if (syncInterval !== null || dataInterval !== null) return;
+      syncInterval = setInterval(() => loadSync(false), 60_000);
+      dataInterval = setInterval(() => load(true), 5 * 60_000);
+    };
+
+    const stopIntervals = () => {
+      if (syncInterval !== null) clearInterval(syncInterval);
+      if (dataInterval !== null) clearInterval(dataInterval);
+      syncInterval = null;
+      dataInterval = null;
+    };
+
+    if (!document.hidden) {
+      startIntervals();
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopIntervals();
+      } else {
+        loadSync(false);
+        load(true);
+        startIntervals();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
-      clearInterval(syncInterval);
-      clearInterval(dataInterval);
+      stopIntervals();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
