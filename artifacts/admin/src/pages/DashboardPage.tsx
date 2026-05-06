@@ -58,8 +58,10 @@ export default function DashboardPage({ onLogout }: Props) {
   const [syncLoading, setSyncLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [secsLeft, setSecsLeft] = useState<number | null>(null);
+  const [refreshedJustNow, setRefreshedJustNow] = useState(false);
 
   const nextRefreshAtRef = useRef<number | null>(null);
+  const catchupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadSync = async (showSpinner = false) => {
     if (showSpinner) setSyncLoading(true);
@@ -73,7 +75,7 @@ export default function DashboardPage({ onLogout }: Props) {
     }
   };
 
-  const load = async (silent = false) => {
+  const load = async (silent = false, catchup = false) => {
     if (!silent) setLoading(true);
     setError(null);
     try {
@@ -89,6 +91,11 @@ export default function DashboardPage({ onLogout }: Props) {
       setLastUpdated(new Date());
       nextRefreshAtRef.current = Date.now() + DATA_INTERVAL_MS;
       setSecsLeft(Math.round(DATA_INTERVAL_MS / 1000));
+      if (catchup) {
+        setRefreshedJustNow(true);
+        if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
+        catchupTimeoutRef.current = setTimeout(() => setRefreshedJustNow(false), 3000);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data");
     } finally {
@@ -150,7 +157,7 @@ export default function DashboardPage({ onLogout }: Props) {
         stopIntervals();
       } else {
         loadSync(false);
-        load(true);
+        load(true, true); // catchup=true → shows "↻ refreshed" badge on success
         startIntervals();
       }
     };
@@ -160,6 +167,7 @@ export default function DashboardPage({ onLogout }: Props) {
     return () => {
       stopIntervals();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
     };
   }, []);
 
@@ -252,6 +260,13 @@ export default function DashboardPage({ onLogout }: Props) {
                 {secsLeft !== null && (
                   <span className="ml-1 tabular-nums">· next in {formatCountdown(secsLeft)}</span>
                 )}
+              </span>
+            )}
+
+            {/* Catch-up badge — appears briefly after tab regains focus */}
+            {refreshedJustNow && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium hidden sm:inline">
+                ↻ refreshed
               </span>
             )}
 
