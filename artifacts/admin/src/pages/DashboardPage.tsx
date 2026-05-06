@@ -266,7 +266,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {/* Catch-up badge — appears briefly after tab regains focus */}
             {refreshedJustNow && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium hidden sm:inline">
-                ↻ refreshed
+                ↻ Refreshed just now
               </span>
             )}
 
