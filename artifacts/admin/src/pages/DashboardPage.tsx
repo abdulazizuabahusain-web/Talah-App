@@ -45,6 +45,13 @@ function formatCountdown(secs: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function formatAwayTime(mins: number): string {
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h}h ${m}m`;
+}
+
 export default function DashboardPage({ onLogout }: Props) {
   const [tab, setTab] = useState<Tab>("users");
   const [data, setData] = useState<Data>({
@@ -273,7 +280,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {/* Catch-up badge — appears briefly after tab regains focus */}
             {refreshedJustNow && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium hidden sm:inline">
-                ↻ refreshed{awayMins >= 2 ? ` · away ${awayMins}m` : ""}
+                ↻ refreshed{awayMins >= 2 ? ` · away ${formatAwayTime(awayMins)}` : ""}
               </span>
             )}
 
