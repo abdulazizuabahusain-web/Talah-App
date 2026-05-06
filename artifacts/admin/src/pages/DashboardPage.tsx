@@ -59,9 +59,11 @@ export default function DashboardPage({ onLogout }: Props) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [secsLeft, setSecsLeft] = useState<number | null>(null);
   const [refreshedJustNow, setRefreshedJustNow] = useState(false);
+  const [awayMins, setAwayMins] = useState(0);
 
   const nextRefreshAtRef = useRef<number | null>(null);
   const catchupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hiddenAtRef = useRef<number | null>(null);
 
   const loadSync = async (showSpinner = false) => {
     if (showSpinner) setSyncLoading(true);
@@ -154,8 +156,13 @@ export default function DashboardPage({ onLogout }: Props) {
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        hiddenAtRef.current = Date.now();
         stopIntervals();
       } else {
+        const elapsed = hiddenAtRef.current !== null ? Date.now() - hiddenAtRef.current : 0;
+        const mins = Math.floor(elapsed / 60_000);
+        setAwayMins(mins);
+        hiddenAtRef.current = null;
         loadSync(false);
         load(true, true); // catchup=true → shows "↻ refreshed" badge on success
         startIntervals();
@@ -266,7 +273,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {/* Catch-up badge — appears briefly after tab regains focus */}
             {refreshedJustNow && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium hidden sm:inline">
-                ↻ Refreshed just now
+                ↻ refreshed{awayMins >= 2 ? ` · away ${awayMins}m` : ""}
               </span>
             )}
 
