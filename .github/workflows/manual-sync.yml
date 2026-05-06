@@ -8,9 +8,14 @@ on:
         required: false
         default: "Manual re-sync check"
       ref:
-        description: "Branch or commit SHA to push to main (default: current main tip)"
+        description: "Branch or commit SHA to push to main. CAUTION: must be a fast-forward from current main. Default 'main' = no-op re-sync of current tip."
         required: false
         default: "main"
+      run_typecheck:
+        description: "Run typecheck after push to verify code quality?"
+        type: boolean
+        required: false
+        default: true
 
 permissions:
   contents: write
@@ -38,6 +43,7 @@ jobs:
           echo "  Commit msg   : $(git log -1 --pretty=%s)"
           echo "  Author       : $(git log -1 --pretty=%an)"
           echo "  Date         : $(git log -1 --pretty=%ad --date=iso)"
+          echo "  Run typecheck: ${{ inputs.run_typecheck }}"
           echo "=================================================="
 
       - name: Push to main
@@ -46,43 +52,49 @@ jobs:
           git config user.name "github-actions[bot]"
           CURRENT_SHA=$(git rev-parse HEAD)
           if git push origin HEAD:main; then
-            echo ""
             echo "Push succeeded — main is now at ${CURRENT_SHA}"
           else
             echo ""
-            echo "ERROR: push was rejected."
-            echo "Possible reasons:"
-            echo "  - The source ref is not a fast-forward from current main"
-            echo "    (use 'git push --force' locally if you are the repo owner)"
-            echo "  - The commit does not yet have a passing CI run"
-            echo "    (wait for CI to complete on the source branch first)"
-            echo "  - A branch ruleset is blocking the push"
+            echo "ERROR: push was rejected. Possible reasons:"
+            echo "  - Source ref is not a fast-forward from current main."
+            echo "    To force-push, run locally as the repo owner:"
+            echo "    git push https://\$GITHUB_PAT@github.com/abdulazizuabahusain-web/Talah-App.git <ref>:main --force"
+            echo "  - Commit does not yet have a passing CI run."
+            echo "    Wait for CI to complete on the source branch, then retry."
+            echo "  - A branch ruleset is blocking the push."
             exit 1
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup pnpm
+        if: ${{ inputs.run_typecheck == true }}
         uses: pnpm/action-setup@v3
         with:
           version: 9
 
       - name: Setup Node.js
+        if: ${{ inputs.run_typecheck == true }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
 
       - name: Install dependencies
+        if: ${{ inputs.run_typecheck == true }}
         run: pnpm install --frozen-lockfile
 
       - name: Type check
+        if: ${{ inputs.run_typecheck == true }}
         run: pnpm run typecheck
 
       - name: Done
         run: |
           echo "=================================================="
-          echo "  Sync check PASSED"
-          echo "  main is now at : $(git rev-parse HEAD)"
-          echo "  Code quality   : typecheck passed"
+          echo "  Sync complete. main is now at: $(git rev-parse HEAD)"
+          if [ "${{ inputs.run_typecheck }}" = "true" ]; then
+            echo "  Code quality : typecheck passed"
+          else
+            echo "  Code quality : typecheck skipped"
+          fi
           echo "=================================================="
