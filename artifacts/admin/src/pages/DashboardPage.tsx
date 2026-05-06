@@ -170,6 +170,20 @@ export default function DashboardPage({ onLogout }: Props) {
               </span>
             )}
 
+            {/* PAT expiry badge */}
+            {syncStatus && syncStatus.patDaysLeft !== undefined && syncStatus.patDaysLeft <= 14 && (
+              <span
+                title={`GitHub PAT expires on ${syncStatus.patExpiresAt} — renew it in the Replit Secrets panel`}
+                className={`text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1 cursor-default ${
+                  syncStatus.patDaysLeft <= 0
+                    ? "bg-destructive/15 text-destructive border border-destructive/40"
+                    : "bg-amber-100 text-amber-700 border border-amber-300"
+                }`}
+              >
+                ⚠ {syncStatus.patDaysLeft <= 0 ? "PAT expired" : `PAT expires in ${syncStatus.patDaysLeft} day${syncStatus.patDaysLeft === 1 ? "" : "s"}`}
+              </span>
+            )}
+
             <button
               onClick={() => { load(); loadSync(true); }}
               className="text-sm px-3 py-1.5 rounded-xl border border-border hover:bg-muted transition-colors"

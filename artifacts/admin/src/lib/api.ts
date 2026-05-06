@@ -204,9 +204,14 @@ export interface Candidate {
   area: string;
 }
 
+interface PatInfo {
+  patExpiresAt: string;
+  patDaysLeft: number;
+}
+
 export type SyncStatus =
-  | { ok: true; githubSha: string; shortSha: string; committedAt: string; message: string; upToDate: boolean; localSha: string }
-  | { ok: false; error: string; localSha?: string };
+  | ({ ok: true; githubSha: string; shortSha: string; committedAt: string; message: string; upToDate: boolean; localSha: string } & PatInfo)
+  | ({ ok: false; error: string; localSha?: string } & Partial<PatInfo>);
 
 export interface CompatibilityReport {
   overallScore: number;

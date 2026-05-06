@@ -4,6 +4,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
+import { logger } from "../lib/logger";
 import { sanitizeFields } from "../lib/sanitize";
 import {
   db,
@@ -338,10 +339,31 @@ router.get("/reports", requireAdmin, async (_req, res) => {
 // ── GitHub Sync Status ────────────────────────────────────────────────────────
 const GITHUB_REPO = "abdulazizuabahusain-web/Talah-App";
 
+// PAT expiry date: read from env (YYYY-MM-DD ISO date string) or fall back to the known expiry.
+const PAT_EXPIRES_AT_RAW = process.env["PAT_EXPIRES_AT"] ?? "2026-06-02";
+
+// Validate format and parse using explicit UTC arithmetic to avoid timezone edge cases.
+// The PAT is considered valid until the end of its expiry day (UTC midnight of the next day).
+function computePatDaysLeft(): { patExpiresAt: string; patDaysLeft: number } {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(PAT_EXPIRES_AT_RAW);
+  if (!match) {
+    logger.warn({ PAT_EXPIRES_AT_RAW }, "PAT_EXPIRES_AT env var is malformed — expected YYYY-MM-DD");
+    return { patExpiresAt: PAT_EXPIRES_AT_RAW, patDaysLeft: 0 };
+  }
+  const [, y, m, d] = match;
+  // End of expiry day in UTC
+  const expiryMs = Date.UTC(Number(y), Number(m) - 1, Number(d) + 1);
+  const nowMs = Date.now();
+  const patDaysLeft = Math.ceil((expiryMs - nowMs) / (1000 * 60 * 60 * 24));
+  return { patExpiresAt: PAT_EXPIRES_AT_RAW, patDaysLeft };
+}
+
 router.get("/sync-status", requireAdmin, async (req, res) => {
   const pat = process.env["GITHUB_PAT"];
+  const patInfo = computePatDaysLeft();
+
   if (!pat) {
-    res.json({ ok: false, error: "GITHUB_PAT secret is not configured" });
+    res.json({ ok: false, error: "GITHUB_PAT secret is not configured", ...patInfo });
     return;
   }
 
@@ -374,6 +396,7 @@ router.get("/sync-status", requireAdmin, async (req, res) => {
             ? "GitHub PAT is invalid or expired"
             : `GitHub API returned HTTP ${status}`,
         localSha,
+        ...patInfo,
       });
       return;
     }
@@ -389,10 +412,10 @@ router.get("/sync-status", requireAdmin, async (req, res) => {
     const message = data.commit.message.split("\n")[0] ?? "";
     const upToDate = localSha !== "unknown" && localSha === githubSha;
 
-    res.json({ ok: true, githubSha, shortSha, committedAt, message, upToDate, localSha });
+    res.json({ ok: true, githubSha, shortSha, committedAt, message, upToDate, localSha, ...patInfo });
   } catch (err) {
     req.log.error({ err }, "GitHub sync-status fetch failed");
-    res.json({ ok: false, error: "Could not reach GitHub API", localSha });
+    res.json({ ok: false, error: "Could not reach GitHub API", localSha, ...patInfo });
   }
 });
 
