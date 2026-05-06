@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type User } from "@/lib/api";
 import UsersTab from "@/components/UsersTab";
 import RequestsTab from "@/components/RequestsTab";
@@ -19,6 +19,7 @@ const TABS: { id: Tab; label: string; emoji: string }[] = [
 ];
 
 const PAGE_SIZE = 50;
+const DATA_INTERVAL_MS = 5 * 60_000;
 
 interface Data {
   users: User[];
@@ -38,6 +39,12 @@ interface Props {
   onLogout: () => void;
 }
 
+function formatCountdown(secs: number): string {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export default function DashboardPage({ onLogout }: Props) {
   const [tab, setTab] = useState<Tab>("users");
   const [data, setData] = useState<Data>({
@@ -50,6 +57,9 @@ export default function DashboardPage({ onLogout }: Props) {
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncLoading, setSyncLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [secsLeft, setSecsLeft] = useState<number | null>(null);
+
+  const nextRefreshAtRef = useRef<number | null>(null);
 
   const loadSync = async (showSpinner = false) => {
     if (showSpinner) setSyncLoading(true);
@@ -77,6 +87,8 @@ export default function DashboardPage({ onLogout }: Props) {
       setData({ users: usersPage.data, requests: requestsPage.data, groups: groupsPage.data, feedback, reports });
       setHasMore({ users: usersPage.hasMore, requests: requestsPage.hasMore, groups: groupsPage.hasMore });
       setLastUpdated(new Date());
+      nextRefreshAtRef.current = Date.now() + DATA_INTERVAL_MS;
+      setSecsLeft(Math.round(DATA_INTERVAL_MS / 1000));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data");
     } finally {
@@ -106,18 +118,27 @@ export default function DashboardPage({ onLogout }: Props) {
 
     let syncInterval: ReturnType<typeof setInterval> | null = null;
     let dataInterval: ReturnType<typeof setInterval> | null = null;
+    let tickInterval: ReturnType<typeof setInterval> | null = null;
 
     const startIntervals = () => {
       if (syncInterval !== null || dataInterval !== null) return;
       syncInterval = setInterval(() => loadSync(false), 60_000);
-      dataInterval = setInterval(() => load(true), 5 * 60_000);
+      dataInterval = setInterval(() => load(true), DATA_INTERVAL_MS);
+      tickInterval = setInterval(() => {
+        if (nextRefreshAtRef.current !== null) {
+          const s = Math.max(0, Math.round((nextRefreshAtRef.current - Date.now()) / 1000));
+          setSecsLeft(s);
+        }
+      }, 1000);
     };
 
     const stopIntervals = () => {
       if (syncInterval !== null) clearInterval(syncInterval);
       if (dataInterval !== null) clearInterval(dataInterval);
+      if (tickInterval !== null) clearInterval(tickInterval);
       syncInterval = null;
       dataInterval = null;
+      tickInterval = null;
     };
 
     if (!document.hidden) {
@@ -221,11 +242,19 @@ export default function DashboardPage({ onLogout }: Props) {
               </span>
             )}
 
+            {/* Updated timestamp + countdown */}
             {lastUpdated && (
-              <span className="text-xs text-muted-foreground hidden sm:inline" title="Data auto-refreshes every 5 minutes">
+              <span
+                className="text-xs text-muted-foreground hidden sm:inline"
+                title="Data auto-refreshes every 5 minutes"
+              >
                 Updated {lastUpdated.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                {secsLeft !== null && secsLeft > 0 && (
+                  <span className="ml-1 tabular-nums">· next in {formatCountdown(secsLeft)}</span>
+                )}
               </span>
             )}
+
             <button
               onClick={() => { load(); loadSync(true); }}
               className="text-sm px-3 py-1.5 rounded-xl border border-border hover:bg-muted transition-colors"
@@ -279,7 +308,7 @@ export default function DashboardPage({ onLogout }: Props) {
         {error && (
           <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-4 mb-4">
             <p className="text-destructive text-sm">{error}</p>
-            <button onClick={load} className="text-sm underline mt-1">Retry</button>
+            <button onClick={() => load()} className="text-sm underline mt-1">Retry</button>
           </div>
         )}
 
