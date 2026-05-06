@@ -52,6 +52,10 @@ function formatAwayTime(mins: number): string {
   return `${h}h ${m}m`;
 }
 
+function formatHHMM(date: Date): string {
+  return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
 export default function DashboardPage({ onLogout }: Props) {
   const [tab, setTab] = useState<Tab>("users");
   const [data, setData] = useState<Data>({
@@ -67,6 +71,8 @@ export default function DashboardPage({ onLogout }: Props) {
   const [secsLeft, setSecsLeft] = useState<number | null>(null);
   const [refreshedJustNow, setRefreshedJustNow] = useState(false);
   const [awayMins, setAwayMins] = useState(0);
+  const [awayDepartedAt, setAwayDepartedAt] = useState<Date | null>(null);
+  const [awayReturnedAt, setAwayReturnedAt] = useState<Date | null>(null);
 
   const nextRefreshAtRef = useRef<number | null>(null);
   const catchupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -166,9 +172,12 @@ export default function DashboardPage({ onLogout }: Props) {
         hiddenAtRef.current = Date.now();
         stopIntervals();
       } else {
+        const returnedAt = new Date();
         const elapsed = hiddenAtRef.current !== null ? Date.now() - hiddenAtRef.current : 0;
         const mins = Math.floor(elapsed / 60_000);
         setAwayMins(mins);
+        setAwayDepartedAt(hiddenAtRef.current !== null ? new Date(hiddenAtRef.current) : null);
+        setAwayReturnedAt(returnedAt);
         hiddenAtRef.current = null;
         loadSync(false);
         load(true, true); // catchup=true → shows "↻ refreshed" badge on success
@@ -279,8 +288,23 @@ export default function DashboardPage({ onLogout }: Props) {
 
             {/* Catch-up badge — appears briefly after tab regains focus */}
             {refreshedJustNow && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium hidden sm:inline">
-                ↻ refreshed{awayMins >= 2 ? ` · away ${formatAwayTime(awayMins)}` : ""}
+              <span
+                className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium hidden sm:inline"
+                title={
+                  awayMins >= 2 && awayDepartedAt && awayReturnedAt
+                    ? `Left at ${formatHHMM(awayDepartedAt)} · Returned at ${formatHHMM(awayReturnedAt)}`
+                    : undefined
+                }
+              >
+                ↻ refreshed
+                {awayMins >= 2 && (
+                  <>
+                    {` · away ${formatAwayTime(awayMins)}`}
+                    {awayDepartedAt && awayReturnedAt && (
+                      <span className="opacity-75">{` (left ${formatHHMM(awayDepartedAt)}, back ${formatHHMM(awayReturnedAt)})`}</span>
+                    )}
+                  </>
+                )}
               </span>
             )}
 
