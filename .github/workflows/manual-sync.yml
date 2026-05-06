@@ -8,13 +8,16 @@ on:
         required: false
         default: "Manual re-sync check"
       ref:
-        description: "Branch or commit SHA to verify (default: main)"
+        description: "Branch or commit SHA to push to main (default: current main tip)"
         required: false
         default: "main"
 
+permissions:
+  contents: write
+
 jobs:
-  sync-check:
-    name: Verify Sync State
+  sync-push:
+    name: Re-sync to main
     runs-on: ubuntu-latest
 
     steps:
@@ -27,15 +30,37 @@ jobs:
       - name: Print sync info
         run: |
           echo "=================================================="
-          echo "  Manual sync check"
+          echo "  Manual sync push"
           echo "  Triggered by : ${{ github.actor }}"
           echo "  Reason       : ${{ inputs.reason }}"
-          echo "  Ref checked  : ${{ inputs.ref }}"
+          echo "  Source ref   : ${{ inputs.ref }}"
           echo "  Commit SHA   : $(git rev-parse HEAD)"
           echo "  Commit msg   : $(git log -1 --pretty=%s)"
           echo "  Author       : $(git log -1 --pretty=%an)"
           echo "  Date         : $(git log -1 --pretty=%ad --date=iso)"
           echo "=================================================="
+
+      - name: Push to main
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          CURRENT_SHA=$(git rev-parse HEAD)
+          if git push origin HEAD:main; then
+            echo ""
+            echo "Push succeeded — main is now at ${CURRENT_SHA}"
+          else
+            echo ""
+            echo "ERROR: push was rejected."
+            echo "Possible reasons:"
+            echo "  - The source ref is not a fast-forward from current main"
+            echo "    (use 'git push --force' locally if you are the repo owner)"
+            echo "  - The commit does not yet have a passing CI run"
+            echo "    (wait for CI to complete on the source branch first)"
+            echo "  - A branch ruleset is blocking the push"
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -54,15 +79,10 @@ jobs:
       - name: Type check
         run: pnpm run typecheck
 
-      - name: Confirm sync state
+      - name: Done
         run: |
           echo "=================================================="
           echo "  Sync check PASSED"
-          echo "  main is at   : $(git rev-parse HEAD)"
-          echo "  Code quality : typecheck passed"
-          echo ""
-          echo "  If this commit is older than your latest Replit"
-          echo "  change, the Replit → GitHub sync has not run yet."
-          echo "  Check the Replit post-merge log or re-trigger the"
-          echo "  sync by merging a task in Replit."
+          echo "  main is now at : $(git rev-parse HEAD)"
+          echo "  Code quality   : typecheck passed"
           echo "=================================================="
