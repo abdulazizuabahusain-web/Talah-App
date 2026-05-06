@@ -339,8 +339,9 @@ router.get("/reports", requireAdmin, async (_req, res) => {
 // ── GitHub Sync Status ────────────────────────────────────────────────────────
 const GITHUB_REPO = "abdulazizuabahusain-web/Talah-App";
 
-// PAT expiry date: read from env (YYYY-MM-DD ISO date string) or fall back to the known expiry.
-const PAT_EXPIRES_AT_RAW = process.env["PAT_EXPIRES_AT"] ?? "2026-06-02";
+// PAT expiry date: read from env (YYYY-MM-DD ISO date string).
+// If the env var is missing the server falls back to a dev-only placeholder and logs a warning at startup (see index.ts).
+const PAT_EXPIRES_AT_RAW = process.env["PAT_EXPIRES_AT"] ?? "1970-01-01";
 
 // Validate format and parse using explicit UTC arithmetic to avoid timezone edge cases.
 // The PAT is considered valid until the end of its expiry day (UTC midnight of the next day).

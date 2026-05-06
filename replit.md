@@ -104,6 +104,14 @@ pnpm --filter @workspace/api-spec run codegen # Regenerate API hooks
 pnpm run typecheck                            # Full typecheck all packages
 ```
 
+## Required Environment Variables (API Server)
+
+| Variable | Environment | Description |
+|---|---|---|
+| `PAT_EXPIRES_AT` | shared | GitHub PAT expiry date in `YYYY-MM-DD` format (e.g. `2026-06-02`). **Update this in the Replit Secrets panel whenever the PAT is renewed.** Missing → server logs a startup warning and sync-status shows 0 days left. |
+| `ADMIN_PIN_HASH` | shared | bcrypt hash of the admin dashboard PIN. Falls back to hash of `"1234"` in dev only. |
+| `GITHUB_PAT` | secret | GitHub Personal Access Token for repo sync. |
+
 ## Design Tokens (Tal'ah palette)
 
 | Token | Value | Use |

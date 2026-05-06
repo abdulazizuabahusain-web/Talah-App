@@ -15,6 +15,13 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+if (!process.env["PAT_EXPIRES_AT"]) {
+  logger.warn(
+    "PAT_EXPIRES_AT env var is not set — GitHub PAT expiry tracking will not work correctly. " +
+    "Set PAT_EXPIRES_AT=YYYY-MM-DD in the Replit Secrets panel to the date your GitHub PAT expires.",
+  );
+}
+
 app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
