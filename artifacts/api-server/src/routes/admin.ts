@@ -22,7 +22,7 @@ const router = Router();
 // ADMIN_PIN_HASH: bcrypt hash of the admin PIN stored in env.
 // Generate with: node -e "const b=require('bcryptjs');console.log(b.hashSync('YOUR_PIN',12))"
 // Falls back to a hash of "1234" for development (never use in production).
-const DEV_HASH = "$2a$12$K8GkNZOekIUPZMaSLSzfC.HlqYDzW2GJkqg2LIi5/kqAHFb7xOBUe"; // hash of "1234"
+const DEV_HASH = "$2a$10$d8NH7U72f4h5CFulT5ymmepPT83cyd5TCrT3NZi2GEx7yovXiQHTO"; // hash of "1234"
 const ADMIN_PIN_HASH = process.env["ADMIN_PIN_HASH"] ?? DEV_HASH;
 
 // Rate-limit admin login: max 5 attempts per 15 minutes per IP

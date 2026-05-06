@@ -26,6 +26,7 @@ app.use(
     },
   }),
 );
+app.set("trust proxy", 1); // Replit proxy sets X-Forwarded-For
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
