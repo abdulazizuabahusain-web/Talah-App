@@ -344,11 +344,12 @@ export default function DashboardPage({ onLogout }: Props) {
             {refreshedJustNow && (
               <span
                 className={`relative overflow-hidden text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1 touch-pan-y${badgeDismissing ? " badge-dismissing" : " badge-entering"}`}
-                title={
+                title={[
+                  lastUpdated ? `Data refreshed at ${formatHHMM(lastUpdated)}` : null,
                   awayMins >= 2 && awayDepartedAt && awayReturnedAt
                     ? `Left at ${formatHHMM(awayDepartedAt)} · Returned at ${formatHHMM(awayReturnedAt)}`
-                    : undefined
-                }
+                    : null,
+                ].filter(Boolean).join(" · ") || undefined}
                 onMouseEnter={handleBadgeMouseEnter}
                 onMouseLeave={handleBadgeMouseLeave}
                 onTouchStart={(e) => {
