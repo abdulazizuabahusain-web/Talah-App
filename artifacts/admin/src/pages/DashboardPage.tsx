@@ -76,11 +76,15 @@ export default function DashboardPage({ onLogout }: Props) {
   const [awayDepartedAt, setAwayDepartedAt] = useState<Date | null>(null);
   const [awayReturnedAt, setAwayReturnedAt] = useState<Date | null>(null);
 
+  const [badgePaused, setBadgePaused] = useState(false);
+
   const nextRefreshAtRef = useRef<number | null>(null);
   const catchupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const badgeDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hiddenAtRef = useRef<number | null>(null);
   const badgeTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const badgeTimerStartRef = useRef<number | null>(null);
+  const badgePausedElapsedRef = useRef<number>(0);
 
   const loadSync = async (showSpinner = false) => {
     if (showSpinner) setSyncLoading(true);
@@ -116,9 +120,12 @@ export default function DashboardPage({ onLogout }: Props) {
           badgeDismissTimerRef.current = null;
         }
         setBadgeDismissing(false);
+        setBadgePaused(false);
         setRefreshedJustNow(true);
         setBadgeProgressKey((k) => k + 1);
         if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
+        badgeTimerStartRef.current = Date.now();
+        badgePausedElapsedRef.current = 0;
         catchupTimeoutRef.current = setTimeout(() => dismissCatchupBadge(), 4_000);
       }
     } catch (e) {
@@ -132,11 +139,36 @@ export default function DashboardPage({ onLogout }: Props) {
     if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
     if (badgeDismissTimerRef.current) clearTimeout(badgeDismissTimerRef.current);
     setBadgeDismissing(true);
+    setBadgePaused(false);
     badgeDismissTimerRef.current = setTimeout(() => {
       setRefreshedJustNow(false);
       setBadgeDismissing(false);
       badgeDismissTimerRef.current = null;
     }, 250);
+  };
+
+  const handleBadgeMouseEnter = () => {
+    if (badgePaused) return;
+    const stretchElapsed = Date.now() - (badgeTimerStartRef.current ?? Date.now());
+    badgePausedElapsedRef.current += stretchElapsed;
+    if (catchupTimeoutRef.current) {
+      clearTimeout(catchupTimeoutRef.current);
+      catchupTimeoutRef.current = null;
+    }
+    setBadgePaused(true);
+  };
+
+  const handleBadgeMouseLeave = () => {
+    if (!badgePaused) return;
+    const remaining = Math.max(0, 4_000 - badgePausedElapsedRef.current);
+    badgeTimerStartRef.current = Date.now();
+    if (remaining > 0) {
+      catchupTimeoutRef.current = setTimeout(() => dismissCatchupBadge(), remaining);
+    } else {
+      dismissCatchupBadge();
+      return;
+    }
+    setBadgePaused(false);
   };
 
   const loadMore = async (entity: keyof HasMore) => {
@@ -317,6 +349,8 @@ export default function DashboardPage({ onLogout }: Props) {
                     ? `Left at ${formatHHMM(awayDepartedAt)} · Returned at ${formatHHMM(awayReturnedAt)}`
                     : undefined
                 }
+                onMouseEnter={handleBadgeMouseEnter}
+                onMouseLeave={handleBadgeMouseLeave}
                 onTouchStart={(e) => {
                   badgeTouchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                 }}
@@ -351,6 +385,7 @@ export default function DashboardPage({ onLogout }: Props) {
                   <span
                     key={badgeProgressKey}
                     className="badge-progress-bar absolute bottom-0 left-0 h-[2px] bg-primary/50"
+                    style={{ animationPlayState: badgePaused ? "paused" : "running" }}
                     aria-hidden="true"
                   />
                 )}
