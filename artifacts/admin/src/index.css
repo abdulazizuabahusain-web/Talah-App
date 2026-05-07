@@ -93,3 +93,12 @@
   animation: badge-slide-out 250ms ease-in forwards;
   pointer-events: none;
 }
+
+@keyframes badge-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+.badge-progress-bar {
+  animation: badge-progress 4s linear forwards;
+}

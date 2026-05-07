@@ -71,6 +71,7 @@ export default function DashboardPage({ onLogout }: Props) {
   const [secsLeft, setSecsLeft] = useState<number | null>(null);
   const [refreshedJustNow, setRefreshedJustNow] = useState(false);
   const [badgeDismissing, setBadgeDismissing] = useState(false);
+  const [badgeProgressKey, setBadgeProgressKey] = useState(0);
   const [awayMins, setAwayMins] = useState(0);
   const [awayDepartedAt, setAwayDepartedAt] = useState<Date | null>(null);
   const [awayReturnedAt, setAwayReturnedAt] = useState<Date | null>(null);
@@ -116,6 +117,7 @@ export default function DashboardPage({ onLogout }: Props) {
         }
         setBadgeDismissing(false);
         setRefreshedJustNow(true);
+        setBadgeProgressKey((k) => k + 1);
         if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
         catchupTimeoutRef.current = setTimeout(() => dismissCatchupBadge(), 4_000);
       }
@@ -309,7 +311,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {/* Catch-up badge — appears briefly after tab regains focus */}
             {refreshedJustNow && (
               <span
-                className={`text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1 touch-pan-y${badgeDismissing ? " badge-dismissing" : " badge-entering"}`}
+                className={`relative overflow-hidden text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1 touch-pan-y${badgeDismissing ? " badge-dismissing" : " badge-entering"}`}
                 title={
                   awayMins >= 2 && awayDepartedAt && awayReturnedAt
                     ? `Left at ${formatHHMM(awayDepartedAt)} · Returned at ${formatHHMM(awayReturnedAt)}`
@@ -344,6 +346,14 @@ export default function DashboardPage({ onLogout }: Props) {
                 >
                   ×
                 </button>
+                {/* Depleting progress bar — shows time remaining before auto-dismiss */}
+                {!badgeDismissing && (
+                  <span
+                    key={badgeProgressKey}
+                    className="badge-progress-bar absolute bottom-0 left-0 h-[2px] bg-primary/50"
+                    aria-hidden="true"
+                  />
+                )}
               </span>
             )}
 
