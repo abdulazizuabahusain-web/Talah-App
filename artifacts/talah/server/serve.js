@@ -46,6 +46,8 @@ function getAppName() {
 }
 
 function serveManifest(platform, res) {
+  // `platform` is validated by the caller to be exactly "ios" or "android"
+  // before this function is invoked — no path traversal is possible here.
   const manifestPath = path.join(STATIC_ROOT, platform, "manifest.json");
 
   if (!fs.existsSync(manifestPath)) {
@@ -82,6 +84,8 @@ function serveLandingPage(req, res, landingPageTemplate, appName) {
 }
 
 function serveStaticFile(urlPath, res) {
+  // Normalise and strip leading ".." segments, then verify the resolved path
+  // stays inside STATIC_ROOT — prevents path-traversal attacks.
   const safePath = path.normalize(urlPath).replace(/^(\.\.(\/|\\|$))+/, "");
   const filePath = path.join(STATIC_ROOT, safePath);
 

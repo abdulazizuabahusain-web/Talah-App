@@ -43,6 +43,11 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 overrides:
+  # Security patches — force vulnerable transitive deps to their patched versions
+  path-to-regexp: ^8.4.0      # HIGH: DoS via sequential optional groups (express→router)
+  postcss: ^8.5.10            # MODERATE: XSS via unescaped </style> in CSS stringify
+  yaml: ^2.8.3                # MODERATE: stack overflow on deeply nested YAML collections
+  brace-expansion: ^2.0.3     # MODERATE: zero-step sequence causes process hang
   '@esbuild-kit/esm-loader': npm:tsx@^4.21.0
   '@expo/ngrok-bin>@expo/ngrok-bin-darwin-arm64': '-'
   '@expo/ngrok-bin>@expo/ngrok-bin-darwin-x64': '-'
