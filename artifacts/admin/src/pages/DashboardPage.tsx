@@ -85,6 +85,7 @@ export default function DashboardPage({ onLogout }: Props) {
   const badgeTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const badgeTimerStartRef = useRef<number | null>(null);
   const badgePausedElapsedRef = useRef<number>(0);
+  const badgeSpanRef = useRef<HTMLSpanElement>(null);
 
   const loadSync = async (showSpinner = false) => {
     if (showSpinner) setSyncLoading(true);
@@ -169,6 +170,11 @@ export default function DashboardPage({ onLogout }: Props) {
       return;
     }
     setBadgePaused(false);
+  };
+
+  const handleBadgeFocusOut = (e: React.FocusEvent<HTMLSpanElement>) => {
+    if (badgeSpanRef.current?.contains(e.relatedTarget as Node | null)) return;
+    handleBadgeMouseLeave();
   };
 
   const loadMore = async (entity: keyof HasMore) => {
@@ -343,6 +349,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {/* Catch-up badge — appears briefly after tab regains focus */}
             {refreshedJustNow && (
               <span
+                ref={badgeSpanRef}
                 className={`relative overflow-hidden text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1 touch-pan-y${badgeDismissing ? " badge-dismissing" : " badge-entering"}`}
                 title={
                   awayMins >= 2 && awayDepartedAt && awayReturnedAt
@@ -352,7 +359,7 @@ export default function DashboardPage({ onLogout }: Props) {
                 onMouseEnter={handleBadgeMouseEnter}
                 onMouseLeave={handleBadgeMouseLeave}
                 onFocus={handleBadgeMouseEnter}
-                onBlur={handleBadgeMouseLeave}
+                onBlur={handleBadgeFocusOut}
                 onTouchStart={(e) => {
                   badgeTouchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                 }}
