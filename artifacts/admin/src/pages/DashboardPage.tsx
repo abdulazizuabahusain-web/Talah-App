@@ -339,27 +339,17 @@ export default function DashboardPage({ onLogout }: Props) {
               </span>
             )}
 
-            {/* Updated timestamp + countdown — full version on sm+, compact on mobile */}
+            {/* Updated timestamp + countdown — always visible, wraps on mobile */}
             {lastUpdated && (
-              <>
-                <span
-                  className="text-xs text-muted-foreground hidden sm:inline"
-                  title="Data auto-refreshes every 5 minutes"
-                >
-                  Updated {lastUpdated.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-                  {secsLeft !== null && (
-                    <span className="ml-1 tabular-nums">· next in {formatCountdown(secsLeft)}</span>
-                  )}
-                </span>
+              <span
+                className="text-xs text-muted-foreground tabular-nums"
+                title="Data auto-refreshes every 5 minutes"
+              >
+                Updated {lastUpdated.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
                 {secsLeft !== null && (
-                  <span
-                    className="text-xs text-muted-foreground tabular-nums sm:hidden"
-                    title={`Data auto-refreshes every 5 minutes · Updated ${lastUpdated.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`}
-                  >
-                    {formatCountdown(secsLeft)}
-                  </span>
+                  <span className="ml-1">· next in {formatCountdown(secsLeft)}</span>
                 )}
-              </>
+              </span>
             )}
 
             {/* Catch-up badge — appears briefly after tab regains focus */}
