@@ -310,7 +310,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {/* Catch-up badge — appears briefly after tab regains focus */}
             {refreshedJustNow && (
               <span
-                className={`text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1 touch-pan-y${badgeDismissing ? " badge-dismissing" : ""}`}
+                className={`text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1 touch-pan-y${badgeDismissing ? " badge-dismissing" : " badge-entering"}`}
                 title={
                   awayMins >= 2 && awayDepartedAt && awayReturnedAt
                     ? `Left at ${formatHHMM(awayDepartedAt)} · Returned at ${formatHHMM(awayReturnedAt)}`
