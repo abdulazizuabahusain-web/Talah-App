@@ -83,6 +83,7 @@ export default function DashboardPage({ onLogout }: Props) {
   const badgeDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hiddenAtRef = useRef<number | null>(null);
   const badgeTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const badgeTouchPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const badgeTimerStartRef = useRef<number | null>(null);
   const badgePausedElapsedRef = useRef<number>(0);
   const badgeSpanRef = useRef<HTMLSpanElement>(null);
@@ -139,6 +140,10 @@ export default function DashboardPage({ onLogout }: Props) {
   const dismissCatchupBadge = () => {
     if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
     if (badgeDismissTimerRef.current) clearTimeout(badgeDismissTimerRef.current);
+    if (badgeTouchPauseTimerRef.current) {
+      clearTimeout(badgeTouchPauseTimerRef.current);
+      badgeTouchPauseTimerRef.current = null;
+    }
     setBadgeDismissing(true);
     setBadgePaused(false);
     badgeDismissTimerRef.current = setTimeout(() => {
@@ -251,6 +256,7 @@ export default function DashboardPage({ onLogout }: Props) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
       if (badgeDismissTimerRef.current) clearTimeout(badgeDismissTimerRef.current);
+      if (badgeTouchPauseTimerRef.current) clearTimeout(badgeTouchPauseTimerRef.current);
     };
   }, []);
 
@@ -372,9 +378,18 @@ export default function DashboardPage({ onLogout }: Props) {
                 onBlur={handleBadgeFocusOut}
                 onTouchStart={(e) => {
                   badgeTouchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-                  handleBadgeMouseEnter(); // pause timer while finger is down
+                  // Only pause after a sustained touch (~100 ms), not an instant tap
+                  badgeTouchPauseTimerRef.current = setTimeout(() => {
+                    badgeTouchPauseTimerRef.current = null;
+                    handleBadgeMouseEnter();
+                  }, 100);
                 }}
                 onTouchEnd={(e) => {
+                  // Cancel the pending pause if the finger lifted before 100 ms
+                  if (badgeTouchPauseTimerRef.current) {
+                    clearTimeout(badgeTouchPauseTimerRef.current);
+                    badgeTouchPauseTimerRef.current = null;
+                  }
                   const start = badgeTouchStartRef.current;
                   if (!start) return;
                   const dx = e.changedTouches[0].clientX - start.x;
@@ -383,8 +398,17 @@ export default function DashboardPage({ onLogout }: Props) {
                   if (dx < -40 || dy < -40) {
                     dismissCatchupBadge(); // swipe → dismiss (already clears pause state)
                   } else {
-                    handleBadgeMouseLeave(); // tap/hold release → resume countdown
+                    handleBadgeMouseLeave(); // sustained hold release → resume countdown
                   }
+                }}
+                onTouchCancel={() => {
+                  // OS interrupted the touch — cancel pending pause and resume if paused
+                  if (badgeTouchPauseTimerRef.current) {
+                    clearTimeout(badgeTouchPauseTimerRef.current);
+                    badgeTouchPauseTimerRef.current = null;
+                  }
+                  badgeTouchStartRef.current = null;
+                  handleBadgeMouseLeave();
                 }}
               >
                 ↻ refreshed{lastUpdated ? ` at ${formatHHMM(lastUpdated)}` : ""}
