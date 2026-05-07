@@ -277,7 +277,7 @@ export default function DashboardPage({ onLogout }: Props) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 justify-end">
             {pendingRequests > 0 && (
               <span className="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-semibold">
                 {pendingRequests} pending
