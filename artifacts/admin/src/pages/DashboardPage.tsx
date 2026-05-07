@@ -77,6 +77,7 @@ export default function DashboardPage({ onLogout }: Props) {
   const nextRefreshAtRef = useRef<number | null>(null);
   const catchupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hiddenAtRef = useRef<number | null>(null);
+  const badgeTouchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const loadSync = async (showSpinner = false) => {
     if (showSpinner) setSyncLoading(true);
@@ -117,6 +118,11 @@ export default function DashboardPage({ onLogout }: Props) {
     } finally {
       if (!silent) setLoading(false);
     }
+  };
+
+  const dismissCatchupBadge = () => {
+    if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
+    setRefreshedJustNow(false);
   };
 
   const loadMore = async (entity: keyof HasMore) => {
@@ -290,12 +296,23 @@ export default function DashboardPage({ onLogout }: Props) {
             {/* Catch-up badge — appears briefly after tab regains focus */}
             {refreshedJustNow && (
               <span
-                className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1"
+                className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1 touch-pan-y"
                 title={
                   awayMins >= 2 && awayDepartedAt && awayReturnedAt
                     ? `Left at ${formatHHMM(awayDepartedAt)} · Returned at ${formatHHMM(awayReturnedAt)}`
                     : undefined
                 }
+                onTouchStart={(e) => {
+                  badgeTouchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }}
+                onTouchEnd={(e) => {
+                  const start = badgeTouchStartRef.current;
+                  if (!start) return;
+                  const dx = e.changedTouches[0].clientX - start.x;
+                  const dy = e.changedTouches[0].clientY - start.y;
+                  badgeTouchStartRef.current = null;
+                  if (dx < -40 || dy < -40) dismissCatchupBadge();
+                }}
               >
                 ↻ refreshed
                 {awayMins >= 2 && (
@@ -307,10 +324,7 @@ export default function DashboardPage({ onLogout }: Props) {
                   </>
                 )}
                 <button
-                  onClick={() => {
-                    if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
-                    setRefreshedJustNow(false);
-                  }}
+                  onClick={dismissCatchupBadge}
                   className="ml-0.5 opacity-60 hover:opacity-100 leading-none"
                   title="Dismiss"
                   aria-label="Dismiss"
