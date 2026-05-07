@@ -290,7 +290,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {/* Catch-up badge — appears briefly after tab regains focus */}
             {refreshedJustNow && (
               <span
-                className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium hidden sm:inline"
+                className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium hidden sm:inline-flex items-center gap-1"
                 title={
                   awayMins >= 2 && awayDepartedAt && awayReturnedAt
                     ? `Left at ${formatHHMM(awayDepartedAt)} · Returned at ${formatHHMM(awayReturnedAt)}`
@@ -306,6 +306,17 @@ export default function DashboardPage({ onLogout }: Props) {
                     )}
                   </>
                 )}
+                <button
+                  onClick={() => {
+                    if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
+                    setRefreshedJustNow(false);
+                  }}
+                  className="ml-0.5 opacity-60 hover:opacity-100 leading-none"
+                  title="Dismiss"
+                  aria-label="Dismiss"
+                >
+                  ×
+                </button>
               </span>
             )}
 
