@@ -117,8 +117,7 @@ export default function DashboardPage({ onLogout }: Props) {
         setBadgeDismissing(false);
         setRefreshedJustNow(true);
         if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
-        const durationMs = Math.min(30_000, Math.max(3_000, Math.round((awayMinutes / 60) * 10_000)));
-        catchupTimeoutRef.current = setTimeout(() => dismissCatchupBadge(), durationMs);
+        catchupTimeoutRef.current = setTimeout(() => dismissCatchupBadge(), 4_000);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data");
