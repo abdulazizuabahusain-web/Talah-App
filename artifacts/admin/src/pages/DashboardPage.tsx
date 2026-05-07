@@ -333,17 +333,27 @@ export default function DashboardPage({ onLogout }: Props) {
               </span>
             )}
 
-            {/* Updated timestamp + countdown */}
+            {/* Updated timestamp + countdown — full version on sm+, compact on mobile */}
             {lastUpdated && (
-              <span
-                className="text-xs text-muted-foreground hidden sm:inline"
-                title="Data auto-refreshes every 5 minutes"
-              >
-                Updated {lastUpdated.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+              <>
+                <span
+                  className="text-xs text-muted-foreground hidden sm:inline"
+                  title="Data auto-refreshes every 5 minutes"
+                >
+                  Updated {lastUpdated.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                  {secsLeft !== null && (
+                    <span className="ml-1 tabular-nums">· next in {formatCountdown(secsLeft)}</span>
+                  )}
+                </span>
                 {secsLeft !== null && (
-                  <span className="ml-1 tabular-nums">· next in {formatCountdown(secsLeft)}</span>
+                  <span
+                    className="text-xs text-muted-foreground tabular-nums sm:hidden"
+                    title={`Data auto-refreshes every 5 minutes · Updated ${lastUpdated.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`}
+                  >
+                    {formatCountdown(secsLeft)}
+                  </span>
                 )}
-              </span>
+              </>
             )}
 
             {/* Catch-up badge — appears briefly after tab regains focus */}
@@ -362,6 +372,7 @@ export default function DashboardPage({ onLogout }: Props) {
                 onBlur={handleBadgeFocusOut}
                 onTouchStart={(e) => {
                   badgeTouchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                  handleBadgeMouseEnter(); // pause timer while finger is down
                 }}
                 onTouchEnd={(e) => {
                   const start = badgeTouchStartRef.current;
@@ -369,7 +380,11 @@ export default function DashboardPage({ onLogout }: Props) {
                   const dx = e.changedTouches[0].clientX - start.x;
                   const dy = e.changedTouches[0].clientY - start.y;
                   badgeTouchStartRef.current = null;
-                  if (dx < -40 || dy < -40) dismissCatchupBadge();
+                  if (dx < -40 || dy < -40) {
+                    dismissCatchupBadge(); // swipe → dismiss (already clears pause state)
+                  } else {
+                    handleBadgeMouseLeave(); // tap/hold release → resume countdown
+                  }
                 }}
               >
                 ↻ refreshed{lastUpdated ? ` at ${formatHHMM(lastUpdated)}` : ""}
