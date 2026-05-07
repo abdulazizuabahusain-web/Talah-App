@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { GitCommitHorizontal } from "lucide-react";
 import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type User } from "@/lib/api";
 import UsersTab from "@/components/UsersTab";
 import RequestsTab from "@/components/RequestsTab";
@@ -77,6 +78,7 @@ export default function DashboardPage({ onLogout }: Props) {
   const [awayReturnedAt, setAwayReturnedAt] = useState<Date | null>(null);
 
   const [badgePaused, setBadgePaused] = useState(false);
+  const [syncPopoverOpen, setSyncPopoverOpen] = useState(false);
 
   const nextRefreshAtRef = useRef<number | null>(null);
   const catchupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,6 +89,7 @@ export default function DashboardPage({ onLogout }: Props) {
   const badgeTimerStartRef = useRef<number | null>(null);
   const badgePausedElapsedRef = useRef<number>(0);
   const badgeSpanRef = useRef<HTMLSpanElement>(null);
+  const syncPopoverRef = useRef<HTMLDivElement>(null);
 
   const loadSync = async (showSpinner = false) => {
     if (showSpinner) setSyncLoading(true);
@@ -181,6 +184,24 @@ export default function DashboardPage({ onLogout }: Props) {
     if (badgeSpanRef.current?.contains(e.relatedTarget as Node | null)) return;
     handleBadgeMouseLeave();
   };
+
+  useEffect(() => {
+    if (!syncPopoverOpen) return;
+    const handleOutside = (e: PointerEvent) => {
+      if (syncPopoverRef.current && !syncPopoverRef.current.contains(e.target as Node)) {
+        setSyncPopoverOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSyncPopoverOpen(false);
+    };
+    document.addEventListener("pointerdown", handleOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("pointerdown", handleOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [syncPopoverOpen]);
 
   const loadMore = async (entity: keyof HasMore) => {
     setLoadingMore((prev) => ({ ...prev, [entity]: true }));
@@ -295,9 +316,83 @@ export default function DashboardPage({ onLogout }: Props) {
               </span>
             )}
 
-            {/* GitHub Sync Status */}
+            {/* GitHub Sync + PAT — mobile: collapsed icon button; desktop: full badges */}
+
+            {/* === MOBILE: icon button + popover (hidden on sm+) === */}
+            <div className="relative sm:hidden" ref={syncPopoverRef}>
+              <button
+                onClick={() => setSyncPopoverOpen((o) => !o)}
+                aria-label="Sync and PAT status"
+                title="Sync and PAT status"
+                aria-expanded={syncPopoverOpen}
+                className="p-1.5 rounded-full border border-border flex items-center gap-1 hover:bg-muted transition-colors"
+              >
+                <span className="relative flex items-center">
+                  <GitCommitHorizontal className="w-4 h-4 text-muted-foreground" />
+                  <span
+                    className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-background flex-shrink-0 ${
+                      syncLoading
+                        ? "bg-muted-foreground/40 animate-pulse"
+                        : syncStatus?.ok
+                          ? syncStatus.upToDate ? "bg-green-500" : "bg-red-500"
+                          : "bg-destructive"
+                    }`}
+                  />
+                </span>
+                {syncStatus?.ok && syncStatus.patDaysLeft !== undefined && syncStatus.patDaysLeft <= 14 && (
+                  <span className="text-amber-500 text-xs leading-none">⚠</span>
+                )}
+              </button>
+
+              {syncPopoverOpen && (
+                <div className="absolute right-0 top-full mt-1.5 z-50 bg-background border border-border rounded-xl shadow-lg p-3 flex flex-col gap-2.5 min-w-[230px]">
+                  {/* Sync row */}
+                  {syncLoading ? (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" />
+                      Checking GitHub…
+                    </span>
+                  ) : syncStatus?.ok ? (
+                    <a
+                      href={`https://github.com/abdulazizuabahusain-web/Talah-App/commit/${syncStatus.githubSha}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => setSyncPopoverOpen(false)}
+                      className="text-xs flex items-center gap-1.5 hover:text-primary transition-colors"
+                    >
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${syncStatus.upToDate ? "bg-green-500" : "bg-red-500"}`} />
+                      <span className="font-mono">{syncStatus.shortSha}</span>
+                      <span className="text-muted-foreground">
+                        · {new Date(syncStatus.committedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-destructive flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-destructive flex-shrink-0" />
+                      {syncStatus && !syncStatus.ok ? syncStatus.error : "Sync error"}
+                    </span>
+                  )}
+
+                  {/* PAT row — only when expiry is within 14 days */}
+                  {syncStatus?.ok && syncStatus.patDaysLeft !== undefined && syncStatus.patDaysLeft <= 14 && (
+                    <span
+                      title={`GitHub PAT expires on ${syncStatus.patExpiresAt} — renew it in the Replit Secrets panel`}
+                      className={`text-xs px-2 py-1 rounded-lg font-semibold flex items-center gap-1 cursor-default ${
+                        syncStatus.patDaysLeft <= 0
+                          ? "bg-destructive/15 text-destructive"
+                          : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      ⚠ {syncStatus.patDaysLeft <= 0 ? "PAT expired" : `PAT expires in ${syncStatus.patDaysLeft} day${syncStatus.patDaysLeft === 1 ? "" : "s"}`}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* === DESKTOP: full sync badge (hidden on mobile) === */}
             {syncLoading ? (
-              <span className="text-xs text-muted-foreground px-2.5 py-1 rounded-full border border-border flex items-center gap-1.5">
+              <span className="hidden sm:flex text-xs text-muted-foreground px-2.5 py-1 rounded-full border border-border items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" />
                 GitHub…
               </span>
@@ -307,29 +402,29 @@ export default function DashboardPage({ onLogout }: Props) {
                 target="_blank"
                 rel="noreferrer"
                 title={`Last sync: ${new Date(syncStatus.committedAt).toLocaleString()}\n${syncStatus.message}`}
-                className="text-xs px-2.5 py-1 rounded-full border border-border flex items-center gap-1.5 hover:bg-muted transition-colors"
+                className="hidden sm:flex text-xs px-2.5 py-1 rounded-full border border-border items-center gap-1.5 hover:bg-muted transition-colors"
               >
                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${syncStatus.upToDate ? "bg-green-500" : "bg-red-500"}`} />
                 <span className="font-mono">{syncStatus.shortSha}</span>
-                <span className="text-muted-foreground hidden sm:inline">
+                <span className="text-muted-foreground">
                   · {new Date(syncStatus.committedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </span>
               </a>
             ) : (
               <span
                 title={syncStatus && !syncStatus.ok ? syncStatus.error : "Unknown error"}
-                className="text-xs px-2.5 py-1 rounded-full border border-destructive/40 bg-destructive/10 text-destructive flex items-center gap-1.5 cursor-default"
+                className="hidden sm:flex text-xs px-2.5 py-1 rounded-full border border-destructive/40 bg-destructive/10 text-destructive items-center gap-1.5 cursor-default"
               >
                 <span className="w-2 h-2 rounded-full bg-destructive flex-shrink-0" />
                 Sync error
               </span>
             )}
 
-            {/* PAT expiry badge */}
-            {syncStatus && syncStatus.patDaysLeft !== undefined && syncStatus.patDaysLeft <= 14 && (
+            {/* === DESKTOP: PAT expiry badge (hidden on mobile) === */}
+            {syncStatus && syncStatus.ok && syncStatus.patDaysLeft !== undefined && syncStatus.patDaysLeft <= 14 && (
               <span
                 title={`GitHub PAT expires on ${syncStatus.patExpiresAt} — renew it in the Replit Secrets panel`}
-                className={`text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1 cursor-default ${
+                className={`hidden sm:flex text-xs px-2.5 py-1 rounded-full font-semibold items-center gap-1 cursor-default ${
                   syncStatus.patDaysLeft <= 0
                     ? "bg-destructive/15 text-destructive border border-destructive/40"
                     : "bg-amber-100 text-amber-700 border border-amber-300"
