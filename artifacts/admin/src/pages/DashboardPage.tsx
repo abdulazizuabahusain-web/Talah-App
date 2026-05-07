@@ -352,6 +352,8 @@ export default function DashboardPage({ onLogout }: Props) {
                 ].filter(Boolean).join(" · ") || undefined}
                 onMouseEnter={handleBadgeMouseEnter}
                 onMouseLeave={handleBadgeMouseLeave}
+                onFocus={handleBadgeMouseEnter}
+                onBlur={handleBadgeMouseLeave}
                 onTouchStart={(e) => {
                   badgeTouchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                 }}
