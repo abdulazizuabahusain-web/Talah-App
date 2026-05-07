@@ -79,6 +79,8 @@ export default function DashboardPage({ onLogout }: Props) {
 
   const [badgePaused, setBadgePaused] = useState(false);
   const [syncPopoverOpen, setSyncPopoverOpen] = useState(false);
+  const [syncPopoverClosing, setSyncPopoverClosing] = useState(false);
+  const syncPopoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const nextRefreshAtRef = useRef<number | null>(null);
   const catchupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -185,15 +187,36 @@ export default function DashboardPage({ onLogout }: Props) {
     handleBadgeMouseLeave();
   };
 
+  const closeSyncPopover = () => {
+    if (syncPopoverCloseTimerRef.current) clearTimeout(syncPopoverCloseTimerRef.current);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion) {
+      setSyncPopoverOpen(false);
+      setSyncPopoverClosing(false);
+      return;
+    }
+    setSyncPopoverClosing(true);
+    syncPopoverCloseTimerRef.current = setTimeout(() => {
+      setSyncPopoverOpen(false);
+      setSyncPopoverClosing(false);
+    }, 150);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (syncPopoverCloseTimerRef.current) clearTimeout(syncPopoverCloseTimerRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     if (!syncPopoverOpen) return;
     const handleOutside = (e: PointerEvent) => {
       if (syncPopoverRef.current && !syncPopoverRef.current.contains(e.target as Node)) {
-        setSyncPopoverOpen(false);
+        closeSyncPopover();
       }
     };
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSyncPopoverOpen(false);
+      if (e.key === "Escape") closeSyncPopover();
     };
     document.addEventListener("pointerdown", handleOutside);
     document.addEventListener("keydown", handleEscape);
@@ -321,7 +344,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {/* === MOBILE: icon button + popover (hidden on sm+) === */}
             <div className="relative sm:hidden" ref={syncPopoverRef}>
               <button
-                onClick={() => setSyncPopoverOpen((o) => !o)}
+                onClick={() => { if (syncPopoverOpen) { closeSyncPopover(); } else { setSyncPopoverOpen(true); setSyncPopoverClosing(false); } }}
                 aria-label="Sync and PAT status"
                 title="Sync and PAT status"
                 aria-expanded={syncPopoverOpen}
@@ -344,8 +367,8 @@ export default function DashboardPage({ onLogout }: Props) {
                 )}
               </button>
 
-              {syncPopoverOpen && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 bg-background border border-border rounded-xl shadow-lg p-3 flex flex-col gap-2.5 min-w-[230px]">
+              {(syncPopoverOpen || syncPopoverClosing) && (
+                <div className={`absolute right-0 top-full mt-1.5 z-50 bg-background border border-border rounded-xl shadow-lg p-3 flex flex-col gap-2.5 min-w-[230px] ${syncPopoverClosing ? "popover-exiting" : "popover-entering"}`}>
                   {/* Sync row */}
                   {syncLoading ? (
                     <span className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -357,7 +380,7 @@ export default function DashboardPage({ onLogout }: Props) {
                       href={`https://github.com/abdulazizuabahusain-web/Talah-App/commit/${syncStatus.githubSha}`}
                       target="_blank"
                       rel="noreferrer"
-                      onClick={() => setSyncPopoverOpen(false)}
+                      onClick={closeSyncPopover}
                       className="text-xs flex items-center gap-1.5 hover:text-primary transition-colors"
                     >
                       <span className={`w-2 h-2 rounded-full flex-shrink-0 ${syncStatus.upToDate ? "bg-green-500" : "bg-red-500"}`} />
