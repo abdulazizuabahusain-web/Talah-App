@@ -344,12 +344,11 @@ export default function DashboardPage({ onLogout }: Props) {
             {refreshedJustNow && (
               <span
                 className={`relative overflow-hidden text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1 touch-pan-y${badgeDismissing ? " badge-dismissing" : " badge-entering"}`}
-                title={[
-                  lastUpdated ? `Data refreshed at ${formatHHMM(lastUpdated)}` : null,
+                title={
                   awayMins >= 2 && awayDepartedAt && awayReturnedAt
                     ? `Left at ${formatHHMM(awayDepartedAt)} · Returned at ${formatHHMM(awayReturnedAt)}`
-                    : null,
-                ].filter(Boolean).join(" · ") || undefined}
+                    : undefined
+                }
                 onMouseEnter={handleBadgeMouseEnter}
                 onMouseLeave={handleBadgeMouseLeave}
                 onFocus={handleBadgeMouseEnter}
@@ -366,7 +365,7 @@ export default function DashboardPage({ onLogout }: Props) {
                   if (dx < -40 || dy < -40) dismissCatchupBadge();
                 }}
               >
-                ↻ refreshed
+                ↻ refreshed{lastUpdated ? ` at ${formatHHMM(lastUpdated)}` : ""}
                 {awayMins >= 2 && (
                   <>
                     {` · away ${formatAwayTime(awayMins)}`}
