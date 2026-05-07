@@ -70,12 +70,14 @@ export default function DashboardPage({ onLogout }: Props) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [secsLeft, setSecsLeft] = useState<number | null>(null);
   const [refreshedJustNow, setRefreshedJustNow] = useState(false);
+  const [badgeDismissing, setBadgeDismissing] = useState(false);
   const [awayMins, setAwayMins] = useState(0);
   const [awayDepartedAt, setAwayDepartedAt] = useState<Date | null>(null);
   const [awayReturnedAt, setAwayReturnedAt] = useState<Date | null>(null);
 
   const nextRefreshAtRef = useRef<number | null>(null);
   const catchupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const badgeDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hiddenAtRef = useRef<number | null>(null);
   const badgeTouchStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -108,10 +110,15 @@ export default function DashboardPage({ onLogout }: Props) {
       nextRefreshAtRef.current = Date.now() + DATA_INTERVAL_MS;
       setSecsLeft(Math.round(DATA_INTERVAL_MS / 1000));
       if (catchup) {
+        if (badgeDismissTimerRef.current) {
+          clearTimeout(badgeDismissTimerRef.current);
+          badgeDismissTimerRef.current = null;
+        }
+        setBadgeDismissing(false);
         setRefreshedJustNow(true);
         if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
         const durationMs = Math.min(30_000, Math.max(3_000, Math.round((awayMinutes / 60) * 10_000)));
-        catchupTimeoutRef.current = setTimeout(() => setRefreshedJustNow(false), durationMs);
+        catchupTimeoutRef.current = setTimeout(() => dismissCatchupBadge(), durationMs);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data");
@@ -122,7 +129,13 @@ export default function DashboardPage({ onLogout }: Props) {
 
   const dismissCatchupBadge = () => {
     if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
-    setRefreshedJustNow(false);
+    if (badgeDismissTimerRef.current) clearTimeout(badgeDismissTimerRef.current);
+    setBadgeDismissing(true);
+    badgeDismissTimerRef.current = setTimeout(() => {
+      setRefreshedJustNow(false);
+      setBadgeDismissing(false);
+      badgeDismissTimerRef.current = null;
+    }, 250);
   };
 
   const loadMore = async (entity: keyof HasMore) => {
@@ -198,6 +211,7 @@ export default function DashboardPage({ onLogout }: Props) {
       stopIntervals();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
+      if (badgeDismissTimerRef.current) clearTimeout(badgeDismissTimerRef.current);
     };
   }, []);
 
@@ -296,7 +310,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {/* Catch-up badge — appears briefly after tab regains focus */}
             {refreshedJustNow && (
               <span
-                className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1 touch-pan-y"
+                className={`text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium inline-flex items-center gap-1 touch-pan-y${badgeDismissing ? " badge-dismissing" : ""}`}
                 title={
                   awayMins >= 2 && awayDepartedAt && awayReturnedAt
                     ? `Left at ${formatHHMM(awayDepartedAt)} · Returned at ${formatHHMM(awayReturnedAt)}`

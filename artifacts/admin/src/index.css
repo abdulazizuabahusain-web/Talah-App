@@ -74,3 +74,13 @@
   * { @apply border-border box-border; }
   body { @apply bg-background text-foreground font-sans antialiased; }
 }
+
+@keyframes badge-slide-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-20px); }
+}
+
+.badge-dismissing {
+  animation: badge-slide-out 250ms ease-in forwards;
+  pointer-events: none;
+}
