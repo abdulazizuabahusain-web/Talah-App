@@ -385,7 +385,7 @@ export default function DashboardPage({ onLogout }: Props) {
                   const dx = e.changedTouches[0].clientX - start.x;
                   const dy = e.changedTouches[0].clientY - start.y;
                   badgeTouchStartRef.current = null;
-                  if (dx < -40 || dy < -40) {
+                  if (Math.abs(dx) > 40 || Math.abs(dy) > 40) {
                     dismissCatchupBadge(); // swipe → dismiss (already clears pause state)
                   } else {
                     handleBadgeMouseLeave(); // sustained hold release → resume countdown
