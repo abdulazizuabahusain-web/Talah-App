@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { GitCommitHorizontal } from "lucide-react";
+import { GitCommitHorizontal, X } from "lucide-react";
 import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type User } from "@/lib/api";
 import UsersTab from "@/components/UsersTab";
 import RequestsTab from "@/components/RequestsTab";
@@ -368,7 +368,14 @@ export default function DashboardPage({ onLogout }: Props) {
               </button>
 
               {(syncPopoverOpen || syncPopoverClosing) && (
-                <div className={`absolute right-0 top-full mt-1.5 z-50 bg-background border border-border rounded-xl shadow-lg p-3 flex flex-col gap-2.5 min-w-[230px] ${syncPopoverClosing ? "popover-exiting" : "popover-entering"}`}>
+                <div className={`absolute right-0 top-full mt-1.5 z-50 bg-background border border-border rounded-xl shadow-lg p-3 flex flex-col gap-2.5 min-w-[230px] relative ${syncPopoverClosing ? "popover-exiting" : "popover-entering"}`}>
+                  <button
+                    onClick={closeSyncPopover}
+                    aria-label="Close"
+                    className="absolute top-2 right-2 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                   {/* Sync row */}
                   {syncLoading ? (
                     <span className="text-xs text-muted-foreground flex items-center gap-1.5">
