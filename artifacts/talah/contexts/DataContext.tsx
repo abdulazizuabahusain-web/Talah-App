@@ -26,6 +26,8 @@ interface DataContextValue {
   groups: Group[];
   feedback: FeedbackEntry[];
   reports: ReportEntry[];
+  error: string | null;
+  clearError: () => void;
 
   createRequest: (
     input: Omit<TalahRequest, "id" | "status" | "createdAt">,
@@ -43,9 +45,7 @@ interface DataContextValue {
   ) => Promise<void>;
   feedbackForGroup: (groupId: string) => FeedbackEntry[];
 
-  submitReport: (
-    input: Omit<ReportEntry, "id" | "createdAt">,
-  ) => Promise<void>;
+  submitReport: (input: Omit<ReportEntry, "id" | "createdAt">) => Promise<void>;
 
   flagUser: (userId: string, flagged: boolean) => Promise<void>;
   removeUser: (userId: string) => Promise<void>;
@@ -66,6 +66,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>([]);
   const [requests, setRequests] = useState<TalahRequest[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const readError = useCallback((err: unknown, fallback: string): string => {
+    return err instanceof Error ? err.message : fallback;
+  }, []);
+
+  const clearError = useCallback(() => setError(null), []);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -82,13 +89,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Collect unique member profiles from all groups
       const memberMap: Record<string, User> = {};
       converted.forEach(({ _members }) => {
-        _members.forEach((u) => { memberMap[u.id] = u; });
+        _members.forEach((u) => {
+          memberMap[u.id] = u;
+        });
       });
       setUsers(Object.values(memberMap));
-    } catch {
-      // Not critical if this fails; user sees empty state
+      setError(null);
+    } catch (err) {
+      setError(readError(err, "Could not refresh your Tal'ah data."));
     }
-  }, []);
+  }, [readError]);
 
   useEffect(() => {
     if (!appReady) return;
@@ -96,6 +106,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setRequests([]);
       setGroups([]);
       setUsers([]);
+      setError(null);
       setReady(true);
       return;
     }
@@ -119,6 +130,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
       const r = toRequest(created);
       setRequests((prev) => [...prev, r]);
+      setError(null);
       return r;
     },
     [],
@@ -127,8 +139,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const cancelRequest = useCallback<DataContextValue["cancelRequest"]>(
     async (id) => {
       await api.cancelRequest(id);
+      setError(null);
       setRequests((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: "cancelled" as const } : r)),
+        prev.map((r) =>
+          r.id === id ? { ...r, status: "cancelled" as const } : r,
+        ),
       );
     },
     [],
@@ -145,11 +160,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         wouldMeetAgain: input.wouldMeetAgain,
         comment: input.comment,
       });
+      setError(null);
     },
     [],
   );
 
-  const feedbackForGroup = useCallback((_groupId: string): FeedbackEntry[] => [], []);
+  const feedbackForGroup = useCallback(
+    (_groupId: string): FeedbackEntry[] => [],
+    [],
+  );
 
   const submitReport = useCallback<DataContextValue["submitReport"]>(
     async (input) => {
@@ -158,6 +177,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         groupId: input.groupId,
         reason: input.reason,
       });
+      setError(null);
     },
     [],
   );
@@ -167,6 +187,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const removeUser = useCallback<DataContextValue["removeUser"]>(
     async (_userId) => {
       await api.deleteMe();
+      setError(null);
       await signOut();
     },
     [signOut],
@@ -183,34 +204,42 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateGroup = useCallback<DataContextValue["updateGroup"]>(
-    async (_id, _patch) => { /* admin only */ },
+    async (_id, _patch) => {
+      /* admin only */
+    },
     [],
   );
 
   const setGroupStatus = useCallback<DataContextValue["setGroupStatus"]>(
-    async (_id, _status) => { /* admin only */ },
+    async (_id, _status) => {
+      /* admin only */
+    },
     [],
   );
 
   const assignUserToGroup = useCallback<DataContextValue["assignUserToGroup"]>(
-    async (_groupId, _userId) => { /* admin only */ },
+    async (_groupId, _userId) => {
+      /* admin only */
+    },
     [],
   );
 
-  const removeUserFromGroup = useCallback<DataContextValue["removeUserFromGroup"]>(
-    async (_groupId, _userId) => { /* admin only */ },
-    [],
-  );
+  const removeUserFromGroup = useCallback<
+    DataContextValue["removeUserFromGroup"]
+  >(async (_groupId, _userId) => {
+    /* admin only */
+  }, []);
 
   const flagUser = useCallback<DataContextValue["flagUser"]>(
-    async (_userId, _flagged) => { /* admin only */ },
+    async (_userId, _flagged) => {
+      /* admin only */
+    },
     [],
   );
 
-  const saveUser = useCallback<DataContextValue["saveUser"]>(
-    async (_user) => { /* admin only */ },
-    [],
-  );
+  const saveUser = useCallback<DataContextValue["saveUser"]>(async (_user) => {
+    /* admin only */
+  }, []);
 
   // ── Derived helpers ────────────────────────────────────────────────────────
 
@@ -232,6 +261,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       groups,
       feedback: [],
       reports: [],
+      error,
+      clearError,
       createRequest,
       cancelRequest,
       createGroup,
@@ -254,6 +285,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       users,
       requests,
       groups,
+      error,
+      clearError,
       createRequest,
       cancelRequest,
       createGroup,
