@@ -111,7 +111,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Handle taps on push notifications — navigate to the appropriate screen.
   // This fires whether the app was in background or completely quit (cold launch).
+  // Both APIs are unavailable on web — guard to avoid an uncaught error.
   useEffect(() => {
+    if (Platform.OS === "web") return;
+
     // Check if the app was launched via a notification tap (cold start)
     Notifications.getLastNotificationResponseAsync().then((response) => {
       if (!response) return;
