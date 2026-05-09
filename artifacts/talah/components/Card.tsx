@@ -26,11 +26,11 @@ export function Card({
     borderColor: colors.border,
     borderWidth: 1,
     padding: padded ? 18 : 0,
-    shadowColor: "#000",
-    shadowOpacity: elevated ? 0.06 : 0,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: elevated ? 1 : 0,
+    shadowColor: "#4A5D4F",
+    shadowOpacity: elevated ? 0.1 : 0.035,
+    shadowRadius: elevated ? 18 : 10,
+    shadowOffset: { width: 0, height: elevated ? 10 : 4 },
+    elevation: elevated ? 2 : 1,
   };
 
   if (onPress) {

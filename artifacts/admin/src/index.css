@@ -27,27 +27,27 @@
   --font-sans: var(--font-app);
 }
 
-/* Tal'ah palette: sand #F5EFE6, olive #6B7A4E, gold #B8924A, charcoal #2A2A2A */
+/* Tal'ah landing identity: sand #F4EDE4, olive #4A5D4F, gold #C8A96A, charcoal #2B2B2B */
 :root {
-  --background: 36 40% 95%;        /* sand #F5EFE6 */
-  --foreground: 0 0% 16%;          /* charcoal #2A2A2A */
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 16%;
-  --border: 36 20% 84%;
-  --input: 36 20% 88%;
-  --ring: 33 43% 50%;              /* gold */
-  --primary: 89 18% 39%;           /* olive #6B7A4E */
-  --primary-foreground: 0 0% 98%;
-  --secondary: 36 35% 88%;
-  --secondary-foreground: 0 0% 16%;
-  --muted: 36 25% 91%;
-  --muted-foreground: 0 0% 45%;
-  --accent: 33 43% 50%;            /* gold #B8924A */
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 72% 51%;
+  --background: 32 42% 93%; /* sand #F4EDE4 */
+  --foreground: 0 0% 17%; /* charcoal #2B2B2B */
+  --card: 0 0% 100% / 0.62;
+  --card-foreground: 0 0% 17%;
+  --border: 132 17% 33% / 0.16;
+  --input: 132 17% 33% / 0.25;
+  --ring: 39 48% 60%; /* gold #C8A96A */
+  --primary: 132 17% 33%; /* olive #4A5D4F */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 34 39% 87%; /* sand-dark #EBE0D2 */
+  --secondary-foreground: 0 0% 17%;
+  --muted: 34 39% 87%;
+  --muted-foreground: 35 10% 43%; /* muted #7A7060 */
+  --accent: 39 48% 60%; /* gold #C8A96A */
+  --accent-foreground: 0 0% 17%;
+  --destructive: 13 50% 47%;
   --destructive-foreground: 0 0% 98%;
-  --radius: 0.75rem;
-  --font-app: 'Inter', system-ui, sans-serif;
+  --radius: 1.25rem;
+  --font-app: "Tajawal", "Inter", system-ui, sans-serif;
 }
 
 .dark {
@@ -71,18 +71,51 @@
 }
 
 @layer base {
-  * { @apply border-border box-border; }
-  body { @apply bg-background text-foreground font-sans antialiased; }
+  * {
+    @apply border-border box-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image:
+      radial-gradient(
+        circle at top right,
+        rgba(200, 169, 106, 0.28),
+        transparent 34rem
+      ),
+      radial-gradient(
+        circle at bottom left,
+        rgba(74, 93, 79, 0.14),
+        transparent 28rem
+      );
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 @keyframes badge-slide-in {
-  from { opacity: 0; transform: translateX(-20px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes badge-slide-out {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(-20px); }
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
 }
 
 .badge-entering {
@@ -95,8 +128,12 @@
 }
 
 @keyframes badge-progress {
-  from { width: 100%; }
-  to   { width: 0%; }
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
 }
 
 .badge-progress-bar {
@@ -104,13 +141,25 @@
 }
 
 @keyframes popover-enter {
-  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)   scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes popover-exit {
-  from { opacity: 1; transform: translateY(0)   scale(1); }
-  to   { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
 }
 
 .popover-entering {
@@ -127,4 +176,18 @@
   .popover-exiting {
     animation: none;
   }
+}
+
+.talah-glass {
+  background: rgba(255, 255, 255, 0.58);
+  border: 0.5px solid rgba(74, 93, 79, 0.14);
+  box-shadow: 0 18px 45px rgba(74, 93, 79, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.talah-pill {
+  border-radius: 999px;
+  border: 0.5px solid rgba(74, 93, 79, 0.2);
+  background: rgba(74, 93, 79, 0.08);
+  color: hsl(var(--primary));
 }

@@ -56,7 +56,7 @@ export default function GroupsTab({ groups, users, onRefresh, hasMore, loadingMo
 
             <div className="flex flex-wrap gap-1.5">
               {members.map((u) => (
-                <span key={u.id} className="bg-muted rounded-full px-2.5 py-1 text-xs font-medium">{u.nickname ?? u.phone}</span>
+                <span key={u.id} className="bg-muted rounded-full px-2.5 py-1 text-xs font-medium">{u.nickname ?? u.email ?? u.phone}</span>
               ))}
             </div>
 

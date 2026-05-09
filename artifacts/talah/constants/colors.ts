@@ -1,37 +1,38 @@
 const colors = {
   light: {
-    text: "#2A2A2A",
-    tint: "#6B7A4E",
+    text: "#2B2B2B",
+    tint: "#4A5D4F",
 
-    background: "#F5EFE6",
-    foreground: "#2A2A2A",
+    // Landing-page identity: warm sand, soft olive, muted gold, charcoal.
+    background: "#F4EDE4",
+    foreground: "#2B2B2B",
 
-    card: "#FBF7F0",
-    cardForeground: "#2A2A2A",
+    card: "rgba(255,255,255,0.68)",
+    cardForeground: "#2B2B2B",
 
-    primary: "#6B7A4E",
-    primaryForeground: "#FBF7F0",
+    primary: "#4A5D4F",
+    primaryForeground: "#FFFFFF",
 
-    secondary: "#EAE2D2",
-    secondaryForeground: "#2A2A2A",
+    secondary: "#EBE0D2",
+    secondaryForeground: "#2B2B2B",
 
-    muted: "#EFE8DC",
-    mutedForeground: "#7A7367",
+    muted: "#EBE0D2",
+    mutedForeground: "#7A7060",
 
-    accent: "#B8924A",
-    accentForeground: "#FFFFFF",
+    accent: "#C8A96A",
+    accentForeground: "#2B2B2B",
 
     destructive: "#B45A3C",
     destructiveForeground: "#FFFFFF",
 
-    border: "#DCD3C0",
-    input: "#DCD3C0",
+    border: "rgba(74,93,79,0.16)",
+    input: "rgba(74,93,79,0.25)",
 
-    success: "#6B7A4E",
-    successForeground: "#FBF7F0",
+    success: "#4A5D4F",
+    successForeground: "#FFFFFF",
   },
 
-  radius: 16,
+  radius: 20,
 };
 
 export default colors;

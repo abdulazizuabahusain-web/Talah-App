@@ -9,7 +9,7 @@ import React, {
 
 import { useApp } from "@/contexts/AppContext";
 import { api, toGroup, toRequest, toUser } from "@/lib/api";
-import { genId } from "@/lib/storage";
+import { genId, loadJSON, saveJSON } from "@/lib/storage";
 import type {
   FeedbackEntry,
   Group,
@@ -57,6 +57,15 @@ interface DataContextValue {
   refresh: () => Promise<void>;
 }
 
+const DATA_CACHE_KEY = "talah:data-cache";
+
+type DataCache = {
+  requests: TalahRequest[];
+  groups: Group[];
+  users: User[];
+  cachedAt: number;
+};
+
 const DataContext = createContext<DataContextValue | null>(null);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
@@ -73,6 +82,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
+
+  const loadCachedData = useCallback(async () => {
+    const cached = await loadJSON<DataCache | null>(DATA_CACHE_KEY, null);
+    if (!cached) return;
+    setRequests(cached.requests);
+    setGroups(cached.groups);
+    setUsers(cached.users);
+  }, []);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -93,12 +110,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           memberMap[u.id] = u;
         });
       });
-      setUsers(Object.values(memberMap));
+      const nextUsers = Object.values(memberMap);
+      setUsers(nextUsers);
+      await saveJSON<DataCache>(DATA_CACHE_KEY, {
+        requests: rawRequests.map(toRequest),
+        groups: converted.map(({ _members: _, ...g }) => g),
+        users: nextUsers,
+        cachedAt: Date.now(),
+      });
       setError(null);
     } catch (err) {
+      await loadCachedData();
       setError(readError(err, "Could not refresh your Tal'ah data."));
     }
-  }, [readError]);
+  }, [loadCachedData, readError]);
 
   useEffect(() => {
     if (!appReady) return;
@@ -107,12 +132,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setGroups([]);
       setUsers([]);
       setError(null);
+      saveJSON<DataCache | null>(DATA_CACHE_KEY, null);
       setReady(true);
       return;
     }
     setReady(false);
-    fetchAll().finally(() => setReady(true));
-  }, [appReady, currentUser?.id, fetchAll]);
+    loadCachedData().finally(() => {
+      fetchAll().finally(() => setReady(true));
+    });
+  }, [appReady, currentUser?.id, fetchAll, loadCachedData]);
 
   const refresh = useCallback(async () => {
     if (currentUser) await fetchAll();

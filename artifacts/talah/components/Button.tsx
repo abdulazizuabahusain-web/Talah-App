@@ -50,8 +50,8 @@ export function Button({
     },
     secondary: {
       bg: colors.secondary,
-      fg: colors.secondaryForeground,
-      border: "transparent",
+      fg: colors.primary,
+      border: "rgba(74,93,79,0.12)",
     },
     ghost: {
       bg: "transparent",
@@ -59,8 +59,8 @@ export function Button({
       border: "transparent",
     },
     outline: {
-      bg: "transparent",
-      fg: colors.foreground,
+      bg: "rgba(255,255,255,0.36)",
+      fg: colors.primary,
       border: colors.border,
     },
     destructive: {
@@ -81,7 +81,9 @@ export function Button({
       disabled={disabled || loading}
       onPress={() => {
         if (Platform.OS !== "web") {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+            () => {},
+          );
         }
         onPress?.();
       }}
@@ -89,11 +91,17 @@ export function Button({
         {
           backgroundColor: palette.bg,
           borderColor: palette.border,
-          borderWidth: variant === "outline" ? 1 : 0,
+          borderWidth: variant === "outline" || variant === "secondary" ? 1 : 0,
           borderRadius: 999,
           paddingVertical: sizing.py,
           paddingHorizontal: sizing.px,
-          opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          opacity: disabled ? 0.5 : pressed ? 0.9 : 1,
+          transform: [{ scale: pressed && !disabled ? 0.98 : 1 }],
+          shadowColor: colors.primary,
+          shadowOpacity: variant === "primary" ? 0.16 : 0,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: variant === "primary" ? 2 : 0,
           alignSelf: fullWidth ? "stretch" : "flex-start",
         },
         style as ViewStyle,

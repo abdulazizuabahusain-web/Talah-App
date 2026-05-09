@@ -2,21 +2,30 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 0.2.0
+  description: Tal'ah API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+    description: Health and diagnostics
+  - name: auth
+    description: Email sign-in and session operations
+  - name: users
+    description: User profile operations
+  - name: requests
+    description: Meetup request operations
+  - name: groups
+    description: Group operations
+  - name: admin
+    description: Admin dashboard operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +33,288 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /readyz:
+    get:
+      operationId: readinessCheck
+      tags: [health]
+      summary: Readiness check including database connectivity
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessStatus"
+        "503":
+          description: Not ready
+  /version:
+    get:
+      operationId: getVersion
+      tags: [health]
+      summary: Build and runtime version metadata
+      responses:
+        "200":
+          description: Version metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionInfo"
+  /auth/email/send:
+    post:
+      operationId: sendEmailLoginCode
+      tags: [auth]
+      summary: Send an email sign-in code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Code created/sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok:
+                    type: boolean
+                  code:
+                    type: string
+                    description: Development only
+  /auth/email/verify:
+    post:
+      operationId: verifyEmailLoginCode
+      tags: [auth]
+      summary: Verify an email sign-in code and create a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email:
+                  type: string
+                  format: email
+                code:
+                  type: string
+                  minLength: 4
+                  maxLength: 6
+      responses:
+        "200":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, user]
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: "#/components/schemas/User"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      security: [{ bearerAuth: [] }]
+      summary: Delete current session
+      responses:
+        "200":
+          description: Logged out
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      security: [{ bearerAuth: [] }]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      operationId: updateMe
+      tags: [users]
+      security: [{ bearerAuth: [] }]
+      summary: Update current user profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPatch"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteMe
+      tags: [users]
+      security: [{ bearerAuth: [] }]
+      summary: Delete current user account
+      responses:
+        "200":
+          description: Deleted
+  /requests:
+    get:
+      operationId: getRequests
+      tags: [requests]
+      security: [{ bearerAuth: [] }]
+      summary: List current user's requests
+      responses:
+        "200":
+          description: Requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MeetupRequest"
+    post:
+      operationId: createRequest
+      tags: [requests]
+      security: [{ bearerAuth: [] }]
+      summary: Create a meetup request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRequest"
+      responses:
+        "201":
+          description: Created request
+  /groups:
+    get:
+      operationId: getGroups
+      tags: [groups]
+      security: [{ bearerAuth: [] }]
+      summary: List current user's groups
+      responses:
+        "200":
+          description: Groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+  /admin/audit-logs:
+    get:
+      operationId: getAdminAuditLogs
+      tags: [admin]
+      security: [{ bearerAuth: [] }]
+      summary: List admin audit logs
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/offset"
+      responses:
+        "200":
+          description: Paginated audit logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedAdminAuditLog"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    offset:
+      name: offset
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
   schemas:
     HealthStatus:
       type: object
       properties:
-        status:
-          type: string
-      required:
-        - status
-
+        status: { type: string }
+      required: [status]
+    ReadinessStatus:
+      type: object
+      properties:
+        status: { type: string }
+        database: { type: string }
+      required: [status, database]
+    VersionInfo:
+      type: object
+      properties:
+        name: { type: string }
+        version: { type: string }
+        commit: { type: string }
+        nodeEnv: { type: string }
+      required: [name, version, commit, nodeEnv]
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        phone: { type: string }
+        email: { type: [string, "null"], format: email }
+        nickname: { type: [string, "null"] }
+        gender: { type: [string, "null"] }
+        city: { type: [string, "null"] }
+        onboarded: { type: boolean }
+        createdAt: { type: string }
+      required: [id, phone, onboarded, createdAt]
+    UserPatch:
+      type: object
+      additionalProperties: true
+    MeetupRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        status: { type: string }
+    CreateRequest:
+      type: object
+      required: [meetupType, preferredDate, preferredTime, area]
+      properties:
+        meetupType: { type: string, enum: [coffee, dinner] }
+        preferredDate: { type: string }
+        preferredTime: { type: string, enum: [morning, afternoon, evening] }
+        area: { type: string }
+    Group:
+      type: object
+      additionalProperties: true
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string }
+    AdminAuditLog:
+      type: object
+      additionalProperties: true
+      properties:
+        id: { type: string, format: uuid }
+        action: { type: string }
+        targetTable: { type: string }
+        targetId: { type: [string, "null"] }
+        createdAt: { type: string }
+    PaginatedAdminAuditLog:
+      type: object
+      required: [data, total, hasMore]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminAuditLog"
+        total: { type: integer }
+        hasMore: { type: boolean }

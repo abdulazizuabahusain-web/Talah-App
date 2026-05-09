@@ -90,7 +90,7 @@ export default function UsersTab({ users, onRefresh, hasMore, loadingMore, onLoa
   };
 
   const remove = async (u: User) => {
-    if (!confirm(`Delete user ${u.nickname ?? u.phone}? This cannot be undone.`)) return;
+    if (!confirm(`Delete user ${u.nickname ?? u.email ?? u.phone}? This cannot be undone.`)) return;
     setLoading(u.id);
     await api.deleteUser(u.id);
     onRefresh();
@@ -116,7 +116,7 @@ export default function UsersTab({ users, onRefresh, hasMore, loadingMore, onLoa
           <div key={u.id} className="bg-card rounded-2xl border border-border p-4 space-y-3">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="font-bold text-primary">{(u.nickname ?? u.phone).charAt(0).toUpperCase()}</span>
+                <span className="font-bold text-primary">{(u.nickname ?? u.email ?? u.phone).charAt(0).toUpperCase()}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -125,7 +125,7 @@ export default function UsersTab({ users, onRefresh, hasMore, loadingMore, onLoa
                   {u.verified && <span className="text-xs bg-primary/15 text-primary px-2 py-0.5 rounded-full font-medium">Verified</span>}
                   {u.isAdmin && <span className="text-xs bg-accent/15 text-accent px-2 py-0.5 rounded-full font-medium">Admin</span>}
                 </div>
-                <p className="text-sm text-muted-foreground">{u.phone} · {u.city ?? "—"} · {u.gender ?? "—"} · {u.ageRange ?? "—"}</p>
+                <p className="text-sm text-muted-foreground">{(u.email ?? u.phone)} · {u.city ?? "—"} · {u.gender ?? "—"} · {u.ageRange ?? "—"}</p>
               </div>
               <span className="text-xs text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</span>
             </div>
@@ -205,7 +205,7 @@ function UserDetailModal({
         {/* Header */}
         <div className="sticky top-0 bg-card rounded-t-3xl border-b border-border px-5 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-lg font-bold">{u.nickname ?? u.phone}</h2>
+            <h2 className="text-lg font-bold">{u.nickname ?? u.email ?? u.phone}</h2>
             {u.flagged && <span className="text-xs bg-destructive/15 text-destructive px-2 py-0.5 rounded-full font-medium">Flagged</span>}
             {u.verified && <span className="text-xs bg-primary/15 text-primary px-2 py-0.5 rounded-full font-medium">Verified</span>}
           </div>
@@ -233,7 +233,7 @@ function UserDetailModal({
 
           {/* Basic profile */}
           <Section title="Basic Profile">
-            <Row label="Phone" value={u.phone} />
+            <Row label="Email" value={u.email ?? u.phone} />
             <Row label="City" value={u.city} />
             <Row label="Gender" value={u.gender} />
             <Row label="Age range" value={u.ageRange} />

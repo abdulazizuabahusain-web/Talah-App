@@ -41,6 +41,7 @@ export const STRINGS: Dict = {
     en: "Something went wrong. Please try again.",
   },
   dismiss: { ar: "إخفاء", en: "Dismiss" },
+  retry: { ar: "إعادة المحاولة", en: "Retry" },
   onboarding_personality_label: { ar: "الشخصية", en: "Personality" },
   onboarding_personality_title: {
     ar: "ملف الشخصية",
@@ -75,8 +76,16 @@ export const STRINGS: Dict = {
   // Auth
   signin_title: { ar: "تسجيل الدخول", en: "Sign in" },
   signin_subtitle: {
-    ar: "أدخل رقم جوالك للمتابعة",
-    en: "Enter your mobile number to continue",
+    ar: "أدخل بريدك الإلكتروني للمتابعة",
+    en: "Enter your email to continue",
+  },
+  email_label: { ar: "البريد الإلكتروني", en: "Email address" },
+  email_placeholder: { ar: "name@example.com", en: "name@example.com" },
+  send_login_code: { ar: "إرسال رمز الدخول", en: "Send sign-in code" },
+  login_code_label: { ar: "رمز الدخول", en: "Sign-in code" },
+  login_code_hint: {
+    ar: "سيصلك رمز الدخول على بريدك الإلكتروني",
+    en: "Your sign-in code will be sent to your email",
   },
   phone_label: { ar: "رقم الجوال", en: "Mobile number" },
   phone_placeholder: { ar: "5XXXXXXXX", en: "5XXXXXXXX" },
@@ -87,6 +96,14 @@ export const STRINGS: Dict = {
     en: "Demo: use 0000",
   },
   verify: { ar: "تحقق", en: "Verify" },
+  invalid_email: {
+    ar: "أدخل بريدًا إلكترونيًا صحيحًا",
+    en: "Enter a valid email address",
+  },
+  invalid_login_code: {
+    ar: "رمز الدخول غير صحيح",
+    en: "Invalid sign-in code",
+  },
   invalid_phone: {
     ar: "أدخل رقم جوال صحيح",
     en: "Enter a valid mobile number",

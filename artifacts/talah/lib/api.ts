@@ -90,6 +90,7 @@ async function req<T>(path: string, opts: ReqOpts = {}): Promise<T> {
 export interface ApiUser {
   id: string;
   phone: string;
+  email: string | null;
   nickname: string;
   gender: "woman" | "man";
   city: string;
@@ -181,6 +182,7 @@ export function toUser(u: ApiUser | ApiGroupMember): User {
   return {
     id: u.id,
     phone: (a.phone as string | null | undefined) ?? "",
+    email: (a.email as string | null | undefined) ?? null,
     nickname: (u.nickname as string | null | undefined) ?? "",
     gender: ((u.gender as string | null | undefined) ??
       "woman") as User["gender"],
@@ -270,16 +272,16 @@ export function toGroup(g: ApiGroup): Group & { _members: User[] } {
 
 export const api = {
   // Auth
-  sendOtp: (phone: string) =>
-    req<{ ok: boolean; code?: string }>("/auth/otp/send", {
+  sendLoginCode: (email: string) =>
+    req<{ ok: boolean; code?: string }>("/auth/email/send", {
       method: "POST",
-      body: { phone },
+      body: { email },
     }),
 
-  verifyOtp: (phone: string, code: string) =>
-    req<{ token: string; user: ApiUser }>("/auth/otp/verify", {
+  verifyLoginCode: (email: string, code: string) =>
+    req<{ token: string; user: ApiUser }>("/auth/email/verify", {
       method: "POST",
-      body: { phone, code },
+      body: { email, code },
     }),
 
   logout: () => req<{ ok: boolean }>("/auth/logout", { method: "POST" }),

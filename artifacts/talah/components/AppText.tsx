@@ -24,7 +24,7 @@ interface AppTextProps extends TextProps {
 }
 
 const sizes: Record<Variant, { size: number; line: number }> = {
-  display: { size: 36, line: 44 },
+  display: { size: 42, line: 48 },
   h1: { size: 28, line: 36 },
   h2: { size: 22, line: 30 },
   h3: { size: 18, line: 26 },
@@ -36,7 +36,7 @@ const sizes: Record<Variant, { size: number; line: number }> = {
 };
 
 const fontFor = (weight: AppTextProps["weight"]): string | undefined => {
-  if (Platform.OS === "web") return undefined;
+  if (Platform.OS === "web") return "Tajawal, Inter, system-ui, sans-serif";
   switch (weight) {
     case "bold":
       return "Inter_700Bold";

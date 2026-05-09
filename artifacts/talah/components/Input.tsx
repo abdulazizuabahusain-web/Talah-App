@@ -41,12 +41,15 @@ export function Input({
         style={[
           styles.input,
           {
-            backgroundColor: colors.card,
-            borderColor: error ? colors.destructive : colors.border,
+            backgroundColor: "rgba(255,255,255,0.72)",
+            borderColor: error ? colors.destructive : colors.input,
             color: colors.foreground,
             textAlign: isAr ? "right" : "left",
             writingDirection: isAr ? "rtl" : "ltr",
-            fontFamily: Platform.OS === "web" ? undefined : "Inter_400Regular",
+            fontFamily:
+              Platform.OS === "web"
+                ? "Tajawal, Inter, system-ui, sans-serif"
+                : "Inter_400Regular",
           },
           style,
         ]}
@@ -64,9 +67,9 @@ export function Input({
 const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
     fontSize: 15,
   },
 });

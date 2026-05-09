@@ -117,12 +117,15 @@ export const api = {
     request<Candidate[]>(`/admin/requests/${requestId}/candidates`),
 
   getSyncStatus: () => request<SyncStatus>("/admin/sync-status"),
+  getAuditLogs: (params?: { limit?: number; offset?: number }) =>
+    request<Paginated<AdminAuditLog>>(`/admin/audit-logs${toQuery(params)}`),
 };
 
 // ── Types (mirror the DB schema) ─────────────────────────────────────────────
 export interface User {
   id: string;
   phone: string;
+  email: string | null;
   nickname: string | null;
   gender: string | null;
   city: string | null;
@@ -274,4 +277,15 @@ export interface CompatibilityReport {
   convNote: string;
   intentNote: string;
   boundaryNote: string;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  actorTokenHash: string | null;
+  action: string;
+  targetTable: string;
+  targetId: string | null;
+  before: unknown;
+  after: unknown;
+  createdAt: string;
 }
