@@ -1,6 +1,35 @@
+import { Platform } from "react-native";
+
 import type { User, TalahRequest, Group } from "@/lib/types";
 
-const BASE = (process.env["EXPO_PUBLIC_API_BASE"] ?? "/api").replace(/\/$/, "");
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/$/, "");
+}
+
+function domainToApiBase(domain: string): string {
+  const trimmed = domain.trim();
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  return `${trimTrailingSlash(withProtocol)}/api`;
+}
+
+function resolveApiBase(): string {
+  const configured = process.env["EXPO_PUBLIC_API_BASE"]?.trim();
+  if (configured) return trimTrailingSlash(configured);
+
+  const replitDomain = process.env["EXPO_PUBLIC_DOMAIN"]?.trim();
+  if (replitDomain) return domainToApiBase(replitDomain);
+
+  // Relative paths work in the Replit web preview where the API is routed under
+  // the same origin. Native Expo builds should set EXPO_PUBLIC_DOMAIN or
+  // EXPO_PUBLIC_API_BASE so fetch has an absolute API origin.
+  return Platform.OS === "web" ? "/api" : "/api";
+}
+
+const BASE = resolveApiBase();
+const REQUEST_TIMEOUT_MS = 30_000;
 
 let _token: string | null = null;
 
@@ -19,21 +48,41 @@ type ReqOpts = {
 
 async function req<T>(path: string, opts: ReqOpts = {}): Promise<T> {
   const { method = "GET", body } = opts;
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   if (_token) headers["Authorization"] = `Bearer ${_token}`;
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error?: string };
-    const e = new Error(err.error ?? `Request failed (${res.status})`);
-    (e as Error & { status: number }).status = res.status;
-    throw e;
+
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      method,
+      headers,
+      signal: controller.signal,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+
+    if (!res.ok) {
+      const err = (await res.json().catch(() => ({}))) as { error?: string };
+      const e = new Error(err.error ?? `Request failed (${res.status})`);
+      (e as Error & { status: number }).status = res.status;
+      throw e;
+    }
+
+    if (res.status === 204) return undefined as T;
+    return res.json() as Promise<T>;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error(
+        "Request timed out. Please check your connection and try again.",
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-  if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
 }
 
 // ─── Response shapes from DB (camelCase, timestamps as ISO strings) ───────────
@@ -41,6 +90,7 @@ async function req<T>(path: string, opts: ReqOpts = {}): Promise<T> {
 export interface ApiUser {
   id: string;
   phone: string;
+  email: string | null;
   nickname: string;
   gender: "woman" | "man";
   city: string;
@@ -89,9 +139,17 @@ export interface ApiRequest {
   createdAt: string;
 }
 
-export type ApiGroupMember = Pick<ApiUser,
-  "id" | "nickname" | "gender" | "ageRange" | "lifestyle" | "personality" |
-  "verified" | "funFact" | "personalityTraits"
+export type ApiGroupMember = Pick<
+  ApiUser,
+  | "id"
+  | "nickname"
+  | "gender"
+  | "ageRange"
+  | "lifestyle"
+  | "personality"
+  | "verified"
+  | "funFact"
+  | "personalityTraits"
 >;
 
 export interface ApiGroup {
@@ -124,29 +182,48 @@ export function toUser(u: ApiUser | ApiGroupMember): User {
   return {
     id: u.id,
     phone: (a.phone as string | null | undefined) ?? "",
+    email: (a.email as string | null | undefined) ?? null,
     nickname: (u.nickname as string | null | undefined) ?? "",
-    gender: ((u.gender as string | null | undefined) ?? "woman") as User["gender"],
-    city: ((a.city as string | null | undefined) ?? ""),
-    ageRange: (((u.ageRange as string | null | undefined) ?? "25-29") as User["ageRange"]),
-    lifestyle: (((u.lifestyle as string | null | undefined) ?? "other") as User["lifestyle"]),
-    interests: ((a.interests as string[] | null | undefined) ?? []) as User["interests"],
-    personality: (((u.personality as string | null | undefined) ?? "calm") as User["personality"]),
-    preferredMeetup: (((a.preferredMeetup as string | null | undefined) ?? "coffee") as User["preferredMeetup"]),
-    preferredDays: ((a.preferredDays as string[] | null | undefined) ?? []) as User["preferredDays"],
-    preferredTimes: ((a.preferredTimes as string[] | null | undefined) ?? []) as User["preferredTimes"],
+    gender: ((u.gender as string | null | undefined) ??
+      "woman") as User["gender"],
+    city: (a.city as string | null | undefined) ?? "",
+    ageRange: ((u.ageRange as string | null | undefined) ??
+      "25-29") as User["ageRange"],
+    lifestyle: ((u.lifestyle as string | null | undefined) ??
+      "other") as User["lifestyle"],
+    interests: ((a.interests as string[] | null | undefined) ??
+      []) as User["interests"],
+    personality: ((u.personality as string | null | undefined) ??
+      "calm") as User["personality"],
+    preferredMeetup: ((a.preferredMeetup as string | null | undefined) ??
+      "coffee") as User["preferredMeetup"],
+    preferredDays: ((a.preferredDays as string[] | null | undefined) ??
+      []) as User["preferredDays"],
+    preferredTimes: ((a.preferredTimes as string[] | null | undefined) ??
+      []) as User["preferredTimes"],
     funFact: nullToUndefined(u.funFact as string | null | undefined),
     verified: (a.verified as boolean | null | undefined) ?? false,
     flagged: (a.flagged as boolean | null | undefined) ?? false,
     onboarded: (a.onboarded as boolean | null | undefined) ?? false,
     createdAt: a.createdAt ? ts(a.createdAt) : 0,
     socialEnergy: nullToUndefined(a.socialEnergy) as User["socialEnergy"],
-    conversationStyle: nullToUndefined(a.conversationStyle) as User["conversationStyle"],
+    conversationStyle: nullToUndefined(
+      a.conversationStyle,
+    ) as User["conversationStyle"],
     enjoyedTopics: nullToUndefined(a.enjoyedTopics) as User["enjoyedTopics"],
     socialIntent: nullToUndefined(a.socialIntent) as User["socialIntent"],
-    planningPreference: nullToUndefined(a.planningPreference) as User["planningPreference"],
-    meetupAtmosphere: nullToUndefined(a.meetupAtmosphere) as User["meetupAtmosphere"],
-    interactionPreference: nullToUndefined(a.interactionPreference) as User["interactionPreference"],
-    personalityTraits: nullToUndefined(u.personalityTraits as string[] | null | undefined) as User["personalityTraits"],
+    planningPreference: nullToUndefined(
+      a.planningPreference,
+    ) as User["planningPreference"],
+    meetupAtmosphere: nullToUndefined(
+      a.meetupAtmosphere,
+    ) as User["meetupAtmosphere"],
+    interactionPreference: nullToUndefined(
+      a.interactionPreference,
+    ) as User["interactionPreference"],
+    personalityTraits: nullToUndefined(
+      u.personalityTraits as string[] | null | undefined,
+    ) as User["personalityTraits"],
     opennessLevel: nullToUndefined(a.opennessLevel) as User["opennessLevel"],
     socialBoundary: nullToUndefined(a.socialBoundary) as User["socialBoundary"],
     socialEnergyScore: nullToUndefined(a.socialEnergyScore),
@@ -195,21 +272,25 @@ export function toGroup(g: ApiGroup): Group & { _members: User[] } {
 
 export const api = {
   // Auth
-  sendOtp: (phone: string) =>
-    req<{ ok: boolean; code?: string }>("/auth/otp/send", { method: "POST", body: { phone } }),
+  sendLoginCode: (email: string) =>
+    req<{ ok: boolean; code?: string }>("/auth/email/send", {
+      method: "POST",
+      body: { email },
+    }),
 
-  verifyOtp: (phone: string, code: string) =>
-    req<{ token: string; user: ApiUser }>("/auth/otp/verify", { method: "POST", body: { phone, code } }),
+  verifyLoginCode: (email: string, code: string) =>
+    req<{ token: string; user: ApiUser }>("/auth/email/verify", {
+      method: "POST",
+      body: { email, code },
+    }),
 
-  logout: () =>
-    req<{ ok: boolean }>("/auth/logout", { method: "POST" }),
+  logout: () => req<{ ok: boolean }>("/auth/logout", { method: "POST" }),
 
   // Users
   me: () => req<ApiUser>("/users/me"),
   updateMe: (patch: Partial<ApiUser>) =>
     req<ApiUser>("/users/me", { method: "PATCH", body: patch }),
-  deleteMe: () =>
-    req<{ ok: boolean }>("/users/me", { method: "DELETE" }),
+  deleteMe: () => req<{ ok: boolean }>("/users/me", { method: "DELETE" }),
 
   // Requests
   getRequests: () => req<ApiRequest[]>("/requests"),
@@ -219,15 +300,21 @@ export const api = {
     preferredTime: "morning" | "afternoon" | "evening";
     area: string;
   }) => req<ApiRequest>("/requests", { method: "POST", body }),
-  cancelRequest: (id: string) => req<{ ok: boolean }>(`/requests/${id}`, { method: "DELETE" }),
+  cancelRequest: (id: string) =>
+    req<{ ok: boolean }>(`/requests/${id}`, { method: "DELETE" }),
 
   // Groups
   getGroups: () => req<ApiGroup[]>("/groups"),
   getGroup: (id: string) => req<ApiGroup>(`/groups/${id}`),
   getMutualConnects: (groupId: string) =>
-    req<{ mutualConnects: { id: string; nickname: string | null; personalityTraits: string[] }[]; hasFeedback: boolean }>(
-      `/groups/${groupId}/mutual-connects`,
-    ),
+    req<{
+      mutualConnects: {
+        id: string;
+        nickname: string | null;
+        personalityTraits: string[];
+      }[];
+      hasFeedback: boolean;
+    }>(`/groups/${groupId}/mutual-connects`),
 
   // Feedback
   submitFeedback: (body: {
@@ -247,7 +334,8 @@ export const api = {
 
   // Safety — Block
   blockUser: (targetId: string) =>
-    req<{ ok: boolean; blockedUserIds: string[] }>(`/users/block/${targetId}`, { method: "POST" }),
-  getBlocked: () =>
-    req<{ blockedUserIds: string[] }>("/users/blocked"),
+    req<{ ok: boolean; blockedUserIds: string[] }>(`/users/block/${targetId}`, {
+      method: "POST",
+    }),
+  getBlocked: () => req<{ blockedUserIds: string[] }>("/users/blocked"),
 };

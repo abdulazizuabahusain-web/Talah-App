@@ -16,60 +16,66 @@ pnpm workspace monorepo for **Tal'ah**, a privacy-first curated social meetup ap
 
 ## Artifacts
 
-| Artifact | Path | Port | Purpose |
-|---|---|---|---|
-| `artifacts/talah` | `/` | 20433 | Expo mobile app (web preview) |
-| `artifacts/api-server` | `/api/` | 8080 | Express REST API |
-| `artifacts/admin` | `/admin/` | 23744 | Web admin dashboard |
-| `artifacts/mockup-sandbox` | `/__mockup` | 8081 | Canvas component previews |
+| Artifact                   | Path        | Port  | Purpose                       |
+| -------------------------- | ----------- | ----- | ----------------------------- |
+| `artifacts/talah`          | `/`         | 20433 | Expo mobile app (web preview) |
+| `artifacts/api-server`     | `/api/`     | 8080  | Express REST API              |
+| `artifacts/admin`          | `/admin/`   | 23744 | Web admin dashboard           |
+| `artifacts/mockup-sandbox` | `/__mockup` | 8081  | Canvas component previews     |
 
 ## Database Schema (`lib/db/src/schema/`)
 
-| Table | Description |
-|---|---|
-| `users` | User profiles, personality fields, scores |
-| `sessions` | Auth session tokens |
-| `otp` | One-time passwords (10 min TTL) |
-| `requests` | Meetup requests submitted by users |
-| `groups` | Curated groups created by admin |
-| `feedback` | Post-meetup ratings and comments |
-| `reports` | User-to-user reports |
+| Table              | Description                                                    |
+| ------------------ | -------------------------------------------------------------- |
+| `users`            | User profiles, personality fields, scores                      |
+| `sessions`         | Auth session tokens                                            |
+| `otp`              | Short-lived login codes (10 min TTL; historical table name)    |
+| `requests`         | Meetup requests submitted by users                             |
+| `groups`           | Curated groups created by admin                                |
+| `group_members`    | Normalized group-user join table for future query migration    |
+| `group_requests`   | Normalized group-request join table for future query migration |
+| `feedback`         | Post-meetup ratings and comments                               |
+| `reports`          | User-to-user reports                                           |
+| `admin_audit_logs` | Admin action audit trail                                       |
 
 ## API Routes (`artifacts/api-server/src/routes/`)
 
-| Route | Auth | Description |
-|---|---|---|
-| `POST /api/auth/otp/send` | None | Send OTP (returns `code` in dev) |
-| `POST /api/auth/otp/verify` | None | Verify OTP → `{ token, user }` |
-| `POST /api/auth/logout` | User | Delete session |
-| `GET /api/users/me` | User | Get current user profile |
-| `PATCH /api/users/me` | User | Update profile / onboarding |
-| `DELETE /api/users/me` | User | Delete own account |
-| `GET /api/requests` | User | Get own requests |
-| `POST /api/requests` | User | Submit a meetup request |
-| `DELETE /api/requests/:id` | User | Cancel a pending request |
-| `GET /api/groups` | User | Get groups the user belongs to |
-| `GET /api/groups/:id` | User (member) | Get one group |
-| `POST /api/feedback` | User (member) | Submit feedback for a group |
-| `POST /api/reports` | User | Report another user |
-| `POST /api/admin/login` | None | PIN login for web dashboard |
-| `GET /api/admin/me` | Admin token | Verify admin session |
-| `GET /api/admin/users` | Admin | List all users |
-| `PATCH /api/admin/users/:id` | Admin | Update a user |
-| `DELETE /api/admin/users/:id` | Admin | Delete a user |
-| `GET /api/admin/requests` | Admin | List all requests |
-| `PATCH /api/admin/requests/:id` | Admin | Update request status |
-| `GET /api/admin/groups` | Admin | List all groups |
-| `POST /api/admin/groups` | Admin | Create a group |
-| `PATCH /api/admin/groups/:id` | Admin | Update group (venue, status) |
-| `GET /api/admin/feedback` | Admin | List all feedback |
-| `GET /api/admin/reports` | Admin | List all reports |
-| `POST /api/admin/compatibility` | Admin | Calculate group compatibility |
+| Route                           | Auth          | Description                                          |
+| ------------------------------- | ------------- | ---------------------------------------------------- |
+| `POST /api/auth/email/send`     | None          | Create/send email login code (returns `code` in dev) |
+| `POST /api/auth/email/verify`   | None          | Verify email login code → `{ token, user }`          |
+| `POST /api/auth/otp/send`       | None          | Backward-compatible alias for email code send        |
+| `POST /api/auth/otp/verify`     | None          | Backward-compatible alias for email code verify      |
+| `POST /api/auth/logout`         | User          | Delete session                                       |
+| `GET /api/users/me`             | User          | Get current user profile                             |
+| `PATCH /api/users/me`           | User          | Update profile / onboarding                          |
+| `DELETE /api/users/me`          | User          | Delete own account                                   |
+| `GET /api/requests`             | User          | Get own requests                                     |
+| `POST /api/requests`            | User          | Submit a meetup request                              |
+| `DELETE /api/requests/:id`      | User          | Cancel a pending request                             |
+| `GET /api/groups`               | User          | Get groups the user belongs to                       |
+| `GET /api/groups/:id`           | User (member) | Get one group                                        |
+| `POST /api/feedback`            | User (member) | Submit feedback for a group                          |
+| `POST /api/reports`             | User          | Report another user                                  |
+| `POST /api/admin/login`         | None          | PIN login for web dashboard                          |
+| `GET /api/admin/me`             | Admin token   | Verify admin session                                 |
+| `GET /api/admin/users`          | Admin         | List all users                                       |
+| `PATCH /api/admin/users/:id`    | Admin         | Update a user                                        |
+| `DELETE /api/admin/users/:id`   | Admin         | Delete a user                                        |
+| `GET /api/admin/requests`       | Admin         | List all requests                                    |
+| `PATCH /api/admin/requests/:id` | Admin         | Update request status                                |
+| `GET /api/admin/groups`         | Admin         | List all groups                                      |
+| `POST /api/admin/groups`        | Admin         | Create a group                                       |
+| `PATCH /api/admin/groups/:id`   | Admin         | Update group (venue, status)                         |
+| `GET /api/admin/feedback`       | Admin         | List all feedback                                    |
+| `GET /api/admin/reports`        | Admin         | List all reports                                     |
+| `GET /api/admin/audit-logs`     | Admin         | List admin audit logs                                |
+| `POST /api/admin/compatibility` | Admin         | Calculate group compatibility                        |
 
 ## Auth
 
-- **Mobile users**: Phone OTP (`0000` in dev). Sends `Authorization: Bearer <token>` on requests.
-- **Admin web dashboard**: PIN `1234` (env `ADMIN_PIN`). Issues in-memory 8-hour admin tokens.
+- **Mobile users**: Email sign-in code (`0000` in dev). Sends `Authorization: Bearer <token>` on requests. `/auth/otp/*` remains as a backward-compatible route alias.
+- **Admin web dashboard**: PIN `1234` in dev only, or `ADMIN_PIN_HASH` in production. Issues signed 8-hour admin tokens that survive server restarts.
 
 ## Admin Dashboard (`artifacts/admin/src/`)
 
@@ -88,7 +94,7 @@ pnpm workspace monorepo for **Tal'ah**, a privacy-first curated social meetup ap
 - Expo + React Native (web preview enabled)
 - Arabic-first (English toggle), RTL per-text
 - **Fully wired to the real REST API** (Part 7 complete)
-- `lib/api.ts` — typed HTTP client, token stored in AsyncStorage (`talah:token`), all CRUD wrappers
+- `lib/api.ts` — typed HTTP client, email sign-in, token stored in AsyncStorage (`talah:token`), all CRUD wrappers
 - `contexts/AppContext.tsx` — real 2-step OTP login, auto-hydrates user on startup
 - `contexts/DataContext.tsx` — fetches requests + groups from API reactively on login/logout
 - 20-step onboarding (steps 0–9: basics; steps 10–19: personality/compatibility)
@@ -100,24 +106,28 @@ pnpm workspace monorepo for **Tal'ah**, a privacy-first curated social meetup ap
 
 ```bash
 pnpm --filter @workspace/db run push          # Push DB schema changes
+pnpm --filter @workspace/db run generate      # Generate Drizzle migrations
+pnpm --filter @workspace/db run migrate       # Apply Drizzle migrations
 pnpm --filter @workspace/api-spec run codegen # Regenerate API hooks
 pnpm run typecheck                            # Full typecheck all packages
+pnpm run test                                 # Typecheck + API unit tests
 ```
 
 ## Required Environment Variables (API Server)
 
-| Variable | Environment | Description |
-|---|---|---|
-| `PAT_EXPIRES_AT` | shared | GitHub PAT expiry date in `YYYY-MM-DD` format (e.g. `2026-06-02`). **Update this in the Replit Secrets panel whenever the PAT is renewed.** Missing → server logs a startup warning and sync-status shows 0 days left. |
-| `ADMIN_PIN_HASH` | shared | bcrypt hash of the admin dashboard PIN. Falls back to hash of `"1234"` in dev only. |
-| `GITHUB_PAT` | secret | GitHub Personal Access Token for repo sync. |
+| Variable               | Environment | Description                                                                                                                                                                                                            |
+| ---------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PAT_EXPIRES_AT`       | shared      | GitHub PAT expiry date in `YYYY-MM-DD` format (e.g. `2026-06-02`). **Update this in the Replit Secrets panel whenever the PAT is renewed.** Missing → server logs a startup warning and sync-status shows 0 days left. |
+| `ADMIN_PIN_HASH`       | shared      | bcrypt hash of the admin dashboard PIN. Required in production; falls back to hash of `"1234"` in dev only.                                                                                                            |
+| `ADMIN_SESSION_SECRET` | secret      | Optional signing secret for stateless admin dashboard sessions. If omitted, `ADMIN_PIN_HASH` is used as the signing secret.                                                                                            |
+| `CORS_ORIGINS`         | shared      | Optional comma-separated allowlist of browser origins for the production API. Replit app domains are added automatically.                                                                                              |
+| `GITHUB_PAT`           | secret      | GitHub Personal Access Token for repo sync.                                                                                                                                                                            |
 
 ## Design Tokens (Tal'ah palette)
 
-| Token | Value | Use |
-|---|---|---|
-| Sand | `#F5EFE6` | Background |
-| Olive | `#6B7A4E` | Primary / CTA buttons |
-| Gold | `#B8924A` | Accent / highlights |
-| Charcoal | `#2A2A2A` | Foreground text |
-
+| Token    | Value     | Use                   |
+| -------- | --------- | --------------------- |
+| Sand     | `#F5EFE6` | Background            |
+| Olive    | `#6B7A4E` | Primary / CTA buttons |
+| Gold     | `#B8924A` | Accent / highlights   |
+| Charcoal | `#2A2A2A` | Foreground text       |
