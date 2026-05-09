@@ -4,6 +4,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
+import { writeAdminAuditLog } from "../lib/audit";
 import { logger } from "../lib/logger";
 import { sanitizeFields } from "../lib/sanitize";
 import {
@@ -13,6 +14,7 @@ import {
   reportsTable,
   requestsTable,
   usersTable,
+  adminAuditLogsTable,
 } from "@workspace/db";
 import { createAdminToken, isAdminToken } from "../lib/adminSessions";
 import { sendPushToMany } from "../lib/push";
@@ -24,8 +26,18 @@ const router = Router();
 // Generate with: node -e "const b=require('bcryptjs');console.log(b.hashSync('YOUR_PIN',12))"
 // In production ADMIN_PIN_HASH must be set. In dev it falls back to bcrypt.hashSync("1234", 10)
 // computed at startup — no pre-computed hash is stored in source.
-const ADMIN_PIN_HASH: string =
-  process.env["ADMIN_PIN_HASH"] ?? bcrypt.hashSync("1234", 10);
+function getAdminPinHash(): string {
+  const hash = process.env["ADMIN_PIN_HASH"];
+  if (hash) return hash;
+
+  if (process.env["NODE_ENV"] === "production") {
+    throw new Error("ADMIN_PIN_HASH must be set in production.");
+  }
+
+  return bcrypt.hashSync("1234", 10);
+}
+
+const ADMIN_PIN_HASH = getAdminPinHash();
 
 // Rate-limit admin login: max 5 attempts per 15 minutes per IP
 const adminLoginLimiter = rateLimit({
@@ -35,6 +47,75 @@ const adminLoginLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many login attempts — please wait 15 minutes" },
 });
+
+const nullableString = z.string().nullable().optional();
+const stringArray = z.array(z.string()).optional();
+
+const AdminPatchUserBody = z
+  .object({
+    nickname: nullableString,
+    email: z.string().email().nullable().optional(),
+    gender: z.enum(["woman", "man"]).nullable().optional(),
+    city: nullableString,
+    ageRange: nullableString,
+    lifestyle: nullableString,
+    interests: stringArray,
+    personality: nullableString,
+    preferredMeetup: nullableString,
+    preferredDays: stringArray,
+    preferredTimes: stringArray,
+    funFact: nullableString,
+    socialEnergy: nullableString,
+    conversationStyle: nullableString,
+    enjoyedTopics: stringArray,
+    socialIntent: nullableString,
+    planningPreference: nullableString,
+    meetupAtmosphere: nullableString,
+    interactionPreference: nullableString,
+    personalityTraits: stringArray,
+    opennessLevel: nullableString,
+    socialBoundary: nullableString,
+    socialEnergyScore: z.number().int().nullable().optional(),
+    conversationDepthScore: z.number().int().nullable().optional(),
+    planningScore: z.number().int().nullable().optional(),
+    atmosphereScore: z.number().int().nullable().optional(),
+    interactionScore: z.number().int().nullable().optional(),
+    opennessScore: z.number().int().nullable().optional(),
+    boundaryScore: z.number().int().nullable().optional(),
+    blockedUserIds: stringArray,
+    expoPushToken: nullableString,
+    onboarded: z.boolean().optional(),
+    verified: z.boolean().optional(),
+    flagged: z.boolean().optional(),
+    isAdmin: z.boolean().optional(),
+  })
+  .strict();
+
+const AdminPatchRequestBody = z
+  .object({
+    meetupType: z.enum(["coffee", "dinner"]).optional(),
+    preferredDate: z.string().min(1).optional(),
+    preferredTime: z.enum(["morning", "afternoon", "evening"]).optional(),
+    area: z.string().min(1).optional(),
+    status: z.enum(["pending", "matched", "cancelled"]).optional(),
+  })
+  .strict();
+
+const AdminPatchGroupBody = z
+  .object({
+    status: z
+      .enum(["pending", "matched", "revealed", "completed", "cancelled"])
+      .optional(),
+    meetupType: z.enum(["coffee", "dinner"]).optional(),
+    gender: z.enum(["woman", "man"]).optional(),
+    city: z.string().min(1).optional(),
+    area: z.string().min(1).optional(),
+    venue: z.string().nullable().optional(),
+    meetupAt: z.number().nullable().optional(),
+    memberIds: z.array(z.string().uuid()).optional(),
+    requestIds: z.array(z.string().uuid()).optional(),
+  })
+  .strict();
 
 // POST /api/admin/login  — PIN-based web dashboard login
 router.post("/login", adminLoginLimiter, async (req, res) => {
@@ -68,24 +149,66 @@ router.get("/users", requireAdmin, async (req, res) => {
   const limit = Math.min(parseInt(req.query["limit"] as string) || 50, 200);
   const offset = parseInt(req.query["offset"] as string) || 0;
   const [rows, [{ count }]] = await Promise.all([
-    db.select().from(usersTable).orderBy(usersTable.createdAt).limit(limit).offset(offset),
+    db
+      .select()
+      .from(usersTable)
+      .orderBy(usersTable.createdAt)
+      .limit(limit)
+      .offset(offset),
     db.select({ count: sql<number>`count(*)::int` }).from(usersTable),
   ]);
   res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
 });
 
 router.patch("/users/:id", requireAdmin, async (req, res) => {
+  const parsed = AdminPatchUserBody.safeParse(req.body);
+  if (!parsed.success) {
+    res
+      .status(400)
+      .json({ error: "Invalid user update", details: parsed.error.issues });
+    return;
+  }
+
+  const [before] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, req.params["id"] as string))
+    .limit(1);
+
+  const sanitized = sanitizeFields(parsed.data);
   const [updated] = await db
     .update(usersTable)
-    .set(req.body)
+    .set(sanitized)
     .where(eq(usersTable.id, req.params["id"] as string))
     .returning();
-  if (!updated) { res.status(404).json({ error: "User not found" }); return; }
+  if (!updated) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  await writeAdminAuditLog(req, {
+    action: "user.update",
+    targetTable: "users",
+    targetId: updated.id,
+    before,
+    after: updated,
+  });
   res.json(updated);
 });
 
 router.delete("/users/:id", requireAdmin, async (req, res) => {
-  await db.delete(usersTable).where(eq(usersTable.id, req.params["id"] as string));
+  const userId = req.params["id"] as string;
+  const [before] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .limit(1);
+  await db.delete(usersTable).where(eq(usersTable.id, userId));
+  await writeAdminAuditLog(req, {
+    action: "user.delete",
+    targetTable: "users",
+    targetId: userId,
+    before,
+  });
   res.json({ ok: true });
 });
 
@@ -94,19 +217,49 @@ router.get("/requests", requireAdmin, async (req, res) => {
   const limit = Math.min(parseInt(req.query["limit"] as string) || 50, 200);
   const offset = parseInt(req.query["offset"] as string) || 0;
   const [rows, [{ count }]] = await Promise.all([
-    db.select().from(requestsTable).orderBy(requestsTable.createdAt).limit(limit).offset(offset),
+    db
+      .select()
+      .from(requestsTable)
+      .orderBy(requestsTable.createdAt)
+      .limit(limit)
+      .offset(offset),
     db.select({ count: sql<number>`count(*)::int` }).from(requestsTable),
   ]);
   res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
 });
 
 router.patch("/requests/:id", requireAdmin, async (req, res) => {
+  const parsed = AdminPatchRequestBody.safeParse(req.body);
+  if (!parsed.success) {
+    res
+      .status(400)
+      .json({ error: "Invalid request update", details: parsed.error.issues });
+    return;
+  }
+
+  const [before] = await db
+    .select()
+    .from(requestsTable)
+    .where(eq(requestsTable.id, req.params["id"] as string))
+    .limit(1);
+
+  const sanitized = sanitizeFields(parsed.data);
   const [updated] = await db
     .update(requestsTable)
-    .set(req.body)
+    .set(sanitized)
     .where(eq(requestsTable.id, req.params["id"] as string))
     .returning();
-  if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+  if (!updated) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  await writeAdminAuditLog(req, {
+    action: "request.update",
+    targetTable: "requests",
+    targetId: updated.id,
+    before,
+    after: updated,
+  });
   res.json(updated);
 });
 
@@ -115,31 +268,52 @@ router.get("/groups", requireAdmin, async (req, res) => {
   const limit = Math.min(parseInt(req.query["limit"] as string) || 50, 200);
   const offset = parseInt(req.query["offset"] as string) || 0;
   const [rows, [{ count }]] = await Promise.all([
-    db.select().from(groupsTable).orderBy(groupsTable.createdAt).limit(limit).offset(offset),
+    db
+      .select()
+      .from(groupsTable)
+      .orderBy(groupsTable.createdAt)
+      .limit(limit)
+      .offset(offset),
     db.select({ count: sql<number>`count(*)::int` }).from(groupsTable),
   ]);
   res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
 });
 
-const CreateGroupBody = z.object({
-  meetupType: z.enum(["coffee", "dinner"]),
-  gender: z.enum(["woman", "man"]),
-  city: z.string(),
-  area: z.string(),
-  memberIds: z.array(z.string()),
-  requestIds: z.array(z.string()).optional(),
-  venue: z.string().optional(),
-  meetupAt: z.number().optional(),
-});
+const CreateGroupBody = z
+  .object({
+    meetupType: z.enum(["coffee", "dinner"]),
+    gender: z.enum(["woman", "man"]),
+    city: z.string().min(1),
+    area: z.string().min(1),
+    memberIds: z.array(z.string().uuid()),
+    requestIds: z.array(z.string().uuid()).optional(),
+    venue: z.string().optional(),
+    meetupAt: z.number().optional(),
+  })
+  .strict();
 
 router.post("/groups", requireAdmin, async (req, res) => {
   const parsed = CreateGroupBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: "Invalid group data" }); return; }
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid group data" });
+    return;
+  }
 
   const [group] = await db
     .insert(groupsTable)
-    .values({ ...parsed.data, status: "matched", requestIds: parsed.data.requestIds ?? [] })
+    .values({
+      ...sanitizeFields(parsed.data),
+      status: "matched",
+      requestIds: parsed.data.requestIds ?? [],
+    })
     .returning();
+
+  await writeAdminAuditLog(req, {
+    action: "group.create",
+    targetTable: "groups",
+    targetId: group.id,
+    after: group,
+  });
 
   if (parsed.data.requestIds?.length) {
     for (const reqId of parsed.data.requestIds) {
@@ -155,15 +329,37 @@ router.post("/groups", requireAdmin, async (req, res) => {
 
 router.patch("/groups/:id", requireAdmin, async (req, res) => {
   const groupId = req.params["id"] as string;
-  const [before] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId)).limit(1);
+  const [before] = await db
+    .select()
+    .from(groupsTable)
+    .where(eq(groupsTable.id, groupId))
+    .limit(1);
 
-  const sanitized = sanitizeFields(req.body as Record<string, unknown>);
+  const parsed = AdminPatchGroupBody.safeParse(req.body);
+  if (!parsed.success) {
+    res
+      .status(400)
+      .json({ error: "Invalid group update", details: parsed.error.issues });
+    return;
+  }
+
+  const sanitized = sanitizeFields(parsed.data);
   const [updated] = await db
     .update(groupsTable)
     .set(sanitized)
     .where(eq(groupsTable.id, groupId))
     .returning();
-  if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+  if (!updated) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  await writeAdminAuditLog(req, {
+    action: "group.update",
+    targetTable: "groups",
+    targetId: updated.id,
+    before,
+    after: updated,
+  });
 
   // Fire push notifications asynchronously — never block the response
   void (async () => {
@@ -179,16 +375,32 @@ router.patch("/groups/:id", requireAdmin, async (req, res) => {
     const timeSet = !before.meetupAt && updated.meetupAt;
 
     if (statusChanged && updated.status === "revealed") {
-      await sendPushToMany(tokens, "طلعتك جاهزة! 🎉", "تعرّفي على مجموعتك الآن — الكشف مفتوح");
+      await sendPushToMany(
+        tokens,
+        "طلعتك جاهزة! 🎉",
+        "تعرّفي على مجموعتك الآن — الكشف مفتوح",
+      );
     }
     if (statusChanged && updated.status === "matched") {
-      await sendPushToMany(tokens, "تم ترتيب طلعتك ✨", "يتم التجهيز للكشف عن تفاصيل اللقاء قريباً");
+      await sendPushToMany(
+        tokens,
+        "تم ترتيب طلعتك ✨",
+        "يتم التجهيز للكشف عن تفاصيل اللقاء قريباً",
+      );
     }
     if ((venueSet || timeSet) && updated.venue && updated.meetupAt) {
       const when = new Date(updated.meetupAt).toLocaleString("ar-SA", {
-        weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit",
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        hour: "numeric",
+        minute: "2-digit",
       });
-      await sendPushToMany(tokens, "تم تحديد موعد ومكان طلعتك 📍", `${updated.venue} · ${when}`);
+      await sendPushToMany(
+        tokens,
+        "تم تحديد موعد ومكان طلعتك 📍",
+        `${updated.venue} · ${when}`,
+      );
     }
   })();
 
@@ -270,15 +482,16 @@ router.get("/requests/:id/candidates", requireAdmin, async (req, res) => {
 
     // Soft scoring — interests + topics + age + lifestyle + energy + conversation + intent
     const sharedInterests = (requester.interests ?? []).filter((i: string) =>
-      (u.interests ?? []).includes(i)
+      (u.interests ?? []).includes(i),
     ).length;
     const sharedTopics = (requester.enjoyedTopics ?? []).filter((t: string) =>
-      (u.enjoyedTopics ?? []).includes(t)
+      (u.enjoyedTopics ?? []).includes(t),
     ).length;
 
     const AGE_ORDER = ["18-24", "25-29", "30-34", "35-44", "45+"];
     const ageDist = Math.abs(
-      AGE_ORDER.indexOf(requester.ageRange ?? "") - AGE_ORDER.indexOf(u.ageRange ?? "")
+      AGE_ORDER.indexOf(requester.ageRange ?? "") -
+        AGE_ORDER.indexOf(u.ageRange ?? ""),
     );
     const ageScore = Math.max(0, 4 - ageDist) * 2;
 
@@ -286,21 +499,37 @@ router.get("/requests/:id/candidates", requireAdmin, async (req, res) => {
 
     const energyDiff =
       requester.socialEnergyScore !== null && u.socialEnergyScore !== null
-        ? Math.abs((requester.socialEnergyScore ?? 0) - (u.socialEnergyScore ?? 0))
+        ? Math.abs(
+            (requester.socialEnergyScore ?? 0) - (u.socialEnergyScore ?? 0),
+          )
         : 99;
     const energyScore = energyDiff <= 1 ? 2 : energyDiff <= 2 ? 1 : 0;
 
     const convDiff =
-      requester.conversationDepthScore !== null && u.conversationDepthScore !== null
-        ? Math.abs((requester.conversationDepthScore ?? 0) - (u.conversationDepthScore ?? 0))
+      requester.conversationDepthScore !== null &&
+      u.conversationDepthScore !== null
+        ? Math.abs(
+            (requester.conversationDepthScore ?? 0) -
+              (u.conversationDepthScore ?? 0),
+          )
         : 99;
     const convScore = convDiff <= 1 ? 2 : 0;
 
     const intentScore =
-      requester.socialIntent && u.socialIntent && requester.socialIntent === u.socialIntent ? 2 : 0;
+      requester.socialIntent &&
+      u.socialIntent &&
+      requester.socialIntent === u.socialIntent
+        ? 2
+        : 0;
 
     const totalScore =
-      sharedInterests * 3 + sharedTopics * 2 + ageScore + lifestyleScore + energyScore + convScore + intentScore;
+      sharedInterests * 3 +
+      sharedTopics * 2 +
+      ageScore +
+      lifestyleScore +
+      energyScore +
+      convScore +
+      intentScore;
 
     candidates.push({
       userId: u.id,
@@ -327,13 +556,19 @@ router.get("/requests/:id/candidates", requireAdmin, async (req, res) => {
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 router.get("/feedback", requireAdmin, async (_req, res) => {
-  const rows = await db.select().from(feedbackTable).orderBy(feedbackTable.createdAt);
+  const rows = await db
+    .select()
+    .from(feedbackTable)
+    .orderBy(feedbackTable.createdAt);
   res.json(rows);
 });
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 router.get("/reports", requireAdmin, async (_req, res) => {
-  const rows = await db.select().from(reportsTable).orderBy(reportsTable.createdAt);
+  const rows = await db
+    .select()
+    .from(reportsTable)
+    .orderBy(reportsTable.createdAt);
   res.json(rows);
 });
 
@@ -349,7 +584,10 @@ const PAT_EXPIRES_AT_RAW = process.env["PAT_EXPIRES_AT"] ?? "1970-01-01";
 function computePatDaysLeft(): { patExpiresAt: string; patDaysLeft: number } {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(PAT_EXPIRES_AT_RAW);
   if (!match) {
-    logger.warn({ PAT_EXPIRES_AT_RAW }, "PAT_EXPIRES_AT env var is malformed — expected YYYY-MM-DD");
+    logger.warn(
+      { PAT_EXPIRES_AT_RAW },
+      "PAT_EXPIRES_AT env var is malformed — expected YYYY-MM-DD",
+    );
     return { patExpiresAt: PAT_EXPIRES_AT_RAW, patDaysLeft: 0 };
   }
   const [, y, m, d] = match;
@@ -365,7 +603,11 @@ router.get("/sync-status", requireAdmin, async (req, res) => {
   const patInfo = computePatDaysLeft();
 
   if (!pat) {
-    res.json({ ok: false, error: "GITHUB_PAT secret is not configured", ...patInfo });
+    res.json({
+      ok: false,
+      error: "GITHUB_PAT secret is not configured",
+      ...patInfo,
+    });
     return;
   }
 
@@ -414,11 +656,41 @@ router.get("/sync-status", requireAdmin, async (req, res) => {
     const message = data.commit.message.split("\n")[0] ?? "";
     const upToDate = localSha !== "unknown" && localSha === githubSha;
 
-    res.json({ ok: true, githubSha, shortSha, committedAt, message, upToDate, localSha, ...patInfo });
+    res.json({
+      ok: true,
+      githubSha,
+      shortSha,
+      committedAt,
+      message,
+      upToDate,
+      localSha,
+      ...patInfo,
+    });
   } catch (err) {
     req.log.error({ err }, "GitHub sync-status fetch failed");
-    res.json({ ok: false, error: "Could not reach GitHub API", localSha, ...patInfo });
+    res.json({
+      ok: false,
+      error: "Could not reach GitHub API",
+      localSha,
+      ...patInfo,
+    });
   }
+});
+
+// ── Admin Audit Logs ──────────────────────────────────────────────────────────
+router.get("/audit-logs", requireAdmin, async (req, res) => {
+  const limit = Math.min(parseInt(req.query["limit"] as string) || 50, 200);
+  const offset = parseInt(req.query["offset"] as string) || 0;
+  const [rows, [{ count }]] = await Promise.all([
+    db
+      .select()
+      .from(adminAuditLogsTable)
+      .orderBy(adminAuditLogsTable.createdAt)
+      .limit(limit)
+      .offset(offset),
+    db.select({ count: sql<number>`count(*)::int` }).from(adminAuditLogsTable),
+  ]);
+  res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
 });
 
 // ── Compatibility ─────────────────────────────────────────────────────────────
@@ -457,12 +729,17 @@ function computeGroupCompatibility(users: AnyUser[]) {
   const cityOk = cities.length === 1;
 
   const allDays = users.map((u) => new Set(u.preferredDays));
-  const commonDays = [...allDays[0]!].filter((d) => allDays.every((s) => s.has(d)));
+  const commonDays = [...allDays[0]!].filter((d) =>
+    allDays.every((s) => s.has(d)),
+  );
   const allTimes = users.map((u) => new Set(u.preferredTimes));
-  const commonTimes = [...allTimes[0]!].filter((t) => allTimes.every((s) => s.has(t)));
+  const commonTimes = [...allTimes[0]!].filter((t) =>
+    allTimes.every((s) => s.has(t)),
+  );
   const availabilityOk = commonDays.length > 0 && commonTimes.length > 0;
 
-  const hardScore = [genderOk, cityOk, availabilityOk].filter(Boolean).length / 3;
+  const hardScore =
+    [genderOk, cityOk, availabilityOk].filter(Boolean).length / 3;
   const warnings: string[] = [];
   if (!genderOk) warnings.push("Mixed genders — not allowed");
   if (!cityOk) warnings.push(`Different cities: ${cities.join(", ")}`);
@@ -470,50 +747,79 @@ function computeGroupCompatibility(users: AnyUser[]) {
 
   const allInterests = users.flatMap((u) => u.interests);
   const interestCounts: Record<string, number> = {};
-  for (const i of allInterests) interestCounts[i] = (interestCounts[i] ?? 0) + 1;
+  for (const i of allInterests)
+    interestCounts[i] = (interestCounts[i] ?? 0) + 1;
   const sharedInterests = Object.entries(interestCounts)
     .filter(([, c]) => c >= Math.ceil(users.length / 2))
     .map(([k]) => k);
-  const interestOverlapPct = Math.round((sharedInterests.length / Math.max(1, Object.keys(interestCounts).length)) * 100);
+  const interestOverlapPct = Math.round(
+    (sharedInterests.length / Math.max(1, Object.keys(interestCounts).length)) *
+      100,
+  );
   const interestScore = interestOverlapPct / 100;
 
   const lifestyles = [...new Set(users.map((u) => u.lifestyle))];
   const lifestyleAligned = lifestyles.length <= 2;
-  const lifestyleNote = lifestyleAligned ? `Lifestyles compatible: ${lifestyles.join(", ")}` : `Too many lifestyle types: ${lifestyles.join(", ")}`;
+  const lifestyleNote = lifestyleAligned
+    ? `Lifestyles compatible: ${lifestyles.join(", ")}`
+    : `Too many lifestyle types: ${lifestyles.join(", ")}`;
   const lifestyleScore = lifestyleAligned ? 1 : 0.4;
 
   const energyScores = users.map((u) => u.socialEnergyScore ?? 0);
   const avgEnergyScore = energyScores.reduce((a, b) => a + b, 0) / users.length;
-  const energyVariance = energyScores.reduce((a, b) => a + Math.abs(b - avgEnergyScore), 0) / users.length;
-  const energyBalance = energyVariance <= 1 ? "balanced" : energyVariance <= 2 ? "moderate" : "divergent";
+  const energyVariance =
+    energyScores.reduce((a, b) => a + Math.abs(b - avgEnergyScore), 0) /
+    users.length;
+  const energyBalance =
+    energyVariance <= 1
+      ? "balanced"
+      : energyVariance <= 2
+        ? "moderate"
+        : "divergent";
   const energyNote = `Energy variance: ${energyVariance.toFixed(1)} (${energyBalance})`;
-  const energyScore = energyBalance === "balanced" ? 1 : energyBalance === "moderate" ? 0.6 : 0.3;
+  const energyScore =
+    energyBalance === "balanced" ? 1 : energyBalance === "moderate" ? 0.6 : 0.3;
 
   const convStyles = [...new Set(users.map((u) => u.conversationStyle))];
   const convCompatible = convStyles.length <= 2;
-  const convNote = convCompatible ? `Conversation styles align: ${convStyles.join(", ")}` : `Mismatched styles: ${convStyles.join(", ")}`;
+  const convNote = convCompatible
+    ? `Conversation styles align: ${convStyles.join(", ")}`
+    : `Mismatched styles: ${convStyles.join(", ")}`;
   const convScore = convCompatible ? 1 : 0.4;
 
   const intents = [...new Set(users.map((u) => u.socialIntent))];
-  const intentNote = intents.length <= 2 ? `Aligned intent: ${intents.join(", ")}` : `Mixed intent: ${intents.join(", ")}`;
+  const intentNote =
+    intents.length <= 2
+      ? `Aligned intent: ${intents.join(", ")}`
+      : `Mixed intent: ${intents.join(", ")}`;
   const boundaries = [...new Set(users.map((u) => u.socialBoundary))];
-  const hasMismatch = boundaries.includes("very_relaxed") && boundaries.includes("more_reserved");
-  const boundaryNote = hasMismatch ? `Caution: very different boundary levels` : `Boundaries compatible`;
-  const intentScore = (intents.length <= 2 ? 0.6 : 0.3) + (hasMismatch ? 0 : 0.4);
+  const hasMismatch =
+    boundaries.includes("very_relaxed") && boundaries.includes("more_reserved");
+  const boundaryNote = hasMismatch
+    ? `Caution: very different boundary levels`
+    : `Boundaries compatible`;
+  const intentScore =
+    (intents.length <= 2 ? 0.6 : 0.3) + (hasMismatch ? 0 : 0.4);
 
   const overall = Math.round(
     hardScore * 25 +
-    interestScore * 25 +
-    lifestyleScore * 15 +
-    energyScore * 15 +
-    convScore * 10 +
-    intentScore * 10,
+      interestScore * 25 +
+      lifestyleScore * 15 +
+      energyScore * 15 +
+      convScore * 10 +
+      intentScore * 10,
   );
 
   // Thresholds aligned to blueprint spec (and matching.ts client-side):
   // Excellent ≥85 · Good ≥70 · Moderate ≥55 · Weak <55
   const label =
-    overall >= 85 ? "excellent" : overall >= 70 ? "good" : overall >= 55 ? "moderate" : "weak";
+    overall >= 85
+      ? "excellent"
+      : overall >= 70
+        ? "good"
+        : overall >= 55
+          ? "moderate"
+          : "weak";
 
   return {
     overallScore: overall,
