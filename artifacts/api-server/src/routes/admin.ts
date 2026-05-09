@@ -4,6 +4,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
+import { writeAdminAuditLog } from "../lib/audit";
 import { logger } from "../lib/logger";
 import { sanitizeFields } from "../lib/sanitize";
 import {
@@ -13,6 +14,7 @@ import {
   reportsTable,
   requestsTable,
   usersTable,
+  adminAuditLogsTable,
 } from "@workspace/db";
 import { createAdminToken, isAdminToken } from "../lib/adminSessions";
 import { sendPushToMany } from "../lib/push";
@@ -52,6 +54,7 @@ const stringArray = z.array(z.string()).optional();
 const AdminPatchUserBody = z
   .object({
     nickname: nullableString,
+    email: z.string().email().nullable().optional(),
     gender: z.enum(["woman", "man"]).nullable().optional(),
     city: nullableString,
     ageRange: nullableString,
@@ -166,6 +169,12 @@ router.patch("/users/:id", requireAdmin, async (req, res) => {
     return;
   }
 
+  const [before] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, req.params["id"] as string))
+    .limit(1);
+
   const sanitized = sanitizeFields(parsed.data);
   const [updated] = await db
     .update(usersTable)
@@ -176,13 +185,30 @@ router.patch("/users/:id", requireAdmin, async (req, res) => {
     res.status(404).json({ error: "User not found" });
     return;
   }
+  await writeAdminAuditLog(req, {
+    action: "user.update",
+    targetTable: "users",
+    targetId: updated.id,
+    before,
+    after: updated,
+  });
   res.json(updated);
 });
 
 router.delete("/users/:id", requireAdmin, async (req, res) => {
-  await db
-    .delete(usersTable)
-    .where(eq(usersTable.id, req.params["id"] as string));
+  const userId = req.params["id"] as string;
+  const [before] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .limit(1);
+  await db.delete(usersTable).where(eq(usersTable.id, userId));
+  await writeAdminAuditLog(req, {
+    action: "user.delete",
+    targetTable: "users",
+    targetId: userId,
+    before,
+  });
   res.json({ ok: true });
 });
 
@@ -211,6 +237,12 @@ router.patch("/requests/:id", requireAdmin, async (req, res) => {
     return;
   }
 
+  const [before] = await db
+    .select()
+    .from(requestsTable)
+    .where(eq(requestsTable.id, req.params["id"] as string))
+    .limit(1);
+
   const sanitized = sanitizeFields(parsed.data);
   const [updated] = await db
     .update(requestsTable)
@@ -221,6 +253,13 @@ router.patch("/requests/:id", requireAdmin, async (req, res) => {
     res.status(404).json({ error: "Not found" });
     return;
   }
+  await writeAdminAuditLog(req, {
+    action: "request.update",
+    targetTable: "requests",
+    targetId: updated.id,
+    before,
+    after: updated,
+  });
   res.json(updated);
 });
 
@@ -269,6 +308,13 @@ router.post("/groups", requireAdmin, async (req, res) => {
     })
     .returning();
 
+  await writeAdminAuditLog(req, {
+    action: "group.create",
+    targetTable: "groups",
+    targetId: group.id,
+    after: group,
+  });
+
   if (parsed.data.requestIds?.length) {
     for (const reqId of parsed.data.requestIds) {
       await db
@@ -307,6 +353,13 @@ router.patch("/groups/:id", requireAdmin, async (req, res) => {
     res.status(404).json({ error: "Not found" });
     return;
   }
+  await writeAdminAuditLog(req, {
+    action: "group.update",
+    targetTable: "groups",
+    targetId: updated.id,
+    before,
+    after: updated,
+  });
 
   // Fire push notifications asynchronously — never block the response
   void (async () => {
@@ -622,6 +675,22 @@ router.get("/sync-status", requireAdmin, async (req, res) => {
       ...patInfo,
     });
   }
+});
+
+// ── Admin Audit Logs ──────────────────────────────────────────────────────────
+router.get("/audit-logs", requireAdmin, async (req, res) => {
+  const limit = Math.min(parseInt(req.query["limit"] as string) || 50, 200);
+  const offset = parseInt(req.query["offset"] as string) || 0;
+  const [rows, [{ count }]] = await Promise.all([
+    db
+      .select()
+      .from(adminAuditLogsTable)
+      .orderBy(adminAuditLogsTable.createdAt)
+      .limit(limit)
+      .offset(offset),
+    db.select({ count: sql<number>`count(*)::int` }).from(adminAuditLogsTable),
+  ]);
+  res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
 });
 
 // ── Compatibility ─────────────────────────────────────────────────────────────

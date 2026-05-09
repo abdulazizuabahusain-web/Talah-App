@@ -18,12 +18,7 @@ export type Interest =
   | "outdoor"
   | "self_development";
 
-export type Personality =
-  | "calm"
-  | "social"
-  | "curious"
-  | "active"
-  | "creative";
+export type Personality = "calm" | "social" | "curious" | "active" | "creative";
 
 export type PersonalityTrait =
   | "calm"
@@ -39,14 +34,7 @@ export type MeetupType = "coffee" | "dinner";
 
 export type AgeRange = "18-24" | "25-29" | "30-34" | "35-44" | "45+";
 
-export type DayOfWeek =
-  | "sat"
-  | "sun"
-  | "mon"
-  | "tue"
-  | "wed"
-  | "thu"
-  | "fri";
+export type DayOfWeek = "sat" | "sun" | "mon" | "tue" | "wed" | "thu" | "fri";
 
 export type TimeOfDay = "morning" | "afternoon" | "evening";
 
@@ -74,16 +62,25 @@ export type SocialIntent =
 
 export type PlanningPreference = "structured" | "flexible" | "spontaneous";
 
-export type MeetupAtmosphere = "calm_relaxed" | "moderate_energy" | "lively_energetic";
+export type MeetupAtmosphere =
+  | "calm_relaxed"
+  | "moderate_energy"
+  | "lively_energetic";
 
 export type InteractionPreference =
   | "mostly_conversation"
   | "mix_conversation_activity"
   | "activity_based";
 
-export type OpennessLevel = "open_quickly" | "open_gradually" | "take_your_time";
+export type OpennessLevel =
+  | "open_quickly"
+  | "open_gradually"
+  | "take_your_time";
 
-export type SocialBoundary = "very_relaxed" | "respectful_balanced" | "more_reserved";
+export type SocialBoundary =
+  | "very_relaxed"
+  | "respectful_balanced"
+  | "more_reserved";
 
 export type GroupStatus =
   | "pending"
@@ -105,6 +102,7 @@ export interface UserScores {
 export interface User {
   id: string;
   phone: string;
+  email?: string | null;
   nickname: string;
   gender: Gender;
   city: string;
@@ -190,53 +188,77 @@ export interface ReportEntry {
   createdAt: number;
 }
 
-function lookup(map: Record<string, number>, key: string | undefined): number | undefined {
+function lookup(
+  map: Record<string, number>,
+  key: string | undefined,
+): number | undefined {
   return key !== undefined ? map[key] : undefined;
 }
 
 export function computeScores(user: Partial<User>): Partial<UserScores> {
-  const socialEnergyScore = lookup({
-    very_social: 2,
-    friendly_balanced: 1,
-    quiet_open_later: -1,
-    prefer_listening: -2,
-  }, user.socialEnergy);
+  const socialEnergyScore = lookup(
+    {
+      very_social: 2,
+      friendly_balanced: 1,
+      quiet_open_later: -1,
+      prefer_listening: -2,
+    },
+    user.socialEnergy,
+  );
 
-  const conversationDepthScore = lookup({
-    light_fun: -1,
-    balanced: 0,
-    deep_meaningful: 1,
-  }, user.conversationStyle);
+  const conversationDepthScore = lookup(
+    {
+      light_fun: -1,
+      balanced: 0,
+      deep_meaningful: 1,
+    },
+    user.conversationStyle,
+  );
 
-  const planningScore = lookup({
-    structured: 1,
-    flexible: 0,
-    spontaneous: -1,
-  }, user.planningPreference);
+  const planningScore = lookup(
+    {
+      structured: 1,
+      flexible: 0,
+      spontaneous: -1,
+    },
+    user.planningPreference,
+  );
 
-  const atmosphereScore = lookup({
-    calm_relaxed: -1,
-    moderate_energy: 0,
-    lively_energetic: 1,
-  }, user.meetupAtmosphere);
+  const atmosphereScore = lookup(
+    {
+      calm_relaxed: -1,
+      moderate_energy: 0,
+      lively_energetic: 1,
+    },
+    user.meetupAtmosphere,
+  );
 
-  const interactionScore = lookup({
-    mostly_conversation: -1,
-    mix_conversation_activity: 0,
-    activity_based: 1,
-  }, user.interactionPreference);
+  const interactionScore = lookup(
+    {
+      mostly_conversation: -1,
+      mix_conversation_activity: 0,
+      activity_based: 1,
+    },
+    user.interactionPreference,
+  );
 
-  const opennessScore = lookup({
-    open_quickly: 1,
-    open_gradually: 0,
-    take_your_time: -1,
-  }, user.opennessLevel);
+  const opennessScore = lookup(
+    {
+      open_quickly: 1,
+      open_gradually: 0,
+      take_your_time: -1,
+    },
+    user.opennessLevel,
+  );
 
-  const boundaryScore = lookup({
-    very_relaxed: 1,
-    respectful_balanced: 0,
-    more_reserved: -1,
-  }, user.socialBoundary);
+  const boundaryScore = lookup(
+    {
+      very_relaxed: 1,
+      respectful_balanced: 0,
+      more_reserved: -1,
+    },
+    user.socialBoundary,
+  );
 
   return {
     socialEnergyScore,
@@ -260,7 +282,8 @@ export function generateMatchingNotes(user: User): string[] {
 
   if (se !== undefined) {
     if (se >= 2) notes.push("High-energy social user");
-    else if (se <= -1) notes.push("Reserved user; best matched with balanced group");
+    else if (se <= -1)
+      notes.push("Reserved user; best matched with balanced group");
   }
   if (cd !== undefined) {
     if (cd >= 1) notes.push("Prefers deep conversations");
@@ -278,7 +301,11 @@ export function generateMatchingNotes(user: User): string[] {
   }
   if (intent === "long_term_connections") {
     notes.push("Best for long-term connection groups");
-  } else if (intent === "new_friends" || intent === "expand_circle" || intent === "casual_conversations") {
+  } else if (
+    intent === "new_friends" ||
+    intent === "expand_circle" ||
+    intent === "casual_conversations"
+  ) {
     notes.push("Best for casual/social-circle expansion groups");
   }
   return notes;

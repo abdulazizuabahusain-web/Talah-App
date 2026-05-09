@@ -156,15 +156,26 @@ export default function HomeScreen() {
             <AppText variant="bodySmall" color={colors.foreground}>
               {error}
             </AppText>
-            <Pressable onPress={clearError}>
-              <AppText
-                variant="label"
-                weight="semibold"
-                color={colors.destructive}
-              >
-                {t("dismiss")}
-              </AppText>
-            </Pressable>
+            <View style={{ flexDirection: "row", gap: 16 }}>
+              <Pressable onPress={handleRefresh}>
+                <AppText
+                  variant="label"
+                  weight="semibold"
+                  color={colors.destructive}
+                >
+                  {t("retry")}
+                </AppText>
+              </Pressable>
+              <Pressable onPress={clearError}>
+                <AppText
+                  variant="label"
+                  weight="semibold"
+                  color={colors.destructive}
+                >
+                  {t("dismiss")}
+                </AppText>
+              </Pressable>
+            </View>
           </View>
         </Card>
       ) : null}
