@@ -33,7 +33,9 @@ export function ScreenHeader({
         paddingTop: Math.max(insets.top, webTopPad) + 4,
         paddingHorizontal: 20,
         paddingBottom: 12,
-        backgroundColor: colors.background,
+        backgroundColor: "rgba(244,237,228,0.94)",
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
       }}
     >
       <View
@@ -52,7 +54,7 @@ export function ScreenHeader({
               width: 36,
               height: 36,
               borderRadius: 18,
-              backgroundColor: colors.card,
+              backgroundColor: "rgba(255,255,255,0.58)",
               borderWidth: 1,
               borderColor: colors.border,
               alignItems: "center",
@@ -75,7 +77,7 @@ export function ScreenHeader({
       </View>
       {title ? (
         <View style={{ marginTop: 14 }}>
-          <AppText variant="h1" weight="bold">
+          <AppText variant="h1" weight="bold" color={colors.primary}>
             {title}
           </AppText>
           {subtitle ? (

@@ -30,14 +30,31 @@ export const STRINGS: Dict = {
   confirm: { ar: "تأكيد", en: "Confirm" },
   cancel_request: { ar: "إلغاء الطلب", en: "Cancel Request" },
   cancel_request_confirm: { ar: "إلغاء الطلب", en: "Cancel Request" },
-  cancel_request_body: { ar: "هل أنت متأكد من إلغاء هذا الطلب؟", en: "Are you sure you want to cancel this request?" },
+  cancel_request_body: {
+    ar: "هل أنت متأكد من إلغاء هذا الطلب؟",
+    en: "Are you sure you want to cancel this request?",
+  },
   cancelling: { ar: "جارِ الإلغاء…", en: "Cancelling…" },
   error_title: { ar: "خطأ", en: "Error" },
-  error_generic: { ar: "حدث خطأ ما. حاول مجدداً.", en: "Something went wrong. Please try again." },
+  error_generic: {
+    ar: "حدث خطأ ما. حاول مجدداً.",
+    en: "Something went wrong. Please try again.",
+  },
+  dismiss: { ar: "إخفاء", en: "Dismiss" },
+  retry: { ar: "إعادة المحاولة", en: "Retry" },
   onboarding_personality_label: { ar: "الشخصية", en: "Personality" },
-  onboarding_personality_title: { ar: "ملف الشخصية", en: "Personality Profile" },
-  onboarding_personality_banner: { ar: "أكملت الأساسيات! الآن لنتعمق أكثر لنجد أفضل توافق لك.", en: "You've completed the basics! Now let's go deeper to match you perfectly." },
-  onboarding_personality_desc: { ar: "هذه الأسئلة تساعدنا في إيجاد أشخاص يناسبون طاقتك الاجتماعية وأسلوب محادثتك.", en: "These questions help us find people who truly match your social style and energy." },
+  onboarding_personality_title: {
+    ar: "ملف الشخصية",
+    en: "Personality Profile",
+  },
+  onboarding_personality_banner: {
+    ar: "أكملت الأساسيات! الآن لنتعمق أكثر لنجد أفضل توافق لك.",
+    en: "You've completed the basics! Now let's go deeper to match you perfectly.",
+  },
+  onboarding_personality_desc: {
+    ar: "هذه الأسئلة تساعدنا في إيجاد أشخاص يناسبون طاقتك الاجتماعية وأسلوب محادثتك.",
+    en: "These questions help us find people who truly match your social style and energy.",
+  },
   data_loading: { ar: "جارِ التحميل…", en: "Loading your data…" },
   save: { ar: "حفظ", en: "Save" },
   submit: { ar: "إرسال", en: "Submit" },
@@ -59,8 +76,16 @@ export const STRINGS: Dict = {
   // Auth
   signin_title: { ar: "تسجيل الدخول", en: "Sign in" },
   signin_subtitle: {
-    ar: "أدخل رقم جوالك للمتابعة",
-    en: "Enter your mobile number to continue",
+    ar: "أدخل بريدك الإلكتروني للمتابعة",
+    en: "Enter your email to continue",
+  },
+  email_label: { ar: "البريد الإلكتروني", en: "Email address" },
+  email_placeholder: { ar: "name@example.com", en: "name@example.com" },
+  send_login_code: { ar: "إرسال رمز الدخول", en: "Send sign-in code" },
+  login_code_label: { ar: "رمز الدخول", en: "Sign-in code" },
+  login_code_hint: {
+    ar: "سيصلك رمز الدخول على بريدك الإلكتروني",
+    en: "Your sign-in code will be sent to your email",
   },
   phone_label: { ar: "رقم الجوال", en: "Mobile number" },
   phone_placeholder: { ar: "5XXXXXXXX", en: "5XXXXXXXX" },
@@ -71,6 +96,14 @@ export const STRINGS: Dict = {
     en: "Demo: use 0000",
   },
   verify: { ar: "تحقق", en: "Verify" },
+  invalid_email: {
+    ar: "أدخل بريدًا إلكترونيًا صحيحًا",
+    en: "Enter a valid email address",
+  },
+  invalid_login_code: {
+    ar: "رمز الدخول غير صحيح",
+    en: "Invalid sign-in code",
+  },
   invalid_phone: {
     ar: "أدخل رقم جوال صحيح",
     en: "Enter a valid mobile number",
@@ -87,7 +120,10 @@ export const STRINGS: Dict = {
   },
   step_of: { ar: "من", en: "of" },
 
-  q_nickname: { ar: "ما اسمك أو اسمك المستعار؟", en: "What's your name or nickname?" },
+  q_nickname: {
+    ar: "ما اسمك أو اسمك المستعار؟",
+    en: "What's your name or nickname?",
+  },
   nickname_placeholder: { ar: "اكتب اسمك", en: "Type your name" },
 
   q_gender: { ar: "إلى أي مجموعة تنتمي؟", en: "Which group do you belong to?" },
@@ -152,48 +188,105 @@ export const STRINGS: Dict = {
   },
 
   // ── NEW: Personality & Compatibility Questions ──────────────────────
-  q_social_energy: { ar: "مستوى طاقتك الاجتماعية", en: "Your social energy level" },
-  se_very_social: { ar: "اجتماعي/ـة جداً ومحب/ـة للحديث", en: "Very social and talkative" },
+  q_social_energy: {
+    ar: "مستوى طاقتك الاجتماعية",
+    en: "Your social energy level",
+  },
+  se_very_social: {
+    ar: "اجتماعي/ـة جداً ومحب/ـة للحديث",
+    en: "Very social and talkative",
+  },
   se_friendly_balanced: { ar: "ودود/ة ومتوازن/ة", en: "Friendly and balanced" },
-  se_quiet_open_later: { ar: "هادئ/ـة في البداية، أنفتح لاحقاً", en: "Quiet at first, open later" },
-  se_prefer_listening: { ar: "أفضّل الاستماع أكثر من الكلام", en: "Prefer listening more than talking" },
+  se_quiet_open_later: {
+    ar: "هادئ/ـة في البداية، أنفتح لاحقاً",
+    en: "Quiet at first, open later",
+  },
+  se_prefer_listening: {
+    ar: "أفضّل الاستماع أكثر من الكلام",
+    en: "Prefer listening more than talking",
+  },
 
-  q_conversation_style: { ar: "أسلوب حديثك المفضّل", en: "Preferred conversation style" },
+  q_conversation_style: {
+    ar: "أسلوب حديثك المفضّل",
+    en: "Preferred conversation style",
+  },
   cs_light_fun: { ar: "خفيف وممتع", en: "Light and fun" },
   cs_balanced: { ar: "متوازن", en: "Balanced" },
   cs_deep_meaningful: { ar: "عميق وذو معنى", en: "Deep and meaningful" },
 
   q_enjoyed_topics: { ar: "المواضيع التي تستمتع بها", en: "Topics you enjoy" },
-  q_enjoyed_topics_hint: { ar: "اختر واحداً أو أكثر", en: "Select one or more" },
+  q_enjoyed_topics_hint: {
+    ar: "اختر واحداً أو أكثر",
+    en: "Select one or more",
+  },
   et_daily_life: { ar: "الحياة اليومية", en: "Daily life" },
   et_work_ambition: { ar: "العمل والطموح", en: "Work & ambition" },
-  et_family_relationships: { ar: "الأسرة والعلاقات", en: "Family & relationships" },
+  et_family_relationships: {
+    ar: "الأسرة والعلاقات",
+    en: "Family & relationships",
+  },
   et_travel: { ar: "السفر", en: "Travel" },
-  et_wellness_growth: { ar: "الصحة والتطوير الذاتي", en: "Wellness & self-growth" },
-  et_hobbies_activities: { ar: "الهوايات والأنشطة", en: "Hobbies & activities" },
+  et_wellness_growth: {
+    ar: "الصحة والتطوير الذاتي",
+    en: "Wellness & self-growth",
+  },
+  et_hobbies_activities: {
+    ar: "الهوايات والأنشطة",
+    en: "Hobbies & activities",
+  },
 
   q_social_intent: { ar: "ما الذي تبحث عنه؟", en: "What are you looking for?" },
   si_new_friends: { ar: "صداقات جديدة", en: "New friends" },
-  si_expand_circle: { ar: "توسيع دائرتي الاجتماعية", en: "Expanding my social circle" },
-  si_casual_conversations: { ar: "محادثات غير رسمية", en: "Casual conversations" },
-  si_long_term_connections: { ar: "علاقات اجتماعية طويلة الأمد", en: "Long-term meaningful connections" },
+  si_expand_circle: {
+    ar: "توسيع دائرتي الاجتماعية",
+    en: "Expanding my social circle",
+  },
+  si_casual_conversations: {
+    ar: "محادثات غير رسمية",
+    en: "Casual conversations",
+  },
+  si_long_term_connections: {
+    ar: "علاقات اجتماعية طويلة الأمد",
+    en: "Long-term meaningful connections",
+  },
 
-  q_planning_preference: { ar: "كيف تفضّل التخطيط؟", en: "Planning preference" },
+  q_planning_preference: {
+    ar: "كيف تفضّل التخطيط؟",
+    en: "Planning preference",
+  },
   pp_structured: { ar: "منظّم ومحدد", en: "Structured" },
   pp_flexible: { ar: "مرن", en: "Flexible" },
   pp_spontaneous: { ar: "عفوي وتلقائي", en: "Spontaneous" },
 
-  q_meetup_atmosphere: { ar: "أجواء اللقاء المفضّلة", en: "Preferred meetup atmosphere" },
+  q_meetup_atmosphere: {
+    ar: "أجواء اللقاء المفضّلة",
+    en: "Preferred meetup atmosphere",
+  },
   ma_calm_relaxed: { ar: "هادئة ومريحة", en: "Calm and relaxed" },
   ma_moderate_energy: { ar: "نشاط معتدل", en: "Moderate energy" },
-  ma_lively_energetic: { ar: "حيوية ونابضة بالحياة", en: "Lively and energetic" },
+  ma_lively_energetic: {
+    ar: "حيوية ونابضة بالحياة",
+    en: "Lively and energetic",
+  },
 
-  q_interaction_preference: { ar: "كيف تفضّل التفاعل؟", en: "Interaction preference" },
+  q_interaction_preference: {
+    ar: "كيف تفضّل التفاعل؟",
+    en: "Interaction preference",
+  },
   ip_mostly_conversation: { ar: "محادثة في الغالب", en: "Mostly conversation" },
-  ip_mix_conversation_activity: { ar: "مزيج من المحادثة والنشاط الخفيف", en: "A mix of conversation and light activity" },
-  ip_activity_based: { ar: "نشاط بالدرجة الأولى", en: "Activity-based interaction" },
+  ip_mix_conversation_activity: {
+    ar: "مزيج من المحادثة والنشاط الخفيف",
+    en: "A mix of conversation and light activity",
+  },
+  ip_activity_based: {
+    ar: "نشاط بالدرجة الأولى",
+    en: "Activity-based interaction",
+  },
 
-  q_personality_traits: { ar: "أبرز سماتك الشخصية", en: "Your personality traits" },
+  q_personality_traits: {
+    ar: "أبرز سماتك الشخصية",
+    en: "Your personality traits",
+  },
   q_personality_traits_hint: { ar: "اختر ٣ كحد أقصى", en: "Pick up to 3" },
   pt_calm: { ar: "هادئ/ـة", en: "Calm" },
   pt_social: { ar: "اجتماعي/ـة", en: "Social" },
@@ -204,15 +297,30 @@ export const STRINGS: Dict = {
   pt_organized: { ar: "منظّم/ة", en: "Organized" },
   pt_creative: { ar: "مبدع/ـة", en: "Creative" },
 
-  q_openness_level: { ar: "مدى انفتاحك مع أشخاص جدد", en: "Openness with new people" },
+  q_openness_level: {
+    ar: "مدى انفتاحك مع أشخاص جدد",
+    en: "Openness with new people",
+  },
   ol_open_quickly: { ar: "أنفتح بسرعة", en: "Open up quickly" },
   ol_open_gradually: { ar: "أنفتح تدريجياً", en: "Open up gradually" },
-  ol_take_your_time: { ar: "أحتاج وقتاً قبل الانفتاح", en: "Prefer to take your time" },
+  ol_take_your_time: {
+    ar: "أحتاج وقتاً قبل الانفتاح",
+    en: "Prefer to take your time",
+  },
 
   q_social_boundary: { ar: "حدودك الاجتماعية", en: "Social comfort boundary" },
-  sb_very_relaxed: { ar: "مريح/ـة جداً ومنفتح/ـة", en: "Very relaxed and open" },
-  sb_respectful_balanced: { ar: "محترم/ـة ومتوازن/ة", en: "Respectful and balanced" },
-  sb_more_reserved: { ar: "أكثر تحفظاً وخصوصية", en: "More reserved and private" },
+  sb_very_relaxed: {
+    ar: "مريح/ـة جداً ومنفتح/ـة",
+    en: "Very relaxed and open",
+  },
+  sb_respectful_balanced: {
+    ar: "محترم/ـة ومتوازن/ة",
+    en: "Respectful and balanced",
+  },
+  sb_more_reserved: {
+    ar: "أكثر تحفظاً وخصوصية",
+    en: "More reserved and private",
+  },
   // ────────────────────────────────────────────────────────────────────
 
   finish_onboarding: { ar: "إنهاء", en: "Finish" },
@@ -294,7 +402,10 @@ export const STRINGS: Dict = {
   // Feedback
   feedback_title: { ar: "كيف كانت تجربتك؟", en: "How was it?" },
   rate_experience: { ar: "قيّم التجربة", en: "Rate your experience" },
-  would_meet_again: { ar: "هل تودّ مقابلتهم مجدداً؟", en: "Would you meet again?" },
+  would_meet_again: {
+    ar: "هل تودّ مقابلتهم مجدداً؟",
+    en: "Would you meet again?",
+  },
   wma_yes: { ar: "نعم، بالتأكيد", en: "Yes, definitely" },
   wma_maybe: { ar: "ربما", en: "Maybe" },
   wma_no: { ar: "لا أعتقد", en: "Probably not" },
@@ -332,7 +443,10 @@ export const STRINGS: Dict = {
   // Profile / Settings
   profile_title: { ar: "ملفي", en: "Profile" },
   edit_interests: { ar: "تعديل الاهتمامات", en: "Edit interests" },
-  edit_personality: { ar: "تعديل الشخصية والتوافق", en: "Edit personality & matching" },
+  edit_personality: {
+    ar: "تعديل الشخصية والتوافق",
+    en: "Edit personality & matching",
+  },
   edit_profile: { ar: "تعديل الملف الشخصي", en: "Edit profile" },
   privacy_settings: { ar: "إعدادات الخصوصية", en: "Privacy settings" },
   id_verification: { ar: "توثيق الهوية", en: "ID verification" },
@@ -382,7 +496,10 @@ export const STRINGS: Dict = {
   compat_moderate: { ar: "توافق متوسط", en: "Moderate fit" },
   compat_weak: { ar: "توافق ضعيف", en: "Weak fit" },
   compat_hard_filters: { ar: "المرشّحات الأساسية", en: "Hard filters" },
-  compat_interests: { ar: "الاهتمامات المشتركة", en: "Shared interests/topics" },
+  compat_interests: {
+    ar: "الاهتمامات المشتركة",
+    en: "Shared interests/topics",
+  },
   compat_lifestyle: { ar: "أسلوب الحياة", en: "Lifestyle" },
   compat_energy: { ar: "الطاقة الاجتماعية", en: "Social energy" },
   compat_conversation: { ar: "أسلوب الحديث", en: "Conversation" },

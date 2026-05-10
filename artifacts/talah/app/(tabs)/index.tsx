@@ -2,7 +2,15 @@ import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, Alert, Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
@@ -25,7 +33,15 @@ export default function HomeScreen() {
   const t = useT();
   const insets = useSafeAreaInsets();
   const { currentUser, language, setLanguage } = useApp();
-  const { groups, requests, cancelRequest, refresh, ready: dataReady } = useData();
+  const {
+    groups,
+    requests,
+    cancelRequest,
+    refresh,
+    ready: dataReady,
+    error,
+    clearError,
+  } = useData();
   const webTopPad = Platform.OS === "web" ? 67 : 0;
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -122,6 +138,48 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
+      {error ? (
+        <Card
+          style={{
+            borderColor: colors.destructive,
+            backgroundColor: colors.destructive + "10",
+          }}
+        >
+          <View style={{ gap: 10 }}>
+            <AppText
+              variant="body"
+              weight="semibold"
+              color={colors.destructive}
+            >
+              {t("error_title")}
+            </AppText>
+            <AppText variant="bodySmall" color={colors.foreground}>
+              {error}
+            </AppText>
+            <View style={{ flexDirection: "row", gap: 16 }}>
+              <Pressable onPress={handleRefresh}>
+                <AppText
+                  variant="label"
+                  weight="semibold"
+                  color={colors.destructive}
+                >
+                  {t("retry")}
+                </AppText>
+              </Pressable>
+              <Pressable onPress={clearError}>
+                <AppText
+                  variant="label"
+                  weight="semibold"
+                  color={colors.destructive}
+                >
+                  {t("dismiss")}
+                </AppText>
+              </Pressable>
+            </View>
+          </View>
+        </Card>
+      ) : null}
+
       {!dataReady && currentUser ? (
         <View style={{ paddingTop: 32, alignItems: "center", gap: 12 }}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -150,7 +208,9 @@ export default function HomeScreen() {
               style={{ overflow: "hidden" }}
             >
               <Image
-                source={upcoming.meetupType === "coffee" ? COFFEE_IMG : DINNER_IMG}
+                source={
+                  upcoming.meetupType === "coffee" ? COFFEE_IMG : DINNER_IMG
+                }
                 style={{ width: "100%", height: 160 }}
                 contentFit="cover"
               />
@@ -177,7 +237,11 @@ export default function HomeScreen() {
                 ) : null}
                 {upcoming.venue ? (
                   <View
-                    style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
                   >
                     <Feather name="map-pin" size={14} color={colors.accent} />
                     <AppText variant="bodySmall" color={colors.mutedForeground}>
@@ -225,7 +289,11 @@ export default function HomeScreen() {
                     marginTop: 4,
                   })}
                 >
-                  <AppText variant="label" weight="semibold" color={colors.destructive}>
+                  <AppText
+                    variant="label"
+                    weight="semibold"
+                    color={colors.destructive}
+                  >
                     {cancelling ? t("cancelling") : t("cancel_request")}
                   </AppText>
                 </Pressable>
@@ -238,7 +306,10 @@ export default function HomeScreen() {
       {dataReady && completion < 100 ? (
         <Card
           onPress={() => router.push("/onboarding")}
-          style={{ backgroundColor: colors.accent + "10", borderColor: colors.accent + "40" }}
+          style={{
+            backgroundColor: colors.accent + "10",
+            borderColor: colors.accent + "40",
+          }}
         >
           <View style={{ gap: 10 }}>
             <View
@@ -311,7 +382,11 @@ function RequestHero() {
         <AppText variant="h2" weight="bold" color={colors.primaryForeground}>
           {t("home_request_cta")}
         </AppText>
-        <AppText variant="body" color={colors.primaryForeground} style={{ opacity: 0.85 }}>
+        <AppText
+          variant="body"
+          color={colors.primaryForeground}
+          style={{ opacity: 0.85 }}
+        >
           {t("home_request_sub")}
         </AppText>
         <Button
@@ -338,7 +413,12 @@ function PrivacyNote() {
         alignItems: "flex-start",
       }}
     >
-      <Feather name="shield" size={16} color={colors.primary} style={{ marginTop: 2 }} />
+      <Feather
+        name="shield"
+        size={16}
+        color={colors.primary}
+        style={{ marginTop: 2 }}
+      />
       <AppText
         variant="bodySmall"
         color={colors.mutedForeground}
