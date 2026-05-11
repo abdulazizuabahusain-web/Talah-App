@@ -323,33 +323,39 @@ export default function UpcomingScreen() {
                 }}
               >
                 <AppText variant="title" weight="semibold">
-                  {r.meetupType === "coffee"
+                  {g.meetupType === "coffee"
                     ? t("meet_coffee")
                     : t("meet_dinner")}{" "}
-                  · {r.area}
+                  · {g.area}
                 </AppText>
-                <StatusPill status={r.status} />
+                <StatusPill status={g.status} />
               </View>
-              <AppText variant="bodySmall" color={colors.mutedForeground}>
-                {r.preferredDate} · {t(`time_${r.preferredTime}`)}
-              </AppText>
-              <AppText variant="caption" color={colors.mutedForeground}>
-                {t("reveal_hint")}
-              </AppText>
-              {r.status === "pending" ? (
-                <Pressable
-                  onPress={() => handleCancel(r.id)}
-                  disabled={cancelling === r.id}
-                  style={({ pressed }) => ({
-                    marginTop: 4,
-                    paddingVertical: 8,
-                    paddingHorizontal: 16,
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: colors.destructive,
-                    alignSelf: "flex-start",
-                    opacity: pressed || cancelling === r.id ? 0.6 : 1,
-                  })}
+              {g.meetupAt ? (
+                <View
+                  style={{ flexDirection: "row", gap: 6, alignItems: "center" }}
+                >
+                  <Feather
+                    name="clock"
+                    size={14}
+                    color={colors.mutedForeground}
+                  />
+                  <AppText variant="bodySmall" color={colors.mutedForeground}>
+                    {new Date(g.meetupAt).toLocaleString(
+                      language === "ar" ? "ar-SA" : "en-US",
+                      {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      },
+                    )}
+                  </AppText>
+                </View>
+              ) : null}
+              {g.venue ? (
+                <View
+                  style={{ flexDirection: "row", gap: 6, alignItems: "center" }}
                 >
                   <AppText
                     variant="label"
@@ -360,11 +366,71 @@ export default function UpcomingScreen() {
                       ? t("cancelling") || "Cancelling…"
                       : t("cancel_request") || "Cancel Request"}
                   </AppText>
-                </Pressable>
+                </View>
               ) : null}
+              <AppText variant="caption" color={colors.mutedForeground}>
+                {g.memberIds.length} {t("members_count")}
+              </AppText>
             </View>
           </Card>
         ))}
+
+      {dataReady &&
+        myRequests
+          .filter((r) => !groups.some((g) => g.requestIds?.includes(r.id)))
+          .map((r) => (
+            <Card key={r.id}>
+              <View style={{ gap: 10 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <AppText variant="title" weight="semibold">
+                    {r.meetupType === "coffee"
+                      ? t("meet_coffee")
+                      : t("meet_dinner")}{" "}
+                    · {r.area}
+                  </AppText>
+                  <StatusPill status={r.status} />
+                </View>
+                <AppText variant="bodySmall" color={colors.mutedForeground}>
+                  {r.preferredDate} · {t(`time_${r.preferredTime}`)}
+                </AppText>
+                <AppText variant="caption" color={colors.mutedForeground}>
+                  {t("reveal_hint")}
+                </AppText>
+                {r.status === "pending" ? (
+                  <Pressable
+                    onPress={() => handleCancel(r.id)}
+                    disabled={cancelling === r.id}
+                    style={({ pressed }) => ({
+                      marginTop: 4,
+                      paddingVertical: 8,
+                      paddingHorizontal: 16,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: colors.destructive,
+                      alignSelf: "flex-start",
+                      opacity: pressed || cancelling === r.id ? 0.6 : 1,
+                    })}
+                  >
+                    <AppText
+                      variant="label"
+                      weight="semibold"
+                      color={colors.destructive}
+                    >
+                      {cancelling === r.id
+                        ? t("cancelling") || "Cancelling…"
+                        : t("cancel_request") || "Cancel Request"}
+                    </AppText>
+                  </Pressable>
+                ) : null}
+              </View>
+            </Card>
+          ))}
     </ScrollView>
   );
 }
