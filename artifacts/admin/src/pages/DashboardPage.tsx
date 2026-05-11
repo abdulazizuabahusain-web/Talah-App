@@ -8,8 +8,9 @@ import FeedbackTab from "@/components/FeedbackTab";
 import ReportsTab from "@/components/ReportsTab";
 import CompatibilityTab from "@/components/CompatibilityTab";
 import AuditTab from "@/components/AuditTab";
+import SurveysTab from "@/components/SurveysTab";
 
-type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports" | "audit";
+type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports" | "audit" | "surveys";
 
 const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "users", label: "Users", emoji: "👤" },
@@ -19,6 +20,7 @@ const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "feedback", label: "Feedback", emoji: "⭐" },
   { id: "reports", label: "Reports", emoji: "🚩" },
   { id: "audit", label: "Audit", emoji: "🧾" },
+  { id: "surveys", label: "Surveys", emoji: "📊" },
 ];
 
 const PAGE_SIZE = 50;
@@ -627,6 +629,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {tab === "feedback" && <FeedbackTab feedback={data.feedback} users={data.users} />}
             {tab === "reports" && <ReportsTab reports={data.reports} users={data.users} />}
             {tab === "audit" && <AuditTab />}
+            {tab === "surveys" && <SurveysTab />}
           </>
         )}
       </div>

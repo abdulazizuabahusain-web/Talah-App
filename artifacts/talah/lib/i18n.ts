@@ -508,6 +508,29 @@ export const STRINGS: Dict = {
   compat_common_times: { ar: "الأوقات المشتركة", en: "Common times" },
   compat_no_overlap: { ar: "لا تقاطع", en: "No overlap" },
 
+  // Micro-survey
+  micro_survey_title: { ar: "قبل أن نبدأ — سؤالان سريعان ✨", en: "Quick intro survey ✨" },
+  micro_q1: { ar: "كيف سمعتِ عن طلعة؟", en: "How did you hear about Tal'ah?" },
+  micro_q2: { ar: "ما الذي تتطلعين إليه أكثر؟", en: "What are you most looking forward to?" },
+  micro_q3: { ar: "صفي طلعة بكلمة واحدة (اختياري)", en: "Describe Tal'ah in one word (optional)" },
+  micro_q3_placeholder: { ar: "كلمة واحدة…", en: "One word…" },
+  micro_submit: { ar: "إرسال", en: "Submit" },
+  micro_success_toast: { ar: "شكرًا! ✨", en: "Thank you! ✨" },
+
+  // Exit survey
+  exit_survey_title: { ar: "نأسف لرحيلك", en: "Sorry to see you go" },
+  exit_survey_subtitle: { ar: "ساعدينا في التحسين بإجابة سريعة", en: "Help us improve with a quick answer" },
+  exit_q1: { ar: "ما سبب حذف حسابك؟", en: "Why are you deleting your account?" },
+  exit_q2: { ar: "هل لديك أي ملاحظات؟ (اختياري)", en: "Any other feedback? (optional)" },
+  exit_q2_placeholder: { ar: "ملاحظاتك…", en: "Your feedback…" },
+  exit_submit: { ar: "إرسال وحذف الحساب", en: "Submit & delete account" },
+  exit_skip: { ar: "تخطي وحذف الحساب مباشرةً", en: "Skip and delete account" },
+
+  // Feedback prompt card
+  feedback_prompt_title: { ar: "كيف كانت طلعتك؟ 🌟", en: "How was your meetup? 🌟" },
+  feedback_prompt_body: { ar: "شاركينا تقييمك للمجموعة", en: "Share your rating for the group" },
+  feedback_prompt_cta: { ar: "تقييم الآن", en: "Rate now" },
+
   // Misc / placeholders
   no_data: { ar: "لا يوجد بيانات بعد", en: "Nothing here yet" },
 };

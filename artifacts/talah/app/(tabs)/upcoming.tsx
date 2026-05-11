@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,10 +14,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
 import { Card } from "@/components/Card";
+import { MicroSurveyModal } from "@/components/MicroSurveyModal";
 import { StatusPill } from "@/components/StatusPill";
 import { useApp } from "@/contexts/AppContext";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
+import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 
 export default function UpcomingScreen() {
@@ -37,6 +39,8 @@ export default function UpcomingScreen() {
   const webTopPad = Platform.OS === "web" ? 67 : 0;
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [showMicroSurvey, setShowMicroSurvey] = useState(false);
+  const microChecked = useRef(false);
 
   const myGroups = currentUser
     ? groups
@@ -50,6 +54,22 @@ export default function UpcomingScreen() {
     : [];
 
   const empty = myGroups.length === 0 && myRequests.length === 0;
+
+  // Check micro-survey once after data loads
+  useEffect(() => {
+    if (!dataReady || !currentUser || microChecked.current) return;
+    microChecked.current = true;
+    api.isSurveySubmitted("micro")
+      .then(({ submitted }) => { if (!submitted) setShowMicroSurvey(true); })
+      .catch(() => {});
+  }, [dataReady, currentUser]);
+
+  // Groups that had their meetup in the past and may need feedback
+  const now = Date.now();
+  const pastGroups = myGroups.filter(
+    (g) => g.meetupAt !== null && g.meetupAt !== undefined && g.meetupAt < now,
+  );
+  const feedbackGroupId = pastGroups.length > 0 ? pastGroups[0]!.id : null;
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -86,6 +106,7 @@ export default function UpcomingScreen() {
   };
 
   return (
+    <>
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={{
@@ -106,6 +127,14 @@ export default function UpcomingScreen() {
       <AppText variant="h1" weight="bold">
         {t("upcoming_title")}
       </AppText>
+
+      {/* Feedback prompt for most recent past meetup */}
+      {dataReady && feedbackGroupId ? (
+        <FeedbackPromptCard
+          groupId={feedbackGroupId}
+          onPress={() => router.push(`/reveal/${feedbackGroupId}`)}
+        />
+      ) : null}
 
       {error ? (
         <Card
@@ -287,5 +316,87 @@ export default function UpcomingScreen() {
             </Card>
           ))}
     </ScrollView>
+
+    <MicroSurveyModal
+      visible={showMicroSurvey}
+      onDismiss={() => setShowMicroSurvey(false)}
+      onSubmitted={() => setShowMicroSurvey(false)}
+    />
+    </>
+  );
+}
+
+interface FeedbackPromptCardProps {
+  groupId: string;
+  onPress: () => void;
+}
+
+function FeedbackPromptCard({ groupId, onPress }: FeedbackPromptCardProps) {
+  const colors = useColors();
+  const t = useT();
+  const [pending, setPending] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    api
+      .getFeedbackPending(groupId)
+      .then(({ pending: p }) => setPending(p))
+      .catch(() => setPending(false));
+  }, [groupId]);
+
+  if (!pending) return null;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        borderRadius: 16,
+        overflow: "hidden",
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <View
+        style={{
+          backgroundColor: colors.accent,
+          borderRadius: 16,
+          padding: 16,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 14,
+        }}
+      >
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: "rgba(255,255,255,0.25)",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <AppText variant="h2">🌟</AppText>
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <AppText variant="body" weight="bold" color="#fff">
+            {t("feedback_prompt_title")}
+          </AppText>
+          <AppText variant="bodySmall" color="rgba(255,255,255,0.85)">
+            {t("feedback_prompt_body")}
+          </AppText>
+        </View>
+        <View
+          style={{
+            backgroundColor: "rgba(255,255,255,0.2)",
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 999,
+          }}
+        >
+          <AppText variant="label" weight="semibold" color="#fff">
+            {t("feedback_prompt_cta")}
+          </AppText>
+        </View>
+      </View>
+    </Pressable>
   );
 }

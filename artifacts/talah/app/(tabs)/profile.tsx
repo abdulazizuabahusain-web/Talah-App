@@ -1,12 +1,13 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
 import { Card } from "@/components/Card";
 import { Chip } from "@/components/Chip";
+import { ExitSurveyModal } from "@/components/ExitSurveyModal";
 import { useApp } from "@/contexts/AppContext";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
@@ -19,6 +20,7 @@ export default function ProfileScreen() {
   const { currentUser, signOut } = useApp();
   const { removeUser } = useData();
   const webTopPad = Platform.OS === "web" ? 67 : 0;
+  const [showExitSurvey, setShowExitSurvey] = useState(false);
 
   const initial = (currentUser?.nickname || "?").charAt(0).toUpperCase();
 
@@ -29,13 +31,17 @@ export default function ProfileScreen() {
       {
         text: t("delete_account"),
         style: "destructive",
-        onPress: async () => {
-          await removeUser(currentUser.id);
-          await signOut();
-          router.replace("/");
-        },
+        onPress: () => setShowExitSurvey(true),
       },
     ]);
+  };
+
+  const handleExitComplete = async () => {
+    setShowExitSurvey(false);
+    if (!currentUser) return;
+    await removeUser(currentUser.id);
+    await signOut();
+    router.replace("/");
   };
 
   if (!currentUser) {
@@ -45,6 +51,7 @@ export default function ProfileScreen() {
   }
 
   return (
+    <>
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={{
@@ -208,6 +215,9 @@ export default function ProfileScreen() {
         />
       </Card>
     </ScrollView>
+
+    <ExitSurveyModal visible={showExitSurvey} onComplete={handleExitComplete} />
+    </>
   );
 }
 

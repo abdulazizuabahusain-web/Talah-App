@@ -119,6 +119,8 @@ export const api = {
   getSyncStatus: () => request<SyncStatus>("/admin/sync-status"),
   getAuditLogs: (params?: { limit?: number; offset?: number }) =>
     request<Paginated<AdminAuditLog>>(`/admin/audit-logs${toQuery(params)}`),
+
+  getSurveys: () => request<Survey[]>("/admin/surveys"),
 };
 
 // ── Types (mirror the DB schema) ─────────────────────────────────────────────
@@ -277,6 +279,16 @@ export interface CompatibilityReport {
   convNote: string;
   intentNote: string;
   boundaryNote: string;
+}
+
+export interface Survey {
+  id: string;
+  userId: string;
+  type: "micro" | "exit";
+  responses: Record<string, string>;
+  createdAt: string;
+  nickname: string | null;
+  city: string | null;
 }
 
 export interface AdminAuditLog {

@@ -338,4 +338,14 @@ export const api = {
       method: "POST",
     }),
   getBlocked: () => req<{ blockedUserIds: string[] }>("/users/blocked"),
+
+  // Surveys
+  submitSurvey: (body: { type: "micro" | "exit"; responses: Record<string, string> }) =>
+    req<{ id: string }>("/surveys", { method: "POST", body }),
+  isSurveySubmitted: (type: "micro" | "exit") =>
+    req<{ submitted: boolean }>(`/surveys/submitted?type=${type}`),
+
+  // Feedback pending
+  getFeedbackPending: (groupId: string) =>
+    req<{ pending: boolean }>(`/groups/${groupId}/feedback-pending`),
 };

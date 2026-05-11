@@ -15,6 +15,7 @@ import {
   requestsTable,
   usersTable,
   adminAuditLogsTable,
+  surveysTable,
 } from "@workspace/db";
 import { createAdminToken, isAdminToken } from "../lib/adminSessions";
 import { sendPushToMany } from "../lib/push";
@@ -691,6 +692,24 @@ router.get("/audit-logs", requireAdmin, async (req, res) => {
     db.select({ count: sql<number>`count(*)::int` }).from(adminAuditLogsTable),
   ]);
   res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
+});
+
+// ── Surveys ───────────────────────────────────────────────────────────────────
+router.get("/surveys", requireAdmin, async (_req, res) => {
+  const rows = await db
+    .select({
+      id: surveysTable.id,
+      userId: surveysTable.userId,
+      type: surveysTable.type,
+      responses: surveysTable.responses,
+      createdAt: surveysTable.createdAt,
+      nickname: usersTable.nickname,
+      city: usersTable.city,
+    })
+    .from(surveysTable)
+    .leftJoin(usersTable, eq(surveysTable.userId, usersTable.id))
+    .orderBy(sql`${surveysTable.createdAt} DESC`);
+  res.json(rows);
 });
 
 // ── Compatibility ─────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { Router } from "express";
 import { db, feedbackTable, groupsTable, usersTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
@@ -109,6 +109,45 @@ router.get("/:id/mutual-connects", requireAuth, async (req, res) => {
     : [];
 
   res.json({ mutualConnects: members, hasFeedback: connectsFrom.has(requesterId) });
+});
+
+// GET /api/groups/:id/feedback-pending
+router.get("/:id/feedback-pending", requireAuth, async (req, res) => {
+  const groupId = req.params["id"] as string;
+  const userId = req.user!.id;
+
+  const [group] = await db
+    .select()
+    .from(groupsTable)
+    .where(eq(groupsTable.id, groupId))
+    .limit(1);
+
+  if (!group || !group.memberIds.includes(userId)) {
+    res.json({ pending: false });
+    return;
+  }
+
+  const now = Date.now();
+  const meetupInPast =
+    group.meetupAt !== null && group.meetupAt !== undefined && group.meetupAt < now;
+
+  if (!meetupInPast) {
+    res.json({ pending: false });
+    return;
+  }
+
+  const [existing] = await db
+    .select({ id: feedbackTable.id })
+    .from(feedbackTable)
+    .where(
+      and(
+        eq(feedbackTable.groupId, groupId),
+        eq(feedbackTable.fromUserId, userId),
+      ),
+    )
+    .limit(1);
+
+  res.json({ pending: !existing });
 });
 
 export default router;
