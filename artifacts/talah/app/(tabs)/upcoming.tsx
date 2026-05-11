@@ -1,26 +1,52 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
-import { ActivityIndicator, Alert, Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
+import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { StatusPill } from "@/components/StatusPill";
 import { useApp } from "@/contexts/AppContext";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 import { useT } from "@/lib/i18n";
+import { api } from "@/lib/api";
+import type { Group } from "@/lib/types";
 
 export default function UpcomingScreen() {
   const colors = useColors();
   const t = useT();
   const insets = useSafeAreaInsets();
   const { currentUser, language } = useApp();
-  const { groups, requests, cancelRequest, refresh, ready: dataReady } = useData();
+  const {
+    groups,
+    requests,
+    cancelRequest,
+    refresh,
+    ready: dataReady,
+    error,
+    clearError,
+  } = useData();
   const webTopPad = Platform.OS === "web" ? 67 : 0;
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [feedbackPending, setFeedbackPending] = useState<
+    Record<string, boolean>
+  >({});
+  const [dismissedFeedbackPrompt, setDismissedFeedbackPrompt] = useState<
+    string | null
+  >(null);
+  const [selectedPromptRating, setSelectedPromptRating] = useState(0);
 
   const myGroups = currentUser
     ? groups
@@ -35,6 +61,67 @@ export default function UpcomingScreen() {
 
   const empty = myGroups.length === 0 && myRequests.length === 0;
 
+  const visibleRequests = myRequests.filter(
+    (r) => !groups.some((g) => g.requestIds?.includes(r.id)),
+  );
+  const hasPendingRequest = visibleRequests.some(
+    (request) => request.status === "pending",
+  );
+
+  const feedbackPromptGroup = useMemo(() => {
+    if (hasPendingRequest) return null;
+    const now = Date.now();
+    const seventyTwoHoursAgo = now - 72 * 60 * 60 * 1000;
+
+    return (
+      myGroups
+        .filter((group) => {
+          if (!group.meetupAt || group.meetupAt >= now) return false;
+          const recentlyEnded = group.meetupAt >= seventyTwoHoursAgo;
+          return (
+            (group.status === "completed" || recentlyEnded) &&
+            feedbackPending[group.id] &&
+            dismissedFeedbackPrompt !== group.id
+          );
+        })
+        .sort((a, b) => (b.meetupAt ?? 0) - (a.meetupAt ?? 0))[0] ?? null
+    );
+  }, [dismissedFeedbackPrompt, feedbackPending, hasPendingRequest, myGroups]);
+
+  useEffect(() => {
+    if (!dataReady || myGroups.length === 0) return;
+    const now = Date.now();
+    const candidates = myGroups.filter(
+      (group) =>
+        group.meetupAt &&
+        group.meetupAt < now &&
+        feedbackPending[group.id] === undefined,
+    );
+    if (candidates.length === 0) return;
+
+    let cancelled = false;
+    Promise.all(
+      candidates.map(async (group) => {
+        try {
+          const result = await api.getFeedbackPending(group.id);
+          return [group.id, result.pending] as const;
+        } catch {
+          return [group.id, false] as const;
+        }
+      }),
+    ).then((entries) => {
+      if (cancelled) return;
+      setFeedbackPending((prev) => ({
+        ...prev,
+        ...Object.fromEntries(entries),
+      }));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dataReady, feedbackPending, myGroups]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await refresh();
@@ -44,7 +131,8 @@ export default function UpcomingScreen() {
   const handleCancel = (requestId: string) => {
     Alert.alert(
       t("cancel_request_confirm") || "Cancel Request",
-      t("cancel_request_body") || "Are you sure you want to cancel this request?",
+      t("cancel_request_body") ||
+        "Are you sure you want to cancel this request?",
       [
         { text: t("cancel") || "No", style: "cancel" },
         {
@@ -55,7 +143,10 @@ export default function UpcomingScreen() {
             try {
               await cancelRequest(requestId);
             } catch (e) {
-              Alert.alert(t("error_title"), (e as Error).message || t("error_generic"));
+              Alert.alert(
+                t("error_title"),
+                (e as Error).message || t("error_generic"),
+              );
             } finally {
               setCancelling(null);
             }
@@ -87,6 +178,48 @@ export default function UpcomingScreen() {
         {t("upcoming_title")}
       </AppText>
 
+      {error ? (
+        <Card
+          style={{
+            borderColor: colors.destructive,
+            backgroundColor: colors.destructive + "10",
+          }}
+        >
+          <View style={{ gap: 10 }}>
+            <AppText
+              variant="body"
+              weight="semibold"
+              color={colors.destructive}
+            >
+              {t("error_title")}
+            </AppText>
+            <AppText variant="bodySmall" color={colors.foreground}>
+              {error}
+            </AppText>
+            <View style={{ flexDirection: "row", gap: 16 }}>
+              <Pressable onPress={handleRefresh}>
+                <AppText
+                  variant="label"
+                  weight="semibold"
+                  color={colors.destructive}
+                >
+                  {t("retry")}
+                </AppText>
+              </Pressable>
+              <Pressable onPress={clearError}>
+                <AppText
+                  variant="label"
+                  weight="semibold"
+                  color={colors.destructive}
+                >
+                  {t("dismiss")}
+                </AppText>
+              </Pressable>
+            </View>
+          </View>
+        </Card>
+      ) : null}
+
       {!dataReady && currentUser ? (
         <View style={{ paddingTop: 40, alignItems: "center", gap: 12 }}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -96,78 +229,90 @@ export default function UpcomingScreen() {
         </View>
       ) : null}
 
+      {dataReady && feedbackPromptGroup ? (
+        <FeedbackPromptCard
+          group={feedbackPromptGroup}
+          rating={selectedPromptRating}
+          onRatingChange={setSelectedPromptRating}
+          onRateNow={() => router.push(`/feedback/${feedbackPromptGroup.id}`)}
+          onDismiss={() => setDismissedFeedbackPrompt(feedbackPromptGroup.id)}
+        />
+      ) : null}
+
       {dataReady && empty ? (
         <View style={{ paddingTop: 60, alignItems: "center", gap: 12 }}>
           <Feather name="calendar" size={32} color={colors.mutedForeground} />
-          <AppText
-            variant="body"
-            color={colors.mutedForeground}
-            align="center"
-          >
+          <AppText variant="body" color={colors.mutedForeground} align="center">
             {t("empty_upcoming")}
           </AppText>
         </View>
       ) : null}
 
-      {dataReady && myGroups.map((g) => (
-        <Card
-          key={g.id}
-          onPress={() => router.push(`/reveal/${g.id}`)}
-          elevated
-        >
-          <View style={{ gap: 10 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <AppText variant="title" weight="semibold">
-                {g.meetupType === "coffee" ? t("meet_coffee") : t("meet_dinner")}{" "}
-                · {g.area}
+      {dataReady &&
+        myGroups.map((g) => (
+          <Card
+            key={g.id}
+            onPress={() => router.push(`/reveal/${g.id}`)}
+            elevated
+          >
+            <View style={{ gap: 10 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <AppText variant="title" weight="semibold">
+                  {g.meetupType === "coffee"
+                    ? t("meet_coffee")
+                    : t("meet_dinner")}{" "}
+                  · {g.area}
+                </AppText>
+                <StatusPill status={g.status} />
+              </View>
+              {g.meetupAt ? (
+                <View
+                  style={{ flexDirection: "row", gap: 6, alignItems: "center" }}
+                >
+                  <Feather
+                    name="clock"
+                    size={14}
+                    color={colors.mutedForeground}
+                  />
+                  <AppText variant="bodySmall" color={colors.mutedForeground}>
+                    {new Date(g.meetupAt).toLocaleString(
+                      language === "ar" ? "ar-SA" : "en-US",
+                      {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      },
+                    )}
+                  </AppText>
+                </View>
+              ) : null}
+              {g.venue ? (
+                <View
+                  style={{ flexDirection: "row", gap: 6, alignItems: "center" }}
+                >
+                  <Feather name="map-pin" size={14} color={colors.accent} />
+                  <AppText variant="bodySmall" color={colors.mutedForeground}>
+                    {g.venue}
+                  </AppText>
+                </View>
+              ) : null}
+              <AppText variant="caption" color={colors.mutedForeground}>
+                {g.memberIds.length} {t("members_count")}
               </AppText>
-              <StatusPill status={g.status} />
             </View>
-            {g.meetupAt ? (
-              <View
-                style={{ flexDirection: "row", gap: 6, alignItems: "center" }}
-              >
-                <Feather name="clock" size={14} color={colors.mutedForeground} />
-                <AppText variant="bodySmall" color={colors.mutedForeground}>
-                  {new Date(g.meetupAt).toLocaleString(
-                    language === "ar" ? "ar-SA" : "en-US",
-                    {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "long",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    },
-                  )}
-                </AppText>
-              </View>
-            ) : null}
-            {g.venue ? (
-              <View
-                style={{ flexDirection: "row", gap: 6, alignItems: "center" }}
-              >
-                <Feather name="map-pin" size={14} color={colors.accent} />
-                <AppText variant="bodySmall" color={colors.mutedForeground}>
-                  {g.venue}
-                </AppText>
-              </View>
-            ) : null}
-            <AppText variant="caption" color={colors.mutedForeground}>
-              {g.memberIds.length} {t("members_count")}
-            </AppText>
-          </View>
-        </Card>
-      ))}
+          </Card>
+        ))}
 
-      {dataReady && myRequests
-        .filter((r) => !groups.some((g) => g.requestIds?.includes(r.id)))
-        .map((r) => (
+      {dataReady &&
+        visibleRequests.map((r) => (
           <Card key={r.id}>
             <View style={{ gap: 10 }}>
               <View
@@ -206,10 +351,14 @@ export default function UpcomingScreen() {
                     opacity: pressed || cancelling === r.id ? 0.6 : 1,
                   })}
                 >
-                  <AppText variant="label" weight="semibold" color={colors.destructive}>
+                  <AppText
+                    variant="label"
+                    weight="semibold"
+                    color={colors.destructive}
+                  >
                     {cancelling === r.id
-                      ? (t("cancelling") || "Cancelling…")
-                      : (t("cancel_request") || "Cancel Request")}
+                      ? t("cancelling") || "Cancelling…"
+                      : t("cancel_request") || "Cancel Request"}
                   </AppText>
                 </Pressable>
               ) : null}
@@ -217,5 +366,63 @@ export default function UpcomingScreen() {
           </Card>
         ))}
     </ScrollView>
+  );
+}
+
+function FeedbackPromptCard({
+  group,
+  rating,
+  onRatingChange,
+  onRateNow,
+  onDismiss,
+}: {
+  group: Group;
+  rating: number;
+  onRatingChange: (rating: number) => void;
+  onRateNow: () => void;
+  onDismiss: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Card style={{ borderLeftWidth: 5, borderLeftColor: colors.primary }}>
+      <View style={{ gap: 12 }}>
+        <View style={{ gap: 4 }}>
+          <AppText variant="title" weight="bold">
+            كيف كانت طلعتك؟
+          </AppText>
+          <AppText variant="bodySmall" color={colors.mutedForeground}>
+            Rate your experience — it takes 30 seconds.
+          </AppText>
+        </View>
+        <View style={{ flexDirection: "row", gap: 6 }}>
+          {Array.from({ length: 5 }).map((_, index) => {
+            const value = index + 1;
+            return (
+              <Pressable
+                key={value}
+                onPress={() => onRatingChange(value)}
+                hitSlop={8}
+              >
+                <Feather
+                  name="star"
+                  size={28}
+                  color={value <= rating ? colors.accent : colors.border}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
+        <Button label="Rate Now" onPress={onRateNow} />
+        <Pressable onPress={onDismiss} style={{ alignSelf: "center" }}>
+          <AppText
+            variant="caption"
+            weight="semibold"
+            color={colors.mutedForeground}
+          >
+            Remind me later
+          </AppText>
+        </Pressable>
+      </View>
+    </Card>
   );
 }

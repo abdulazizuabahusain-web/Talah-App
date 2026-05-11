@@ -16,7 +16,14 @@ export function Logo({ size = 56, showWordmark = false, style }: LogoProps) {
   return (
     <View style={[{ alignItems: "center", gap: 12 }, style]}>
       <Svg width={size} height={size} viewBox="0 0 64 64">
-        <Circle cx={32} cy={32} r={30} fill={colors.card} stroke={colors.accent} strokeWidth={1.5} />
+        <Circle
+          cx={32}
+          cy={32}
+          r={30}
+          fill="#F4EDE4"
+          stroke={colors.accent}
+          strokeWidth={1.5}
+        />
         <Path
           d="M22 18 a14 14 0 1 0 0 28 a10 10 0 1 1 0 -28 z"
           fill={colors.accent}
@@ -30,10 +37,19 @@ export function Logo({ size = 56, showWordmark = false, style }: LogoProps) {
       </Svg>
       {showWordmark ? (
         <View style={{ alignItems: "center", gap: 2 }}>
-          <AppText variant="h1" weight="bold" align="center">
+          <AppText
+            variant="h1"
+            weight="bold"
+            align="center"
+            color={colors.primary}
+          >
             طلعة
           </AppText>
-          <AppText variant="label" color={colors.mutedForeground} align="center">
+          <AppText
+            variant="label"
+            color={colors.mutedForeground}
+            align="center"
+          >
             Tal'ah
           </AppText>
         </View>

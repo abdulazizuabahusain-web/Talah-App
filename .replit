@@ -1,3 +1,14 @@
+# Environment separation strategy:
+# - Keep deploymentTarget = "autoscale" for both Tal'ah deployments.
+# - Staging and production are separate Replit Autoscale deployments/projects,
+#   each with its own Replit Secrets profile and PostgreSQL 16 DATABASE_URL.
+# - The staging deployment must set NODE_ENV=staging and use the
+#   .env.staging.example placeholders as its checklist.
+# - The production deployment must set NODE_ENV=production and use the
+#   .env.production.example placeholders as its checklist.
+# - Never point staging at the production DATABASE_URL or reuse production
+#   JWT_SECRET, ADMIN_PIN_HASH, EXPO_ACCESS_TOKEN, or CORS_ORIGIN values.
+
 modules = ["nodejs-24", "postgresql-16", "python-3.11"]
 
 [deployment]

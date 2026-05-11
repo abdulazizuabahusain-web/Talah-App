@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -189,6 +190,7 @@ export default function OnboardingScreen() {
   const [nickname, setNickname] = useState(currentUser?.nickname ?? "");
   const [gender, setGender] = useState<Gender | null>(currentUser?.gender ?? null);
   const [city, setCity] = useState(currentUser?.city ?? "");
+  const [cityMenuOpen, setCityMenuOpen] = useState(false);
   const [ageRange, setAgeRange] = useState<AgeRange>(currentUser?.ageRange ?? "25-29");
   const [lifestyle, setLifestyle] = useState<Lifestyle>(currentUser?.lifestyle ?? "employee");
   const [interests, setInterests] = useState<Interest[]>(currentUser?.interests ?? []);
@@ -311,11 +313,14 @@ export default function OnboardingScreen() {
       case 2:
         return (
           <StepFrame title={t("q_city")}>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {SAUDI_CITIES.map((c) => (
-                <Chip key={c} label={c} selected={city === c} onPress={() => setCity(c)} />
-              ))}
-            </View>
+            <CityDropdown
+              options={SAUDI_CITIES}
+              selectedCity={city}
+              open={cityMenuOpen}
+              onOpenChange={setCityMenuOpen}
+              onSelect={setCity}
+              placeholder={t("city_select_placeholder")}
+            />
           </StepFrame>
         );
       case 3:
@@ -626,6 +631,115 @@ function StepFrame({ title, hint, children }: { title: string; hint?: string; ch
         {hint ? <AppText variant="body" color={colors.mutedForeground}>{hint}</AppText> : null}
       </View>
       {children}
+    </View>
+  );
+}
+
+function CityDropdown({
+  options,
+  selectedCity,
+  open,
+  onOpenChange,
+  onSelect,
+  placeholder,
+}: {
+  options: string[];
+  selectedCity: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelect: (city: string) => void;
+  placeholder: string;
+}) {
+  const colors = useColors();
+  const selectedLabel = selectedCity || placeholder;
+
+  const selectCity = (nextCity: string) => {
+    onSelect(nextCity);
+    onOpenChange(false);
+  };
+
+  const menu = (
+    <View
+      style={{
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: 18,
+        backgroundColor: colors.card,
+        overflow: "hidden",
+      }}
+    >
+      {options.map((option, index) => {
+        const selected = option === selectedCity;
+        return (
+          <Pressable
+            key={option}
+            accessibilityRole="menuitem"
+            onPress={() => selectCity(option)}
+            style={({ pressed }) => ({
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              backgroundColor: selected ? colors.primary + "18" : pressed ? colors.muted : colors.card,
+              borderTopWidth: index === 0 ? 0 : 1,
+              borderTopColor: colors.border,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            })}
+          >
+            <AppText weight={selected ? "semibold" : "medium"} color={colors.foreground}>
+              {option}
+            </AppText>
+            {selected ? <Feather name="check" size={18} color={colors.primary} /> : null}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
+  return (
+    <View style={{ gap: 8 }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={() => onOpenChange(!open)}
+        style={({ pressed }) => ({
+          borderWidth: 1,
+          borderColor: open ? colors.primary : colors.input,
+          borderRadius: 18,
+          paddingHorizontal: 16,
+          paddingVertical: 15,
+          backgroundColor: "rgba(255,255,255,0.72)",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          opacity: pressed ? 0.82 : 1,
+        })}
+      >
+        <AppText weight={selectedCity ? "semibold" : "medium"} color={selectedCity ? colors.foreground : colors.mutedForeground}>
+          {selectedLabel}
+        </AppText>
+        <Feather name={open ? "chevron-up" : "chevron-down"} size={20} color={colors.mutedForeground} />
+      </Pressable>
+
+      {Platform.OS === "web" ? (
+        open ? menu : null
+      ) : (
+        <Modal visible={open} transparent animationType="fade" onRequestClose={() => onOpenChange(false)}>
+          <Pressable
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(15, 23, 42, 0.32)",
+              justifyContent: "center",
+              padding: 20,
+            }}
+            onPress={() => onOpenChange(false)}
+          >
+            <Pressable onPress={(event) => event.stopPropagation()} style={{ gap: 10 }}>
+              {menu}
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
     </View>
   );
 }

@@ -1,14 +1,34 @@
 import { useEffect, useRef, useState } from "react";
 import { GitCommitHorizontal, X } from "lucide-react";
-import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type User } from "@/lib/api";
+import {
+  api,
+  clearToken,
+  type Feedback,
+  type Group,
+  type MeetupRequest,
+  type Report,
+  type Survey,
+  type SyncStatus,
+  type User,
+} from "@/lib/api";
 import UsersTab from "@/components/UsersTab";
 import RequestsTab from "@/components/RequestsTab";
 import GroupsTab from "@/components/GroupsTab";
 import FeedbackTab from "@/components/FeedbackTab";
 import ReportsTab from "@/components/ReportsTab";
 import CompatibilityTab from "@/components/CompatibilityTab";
+import AuditTab from "@/components/AuditTab";
+import SurveysTab from "@/components/SurveysTab";
 
-type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports";
+type Tab =
+  | "users"
+  | "requests"
+  | "groups"
+  | "compatibility"
+  | "feedback"
+  | "surveys"
+  | "reports"
+  | "audit";
 
 const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "users", label: "Users", emoji: "👤" },
@@ -16,7 +36,9 @@ const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "groups", label: "Groups", emoji: "🫂" },
   { id: "compatibility", label: "Compatibility", emoji: "⚡" },
   { id: "feedback", label: "Feedback", emoji: "⭐" },
+  { id: "surveys", label: "Surveys", emoji: "📝" },
   { id: "reports", label: "Reports", emoji: "🚩" },
+  { id: "audit", label: "Audit", emoji: "🧾" },
 ];
 
 const PAGE_SIZE = 50;
@@ -28,6 +50,7 @@ interface Data {
   groups: Group[];
   feedback: Feedback[];
   reports: Report[];
+  surveys: Survey[];
 }
 
 interface HasMore {
@@ -54,16 +77,30 @@ function formatAwayTime(mins: number): string {
 }
 
 function formatHHMM(date: Date): string {
-  return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function DashboardPage({ onLogout }: Props) {
   const [tab, setTab] = useState<Tab>("users");
   const [data, setData] = useState<Data>({
-    users: [], requests: [], groups: [], feedback: [], reports: [],
+    users: [],
+    requests: [],
+    groups: [],
+    feedback: [],
+    reports: [],
+    surveys: [],
   });
-  const [hasMore, setHasMore] = useState<HasMore>({ users: false, requests: false, groups: false });
-  const [loadingMore, setLoadingMore] = useState<Partial<Record<keyof HasMore, boolean>>>({});
+  const [hasMore, setHasMore] = useState<HasMore>({
+    users: false,
+    requests: false,
+    groups: false,
+  });
+  const [loadingMore, setLoadingMore] = useState<
+    Partial<Record<keyof HasMore, boolean>>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
@@ -80,14 +117,20 @@ export default function DashboardPage({ onLogout }: Props) {
   const [badgePaused, setBadgePaused] = useState(false);
   const [syncPopoverOpen, setSyncPopoverOpen] = useState(false);
   const [syncPopoverClosing, setSyncPopoverClosing] = useState(false);
-  const syncPopoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncPopoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const nextRefreshAtRef = useRef<number | null>(null);
   const catchupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const badgeDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const badgeDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const hiddenAtRef = useRef<number | null>(null);
   const badgeTouchStartRef = useRef<{ x: number; y: number } | null>(null);
-  const badgeTouchPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const badgeTouchPauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const badgeTimerStartRef = useRef<number | null>(null);
   const badgePausedElapsedRef = useRef<number>(0);
   const badgeSpanRef = useRef<HTMLSpanElement>(null);
@@ -99,7 +142,10 @@ export default function DashboardPage({ onLogout }: Props) {
       const status = await api.getSyncStatus();
       setSyncStatus(status);
     } catch {
-      setSyncStatus({ ok: false, error: "Could not reach sync-status endpoint" });
+      setSyncStatus({
+        ok: false,
+        error: "Could not reach sync-status endpoint",
+      });
     } finally {
       if (showSpinner) setSyncLoading(false);
     }
@@ -109,15 +155,28 @@ export default function DashboardPage({ onLogout }: Props) {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [usersPage, requestsPage, groupsPage, feedback, reports] = await Promise.all([
-        api.getUsers({ limit: PAGE_SIZE, offset: 0 }),
-        api.getRequests({ limit: PAGE_SIZE, offset: 0 }),
-        api.getGroups({ limit: PAGE_SIZE, offset: 0 }),
-        api.getFeedback(),
-        api.getReports(),
-      ]);
-      setData({ users: usersPage.data, requests: requestsPage.data, groups: groupsPage.data, feedback, reports });
-      setHasMore({ users: usersPage.hasMore, requests: requestsPage.hasMore, groups: groupsPage.hasMore });
+      const [usersPage, requestsPage, groupsPage, feedback, reports, surveys] =
+        await Promise.all([
+          api.getUsers({ limit: PAGE_SIZE, offset: 0 }),
+          api.getRequests({ limit: PAGE_SIZE, offset: 0 }),
+          api.getGroups({ limit: PAGE_SIZE, offset: 0 }),
+          api.getFeedback(),
+          api.getReports(),
+          api.getSurveys(),
+        ]);
+      setData({
+        users: usersPage.data,
+        requests: requestsPage.data,
+        groups: groupsPage.data,
+        feedback,
+        reports,
+        surveys,
+      });
+      setHasMore({
+        users: usersPage.hasMore,
+        requests: requestsPage.hasMore,
+        groups: groupsPage.hasMore,
+      });
       setLastUpdated(new Date());
       nextRefreshAtRef.current = Date.now() + DATA_INTERVAL_MS;
       setSecsLeft(Math.round(DATA_INTERVAL_MS / 1000));
@@ -133,7 +192,10 @@ export default function DashboardPage({ onLogout }: Props) {
         if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
         badgeTimerStartRef.current = Date.now();
         badgePausedElapsedRef.current = 0;
-        catchupTimeoutRef.current = setTimeout(() => dismissCatchupBadge(), 4_000);
+        catchupTimeoutRef.current = setTimeout(
+          () => dismissCatchupBadge(),
+          4_000,
+        );
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data");
@@ -144,7 +206,8 @@ export default function DashboardPage({ onLogout }: Props) {
 
   const dismissCatchupBadge = () => {
     if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
-    if (badgeDismissTimerRef.current) clearTimeout(badgeDismissTimerRef.current);
+    if (badgeDismissTimerRef.current)
+      clearTimeout(badgeDismissTimerRef.current);
     if (badgeTouchPauseTimerRef.current) {
       clearTimeout(badgeTouchPauseTimerRef.current);
       badgeTouchPauseTimerRef.current = null;
@@ -160,7 +223,8 @@ export default function DashboardPage({ onLogout }: Props) {
 
   const handleBadgeMouseEnter = () => {
     if (badgePaused) return;
-    const stretchElapsed = Date.now() - (badgeTimerStartRef.current ?? Date.now());
+    const stretchElapsed =
+      Date.now() - (badgeTimerStartRef.current ?? Date.now());
     badgePausedElapsedRef.current += stretchElapsed;
     if (catchupTimeoutRef.current) {
       clearTimeout(catchupTimeoutRef.current);
@@ -174,7 +238,10 @@ export default function DashboardPage({ onLogout }: Props) {
     const remaining = Math.max(0, 4_000 - badgePausedElapsedRef.current);
     badgeTimerStartRef.current = Date.now();
     if (remaining > 0) {
-      catchupTimeoutRef.current = setTimeout(() => dismissCatchupBadge(), remaining);
+      catchupTimeoutRef.current = setTimeout(
+        () => dismissCatchupBadge(),
+        remaining,
+      );
     } else {
       dismissCatchupBadge();
       return;
@@ -188,8 +255,11 @@ export default function DashboardPage({ onLogout }: Props) {
   };
 
   const closeSyncPopover = () => {
-    if (syncPopoverCloseTimerRef.current) clearTimeout(syncPopoverCloseTimerRef.current);
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (syncPopoverCloseTimerRef.current)
+      clearTimeout(syncPopoverCloseTimerRef.current);
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     if (reducedMotion) {
       setSyncPopoverOpen(false);
       setSyncPopoverClosing(false);
@@ -204,14 +274,18 @@ export default function DashboardPage({ onLogout }: Props) {
 
   useEffect(() => {
     return () => {
-      if (syncPopoverCloseTimerRef.current) clearTimeout(syncPopoverCloseTimerRef.current);
+      if (syncPopoverCloseTimerRef.current)
+        clearTimeout(syncPopoverCloseTimerRef.current);
     };
   }, []);
 
   useEffect(() => {
     if (!syncPopoverOpen) return;
     const handleOutside = (e: PointerEvent) => {
-      if (syncPopoverRef.current && !syncPopoverRef.current.contains(e.target as Node)) {
+      if (
+        syncPopoverRef.current &&
+        !syncPopoverRef.current.contains(e.target as Node)
+      ) {
         closeSyncPopover();
       }
     };
@@ -230,12 +304,16 @@ export default function DashboardPage({ onLogout }: Props) {
     setLoadingMore((prev) => ({ ...prev, [entity]: true }));
     try {
       const offset = data[entity].length;
-      const page = entity === "users"
-        ? await api.getUsers({ limit: PAGE_SIZE, offset })
-        : entity === "requests"
-          ? await api.getRequests({ limit: PAGE_SIZE, offset })
-          : await api.getGroups({ limit: PAGE_SIZE, offset });
-      setData((prev) => ({ ...prev, [entity]: [...prev[entity], ...page.data] }));
+      const page =
+        entity === "users"
+          ? await api.getUsers({ limit: PAGE_SIZE, offset })
+          : entity === "requests"
+            ? await api.getRequests({ limit: PAGE_SIZE, offset })
+            : await api.getGroups({ limit: PAGE_SIZE, offset });
+      setData((prev) => ({
+        ...prev,
+        [entity]: [...prev[entity], ...page.data],
+      }));
       setHasMore((prev) => ({ ...prev, [entity]: page.hasMore }));
     } finally {
       setLoadingMore((prev) => ({ ...prev, [entity]: false }));
@@ -256,7 +334,10 @@ export default function DashboardPage({ onLogout }: Props) {
       dataInterval = setInterval(() => load(true), DATA_INTERVAL_MS);
       tickInterval = setInterval(() => {
         if (nextRefreshAtRef.current !== null) {
-          const s = Math.max(0, Math.floor((nextRefreshAtRef.current - Date.now()) / 1000));
+          const s = Math.max(
+            0,
+            Math.floor((nextRefreshAtRef.current - Date.now()) / 1000),
+          );
           setSecsLeft(s);
         }
       }, 1000);
@@ -281,10 +362,13 @@ export default function DashboardPage({ onLogout }: Props) {
         stopIntervals();
       } else {
         const returnedAt = new Date();
-        const elapsed = hiddenAtRef.current !== null ? Date.now() - hiddenAtRef.current : 0;
+        const elapsed =
+          hiddenAtRef.current !== null ? Date.now() - hiddenAtRef.current : 0;
         const mins = Math.floor(elapsed / 60_000);
         setAwayMins(mins);
-        setAwayDepartedAt(hiddenAtRef.current !== null ? new Date(hiddenAtRef.current) : null);
+        setAwayDepartedAt(
+          hiddenAtRef.current !== null ? new Date(hiddenAtRef.current) : null,
+        );
         setAwayReturnedAt(returnedAt);
         hiddenAtRef.current = null;
         loadSync(false);
@@ -299,8 +383,10 @@ export default function DashboardPage({ onLogout }: Props) {
       stopIntervals();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (catchupTimeoutRef.current) clearTimeout(catchupTimeoutRef.current);
-      if (badgeDismissTimerRef.current) clearTimeout(badgeDismissTimerRef.current);
-      if (badgeTouchPauseTimerRef.current) clearTimeout(badgeTouchPauseTimerRef.current);
+      if (badgeDismissTimerRef.current)
+        clearTimeout(badgeDismissTimerRef.current);
+      if (badgeTouchPauseTimerRef.current)
+        clearTimeout(badgeTouchPauseTimerRef.current);
     };
   }, []);
 
@@ -309,7 +395,9 @@ export default function DashboardPage({ onLogout }: Props) {
     onLogout();
   };
 
-  const pendingRequests = data.requests.filter((r) => r.status === "pending").length;
+  const pendingRequests = data.requests.filter(
+    (r) => r.status === "pending",
+  ).length;
   const flaggedUsers = data.users.filter((u) => u.flagged).length;
 
   return (
@@ -319,10 +407,14 @@ export default function DashboardPage({ onLogout }: Props) {
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-lg font-bold text-primary-foreground">ط</span>
+              <span className="text-lg font-bold text-primary-foreground">
+                ط
+              </span>
             </div>
             <div>
-              <h1 className="font-bold text-foreground leading-none">Tal'ah Admin</h1>
+              <h1 className="font-bold text-foreground leading-none">
+                Tal'ah Admin
+              </h1>
               <p className="text-xs text-muted-foreground">طلعة · Dashboard</p>
             </div>
           </div>
@@ -344,7 +436,14 @@ export default function DashboardPage({ onLogout }: Props) {
             {/* === MOBILE: icon button + popover (hidden on sm+) === */}
             <div className="relative sm:hidden" ref={syncPopoverRef}>
               <button
-                onClick={() => { if (syncPopoverOpen) { closeSyncPopover(); } else { setSyncPopoverOpen(true); setSyncPopoverClosing(false); } }}
+                onClick={() => {
+                  if (syncPopoverOpen) {
+                    closeSyncPopover();
+                  } else {
+                    setSyncPopoverOpen(true);
+                    setSyncPopoverClosing(false);
+                  }
+                }}
                 aria-label="Sync and PAT status"
                 title="Sync and PAT status"
                 aria-expanded={syncPopoverOpen}
@@ -357,18 +456,26 @@ export default function DashboardPage({ onLogout }: Props) {
                       syncLoading
                         ? "bg-muted-foreground/40 animate-pulse"
                         : syncStatus?.ok
-                          ? syncStatus.upToDate ? "bg-green-500" : "bg-red-500"
+                          ? syncStatus.upToDate
+                            ? "bg-green-500"
+                            : "bg-red-500"
                           : "bg-destructive"
                     }`}
                   />
                 </span>
-                {syncStatus?.ok && syncStatus.patDaysLeft !== undefined && syncStatus.patDaysLeft <= 14 && (
-                  <span className="text-amber-500 text-xs leading-none">⚠</span>
-                )}
+                {syncStatus?.ok &&
+                  syncStatus.patDaysLeft !== undefined &&
+                  syncStatus.patDaysLeft <= 14 && (
+                    <span className="text-amber-500 text-xs leading-none">
+                      ⚠
+                    </span>
+                  )}
               </button>
 
               {(syncPopoverOpen || syncPopoverClosing) && (
-                <div className={`absolute right-0 top-full mt-1.5 z-50 bg-background border border-border rounded-xl shadow-lg p-3 flex flex-col gap-2.5 min-w-[230px] relative ${syncPopoverClosing ? "popover-exiting" : "popover-entering"}`}>
+                <div
+                  className={`absolute right-0 top-full mt-1.5 z-50 bg-background border border-border rounded-xl shadow-lg p-3 flex flex-col gap-2.5 min-w-[230px] relative ${syncPopoverClosing ? "popover-exiting" : "popover-entering"}`}
+                >
                   <button
                     onClick={closeSyncPopover}
                     aria-label="Close"
@@ -390,32 +497,50 @@ export default function DashboardPage({ onLogout }: Props) {
                       onClick={closeSyncPopover}
                       className="text-xs flex items-center gap-1.5 hover:text-primary transition-colors"
                     >
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${syncStatus.upToDate ? "bg-green-500" : "bg-red-500"}`} />
+                      <span
+                        className={`w-2 h-2 rounded-full flex-shrink-0 ${syncStatus.upToDate ? "bg-green-500" : "bg-red-500"}`}
+                      />
                       <span className="font-mono">{syncStatus.shortSha}</span>
                       <span className="text-muted-foreground">
-                        · {new Date(syncStatus.committedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        ·{" "}
+                        {new Date(syncStatus.committedAt).toLocaleString(
+                          undefined,
+                          {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
                       </span>
                     </a>
                   ) : (
                     <span className="text-xs text-destructive flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-destructive flex-shrink-0" />
-                      {syncStatus && !syncStatus.ok ? syncStatus.error : "Sync error"}
+                      {syncStatus && !syncStatus.ok
+                        ? syncStatus.error
+                        : "Sync error"}
                     </span>
                   )}
 
                   {/* PAT row — only when expiry is within 14 days */}
-                  {syncStatus?.ok && syncStatus.patDaysLeft !== undefined && syncStatus.patDaysLeft <= 14 && (
-                    <span
-                      title={`GitHub PAT expires on ${syncStatus.patExpiresAt} — renew it in the Replit Secrets panel`}
-                      className={`text-xs px-2 py-1 rounded-lg font-semibold flex items-center gap-1 cursor-default ${
-                        syncStatus.patDaysLeft <= 0
-                          ? "bg-destructive/15 text-destructive"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      ⚠ {syncStatus.patDaysLeft <= 0 ? "PAT expired" : `PAT expires in ${syncStatus.patDaysLeft} day${syncStatus.patDaysLeft === 1 ? "" : "s"}`}
-                    </span>
-                  )}
+                  {syncStatus?.ok &&
+                    syncStatus.patDaysLeft !== undefined &&
+                    syncStatus.patDaysLeft <= 14 && (
+                      <span
+                        title={`GitHub PAT expires on ${syncStatus.patExpiresAt} — renew it in the Replit Secrets panel`}
+                        className={`text-xs px-2 py-1 rounded-lg font-semibold flex items-center gap-1 cursor-default ${
+                          syncStatus.patDaysLeft <= 0
+                            ? "bg-destructive/15 text-destructive"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        ⚠{" "}
+                        {syncStatus.patDaysLeft <= 0
+                          ? "PAT expired"
+                          : `PAT expires in ${syncStatus.patDaysLeft} day${syncStatus.patDaysLeft === 1 ? "" : "s"}`}
+                      </span>
+                    )}
                 </div>
               )}
             </div>
@@ -434,15 +559,27 @@ export default function DashboardPage({ onLogout }: Props) {
                 title={`Last sync: ${new Date(syncStatus.committedAt).toLocaleString()}\n${syncStatus.message}`}
                 className="hidden sm:flex text-xs px-2.5 py-1 rounded-full border border-border items-center gap-1.5 hover:bg-muted transition-colors"
               >
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${syncStatus.upToDate ? "bg-green-500" : "bg-red-500"}`} />
+                <span
+                  className={`w-2 h-2 rounded-full flex-shrink-0 ${syncStatus.upToDate ? "bg-green-500" : "bg-red-500"}`}
+                />
                 <span className="font-mono">{syncStatus.shortSha}</span>
                 <span className="text-muted-foreground">
-                  · {new Date(syncStatus.committedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  ·{" "}
+                  {new Date(syncStatus.committedAt).toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
               </a>
             ) : (
               <span
-                title={syncStatus && !syncStatus.ok ? syncStatus.error : "Unknown error"}
+                title={
+                  syncStatus && !syncStatus.ok
+                    ? syncStatus.error
+                    : "Unknown error"
+                }
                 className="hidden sm:flex text-xs px-2.5 py-1 rounded-full border border-destructive/40 bg-destructive/10 text-destructive items-center gap-1.5 cursor-default"
               >
                 <span className="w-2 h-2 rounded-full bg-destructive flex-shrink-0" />
@@ -451,18 +588,24 @@ export default function DashboardPage({ onLogout }: Props) {
             )}
 
             {/* === DESKTOP: PAT expiry badge (hidden on mobile) === */}
-            {syncStatus && syncStatus.ok && syncStatus.patDaysLeft !== undefined && syncStatus.patDaysLeft <= 14 && (
-              <span
-                title={`GitHub PAT expires on ${syncStatus.patExpiresAt} — renew it in the Replit Secrets panel`}
-                className={`hidden sm:flex text-xs px-2.5 py-1 rounded-full font-semibold items-center gap-1 cursor-default ${
-                  syncStatus.patDaysLeft <= 0
-                    ? "bg-destructive/15 text-destructive border border-destructive/40"
-                    : "bg-amber-100 text-amber-700 border border-amber-300"
-                }`}
-              >
-                ⚠ {syncStatus.patDaysLeft <= 0 ? "PAT expired" : `PAT expires in ${syncStatus.patDaysLeft} day${syncStatus.patDaysLeft === 1 ? "" : "s"}`}
-              </span>
-            )}
+            {syncStatus &&
+              syncStatus.ok &&
+              syncStatus.patDaysLeft !== undefined &&
+              syncStatus.patDaysLeft <= 14 && (
+                <span
+                  title={`GitHub PAT expires on ${syncStatus.patExpiresAt} — renew it in the Replit Secrets panel`}
+                  className={`hidden sm:flex text-xs px-2.5 py-1 rounded-full font-semibold items-center gap-1 cursor-default ${
+                    syncStatus.patDaysLeft <= 0
+                      ? "bg-destructive/15 text-destructive border border-destructive/40"
+                      : "bg-amber-100 text-amber-700 border border-amber-300"
+                  }`}
+                >
+                  ⚠{" "}
+                  {syncStatus.patDaysLeft <= 0
+                    ? "PAT expired"
+                    : `PAT expires in ${syncStatus.patDaysLeft} day${syncStatus.patDaysLeft === 1 ? "" : "s"}`}
+                </span>
+              )}
 
             {/* Updated timestamp + countdown — always visible, wraps on mobile */}
             {lastUpdated && (
@@ -470,9 +613,15 @@ export default function DashboardPage({ onLogout }: Props) {
                 className="text-xs text-muted-foreground tabular-nums"
                 title="Data auto-refreshes every 5 minutes"
               >
-                Updated {lastUpdated.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                Updated{" "}
+                {lastUpdated.toLocaleTimeString(undefined, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
                 {secsLeft !== null && (
-                  <span className="ml-1">· next in {formatCountdown(secsLeft)}</span>
+                  <span className="ml-1">
+                    · next in {formatCountdown(secsLeft)}
+                  </span>
                 )}
               </span>
             )}
@@ -492,7 +641,10 @@ export default function DashboardPage({ onLogout }: Props) {
                 onFocus={handleBadgeMouseEnter}
                 onBlur={handleBadgeFocusOut}
                 onTouchStart={(e) => {
-                  badgeTouchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                  badgeTouchStartRef.current = {
+                    x: e.touches[0].clientX,
+                    y: e.touches[0].clientY,
+                  };
                   // Only pause after a sustained touch (~100 ms), not an instant tap
                   badgeTouchPauseTimerRef.current = setTimeout(() => {
                     badgeTouchPauseTimerRef.current = null;
@@ -548,7 +700,9 @@ export default function DashboardPage({ onLogout }: Props) {
                   <span
                     key={badgeProgressKey}
                     className="badge-progress-bar absolute bottom-0 left-0 h-[2px] bg-primary/50"
-                    style={{ animationPlayState: badgePaused ? "paused" : "running" }}
+                    style={{
+                      animationPlayState: badgePaused ? "paused" : "running",
+                    }}
                     aria-hidden="true"
                   />
                 )}
@@ -556,7 +710,10 @@ export default function DashboardPage({ onLogout }: Props) {
             )}
 
             <button
-              onClick={() => { load(); loadSync(true); }}
+              onClick={() => {
+                load();
+                loadSync(true);
+              }}
               className="text-sm px-3 py-1.5 rounded-xl border border-border hover:bg-muted transition-colors"
               title="Refresh"
             >
@@ -576,14 +733,46 @@ export default function DashboardPage({ onLogout }: Props) {
         {/* Stats row */}
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
           {[
-            { label: "Users", value: data.users.length, color: "bg-primary/10 text-primary" },
-            { label: "Requests", value: data.requests.filter((r) => r.status === "pending").length, color: "bg-amber-100 text-amber-700" },
-            { label: "Groups", value: data.groups.length, color: "bg-primary/10 text-primary" },
-            { label: "Feedback", value: data.feedback.length, color: "bg-muted text-muted-foreground" },
-            { label: "Reports", value: data.reports.length, color: "bg-destructive/15 text-destructive" },
-            { label: "Onboarded", value: data.users.filter((u) => u.onboarded).length, color: "bg-primary/10 text-primary" },
+            {
+              label: "Users",
+              value: data.users.length,
+              color: "bg-primary/10 text-primary",
+            },
+            {
+              label: "Requests",
+              value: data.requests.filter((r) => r.status === "pending").length,
+              color: "bg-amber-100 text-amber-700",
+            },
+            {
+              label: "Groups",
+              value: data.groups.length,
+              color: "bg-primary/10 text-primary",
+            },
+            {
+              label: "Feedback",
+              value: data.feedback.length,
+              color: "bg-muted text-muted-foreground",
+            },
+            {
+              label: "Reports",
+              value: data.reports.length,
+              color: "bg-destructive/15 text-destructive",
+            },
+            {
+              label: "Surveys",
+              value: data.surveys.length,
+              color: "bg-muted text-muted-foreground",
+            },
+            {
+              label: "Onboarded",
+              value: data.users.filter((u) => u.onboarded).length,
+              color: "bg-primary/10 text-primary",
+            },
           ].map((s) => (
-            <div key={s.label} className={`rounded-2xl p-3 text-center ${s.color}`}>
+            <div
+              key={s.label}
+              className={`rounded-2xl p-3 text-center ${s.color}`}
+            >
               <p className="text-2xl font-bold leading-none">{s.value}</p>
               <p className="text-xs font-medium mt-1">{s.label}</p>
             </div>
@@ -608,7 +797,9 @@ export default function DashboardPage({ onLogout }: Props) {
         {error && (
           <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-4 mb-4">
             <p className="text-destructive text-sm">{error}</p>
-            <button onClick={() => load()} className="text-sm underline mt-1">Retry</button>
+            <button onClick={() => load()} className="text-sm underline mt-1">
+              Retry
+            </button>
           </div>
         )}
 
@@ -618,12 +809,50 @@ export default function DashboardPage({ onLogout }: Props) {
           </div>
         ) : (
           <>
-            {tab === "users" && <UsersTab users={data.users} onRefresh={load} hasMore={hasMore.users} loadingMore={!!loadingMore.users} onLoadMore={() => loadMore("users")} />}
-            {tab === "requests" && <RequestsTab requests={data.requests} users={data.users} onRefresh={load} hasMore={hasMore.requests} loadingMore={!!loadingMore.requests} onLoadMore={() => loadMore("requests")} />}
-            {tab === "groups" && <GroupsTab groups={data.groups} users={data.users} onRefresh={load} hasMore={hasMore.groups} loadingMore={!!loadingMore.groups} onLoadMore={() => loadMore("groups")} />}
-            {tab === "compatibility" && <CompatibilityTab users={data.users} requests={data.requests} onRefresh={load} />}
-            {tab === "feedback" && <FeedbackTab feedback={data.feedback} users={data.users} />}
-            {tab === "reports" && <ReportsTab reports={data.reports} users={data.users} />}
+            {tab === "users" && (
+              <UsersTab
+                users={data.users}
+                onRefresh={load}
+                hasMore={hasMore.users}
+                loadingMore={!!loadingMore.users}
+                onLoadMore={() => loadMore("users")}
+              />
+            )}
+            {tab === "requests" && (
+              <RequestsTab
+                requests={data.requests}
+                users={data.users}
+                onRefresh={load}
+                hasMore={hasMore.requests}
+                loadingMore={!!loadingMore.requests}
+                onLoadMore={() => loadMore("requests")}
+              />
+            )}
+            {tab === "groups" && (
+              <GroupsTab
+                groups={data.groups}
+                users={data.users}
+                onRefresh={load}
+                hasMore={hasMore.groups}
+                loadingMore={!!loadingMore.groups}
+                onLoadMore={() => loadMore("groups")}
+              />
+            )}
+            {tab === "compatibility" && (
+              <CompatibilityTab
+                users={data.users}
+                requests={data.requests}
+                onRefresh={load}
+              />
+            )}
+            {tab === "feedback" && (
+              <FeedbackTab feedback={data.feedback} users={data.users} />
+            )}
+            {tab === "surveys" && <SurveysTab surveys={data.surveys} />}
+            {tab === "reports" && (
+              <ReportsTab reports={data.reports} users={data.users} />
+            )}
+            {tab === "audit" && <AuditTab />}
           </>
         )}
       </div>
