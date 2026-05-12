@@ -9,10 +9,12 @@ import ReportsTab from "@/components/ReportsTab";
 import CompatibilityTab from "@/components/CompatibilityTab";
 import AuditTab from "@/components/AuditTab";
 import SurveysTab from "@/components/SurveysTab";
+import AnalyticsTab from "@/components/AnalyticsTab";
 
-type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports" | "audit" | "surveys";
+type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports" | "audit" | "surveys" | "analytics";
 
 const TABS: { id: Tab; label: string; emoji: string }[] = [
+  { id: "analytics", label: "Analytics", emoji: "📈" },
   { id: "users", label: "Users", emoji: "👤" },
   { id: "requests", label: "Requests", emoji: "📋" },
   { id: "groups", label: "Groups", emoji: "🫂" },
@@ -628,6 +630,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {tab === "compatibility" && <CompatibilityTab users={data.users} requests={data.requests} onRefresh={load} />}
             {tab === "feedback" && <FeedbackTab feedback={data.feedback} users={data.users} />}
             {tab === "reports" && <ReportsTab reports={data.reports} users={data.users} />}
+            {tab === "analytics" && <AnalyticsTab />}
             {tab === "audit" && <AuditTab />}
             {tab === "surveys" && <SurveysTab />}
           </>

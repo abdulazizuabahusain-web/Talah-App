@@ -2,6 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { Router } from "express";
 import { z } from "zod";
 import { db, groupsTable, requestsTable } from "@workspace/db";
+import { track } from "../lib/analytics";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -63,6 +64,11 @@ router.post("/", requireAuth, async (req, res) => {
     .insert(requestsTable)
     .values({ ...parsed.data, userId: req.user!.id })
     .returning();
+
+  track("group_requested", req.user!.id, {
+    type: parsed.data.meetupType,
+    area: parsed.data.area,
+  });
 
   res.status(201).json(created);
 });

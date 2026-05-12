@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { Router } from "express";
 import { z } from "zod";
 import { db, usersTable, sessionsTable } from "@workspace/db";
+import { track } from "../lib/analytics";
 import { requireAuth } from "../middlewares/requireAuth";
 import { sanitizeFields } from "../lib/sanitize";
 
@@ -58,6 +59,12 @@ router.patch("/me", requireAuth, async (req, res) => {
     .where(eq(usersTable.id, req.user!.id))
     .returning();
 
+  if (parsed.data.onboarded === true) {
+    track("profile_completed", req.user!.id, {
+      city: updated.city ?? undefined,
+      hasPersonality: !!(updated.personality),
+    });
+  }
   res.json(updated);
 });
 

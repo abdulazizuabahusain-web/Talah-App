@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Router, type Request, type Response } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
@@ -8,6 +9,7 @@ import {
   normalizeEmail,
   verifyEmailLoginCode,
 } from "../lib/auth";
+import { track } from "../lib/analytics";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -48,6 +50,10 @@ async function sendEmailCode(req: Request, res: Response) {
     req.log.info({ email, code }, "Email login code created (dev mode)");
   }
 
+  // Anonymise the email into a one-way hash so no PII is sent to analytics
+  const anonId = crypto.createHash("sha256").update(email).digest("hex").slice(0, 16);
+  track("otp_requested", anonId, {});
+
   // Production email delivery is intentionally deferred for this stage. In dev,
   // return the code so Replit previews remain easy to test without an email vendor.
   res.json({
@@ -75,6 +81,7 @@ async function verifyEmailCode(req: Request, res: Response) {
     return;
   }
 
+  track("otp_verified", row.user.id, { city: row.user.city ?? undefined });
   res.json({ token, user: row.user });
 }
 

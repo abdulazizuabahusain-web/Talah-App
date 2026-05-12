@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { Router } from "express";
 import { z } from "zod";
 import { db, feedbackTable, groupsTable } from "@workspace/db";
+import { track } from "../lib/analytics";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -65,6 +66,10 @@ router.post("/", requireAuth, async (req, res) => {
     })
     .returning();
 
+  track("feedback_submitted", req.user!.id, {
+    rating: parsed.data.rating,
+    groupId: parsed.data.groupId,
+  });
   res.status(201).json(created);
 });
 

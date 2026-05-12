@@ -13,8 +13,10 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ConsentBanner } from "@/components/ConsentBanner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/contexts/AppContext";
+import { ConsentProvider } from "@/contexts/ConsentContext";
 import { DataProvider } from "@/contexts/DataContext";
 
 SplashScreen.preventAutoHideAsync();
@@ -69,11 +71,14 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
-              <AppProvider>
-                <DataProvider>
-                  <RootLayoutNav />
-                </DataProvider>
-              </AppProvider>
+              <ConsentProvider>
+                <AppProvider>
+                  <DataProvider>
+                    <RootLayoutNav />
+                    <ConsentBanner />
+                  </DataProvider>
+                </AppProvider>
+              </ConsentProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

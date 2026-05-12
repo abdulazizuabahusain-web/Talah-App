@@ -121,6 +121,9 @@ export const api = {
     request<Paginated<AdminAuditLog>>(`/admin/audit-logs${toQuery(params)}`),
 
   getSurveys: () => request<Survey[]>("/admin/surveys"),
+
+  getAnalyticsOverview: () => request<AnalyticsOverview>("/admin/analytics/overview"),
+  getAnalyticsFunnel: () => request<AnalyticsFunnel>("/admin/analytics/funnel"),
 };
 
 // ── Types (mirror the DB schema) ─────────────────────────────────────────────
@@ -279,6 +282,26 @@ export interface CompatibilityReport {
   convNote: string;
   intentNote: string;
   boundaryNote: string;
+}
+
+export interface AnalyticsOverview {
+  dau: number;
+  wau: number;
+  totalUsers: number;
+  totalGroups: number;
+  matchAcceptanceRate: number;
+  avgFeedbackRating: number;
+  groupsByCity: Record<string, number>;
+  signupsByDay: { date: string; count: number }[];
+}
+
+export interface AnalyticsFunnel {
+  otpRequested: number;
+  otpVerified: number;
+  profileCompleted: number;
+  groupRequested: number;
+  matchAccepted: number;
+  feedbackSubmitted: number;
 }
 
 export interface Survey {

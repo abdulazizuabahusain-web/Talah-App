@@ -43,6 +43,9 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 overrides:
+  # Force a single drizzle-orm instance — prevents dual-resolution when @sentry/node
+  # pulls in @opentelemetry/api, which otherwise causes TS2769 type errors.
+  drizzle-orm: ^0.45.2
   # Security patches — force vulnerable transitive deps to their patched versions
   path-to-regexp: ^8.4.0      # HIGH: DoS via sequential optional groups (express→router)
   postcss: ^8.5.10            # MODERATE: XSS via unescaped </style> in CSS stringify

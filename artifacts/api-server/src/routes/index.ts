@@ -7,6 +7,7 @@ import groupsRouter from "./groups";
 import feedbackRouter from "./feedback";
 import reportsRouter from "./reports";
 import surveysRouter from "./surveys";
+import analyticsRouter from "./analytics";
 import adminRouter from "./admin";
 
 const router: IRouter = Router();
@@ -19,6 +20,7 @@ router.use("/groups", groupsRouter);
 router.use("/feedback", feedbackRouter);
 router.use("/reports", reportsRouter);
 router.use("/surveys", surveysRouter);
+router.use("/admin/analytics", analyticsRouter);
 router.use("/admin", adminRouter);
 
 export default router;
