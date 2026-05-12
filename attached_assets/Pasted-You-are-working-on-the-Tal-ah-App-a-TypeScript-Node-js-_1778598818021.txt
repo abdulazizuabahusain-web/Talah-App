@@ -1,0 +1,140 @@
+You are working on the Tal'ah App — a TypeScript/Node.js 24 monorepo using pnpm workspaces, PostgreSQL 16, an Express API under artifacts/api-server/, and an Expo/React Native frontend under lib/. Deployed on Replit Autoscale. Complete the following four analytics and monitoring tasks. All data collection must be PDPL-compliant (Saudi Personal Data Protection Law) — explicit user consent is required before any event is tracked.
+
+─────────────────────────────────────────────
+TASK 1 — PRODUCT ANALYTICS: MIXPANEL INTEGRATION
+─────────────────────────────────────────────
+Server-side (API):
+1. Install mixpanel in the api-server package: `pnpm add mixpanel`
+2. Create artifacts/api-server/src/lib/analytics.ts — a singleton Mixpanel client that:
+   - Initialises only if MIXPANEL_TOKEN env var is set (fail silently in dev if absent)
+   - Exports a single `track(event, userId, properties)` function
+   - Never throws — wrap all calls in try/catch and log errors silently
+   - Strips any PII before sending: no full names, no phone numbers, no raw device IDs
+3. Add tracking calls at these exact points (nowhere else without explicit approval):
+   - POST /api/auth/otp/send → track('otp_requested', anonymousId, { city })
+   - POST /api/auth/otp/verify → track('otp_verified', userId, { city })
+   - POST /api/users/me (profile completion) → track('profile_completed', userId, { city, hasPersonality: bool })
+   - POST /api/groups (group request submitted) → track('group_requested', userId, { type: 'coffee'|'dinner', city })
+   - PATCH /api/groups/:id/accept → track('match_accepted', userId, { groupId, city })
+   - PATCH /api/groups/:id/decline → track('match_declined', userId, { groupId, city })
+   - POST /api/groups/:id/feedback → track('feedback_submitted', userId, { rating, groupId })
+4. Add MIXPANEL_TOKEN to .env.example
+
+Client-side (Expo):
+5. Install mixpanel-react-native in the lib/ frontend: `pnpm add mixpanel-react-native`
+6. Create lib/src/lib/analytics.ts (client) that:
+   - Only initialises and tracks if the user has accepted the analytics consent (read from a ConsentContext — create it if it doesn't exist)
+   - Exports the same track() interface as the server module for consistency
+   - Tracks these client-side events only: screen_view (screen name), app_opened, app_backgrounded, notification_tapped
+7. Add a ConsentBanner component at lib/src/components/ConsentBanner.tsx that:
+   - Shows on first launch before any tracking begins
+   - Presents: "We collect anonymised usage data to improve Tal'ah. No personal information is shared." with Accept / Decline buttons in Arabic and English
+   - Persists the choice to AsyncStorage under the key 'analytics_consent'
+   - If declined: analytics module stays silent — no events, no network calls
+
+─────────────────────────────────────────────
+TASK 2 — ERROR TRACKING & LATENCY ALERTS: SENTRY
+─────────────────────────────────────────────
+Server-side:
+1. Install Sentry: `pnpm add @sentry/node @sentry/profiling-node` in api-server
+2. Initialise Sentry at the very top of artifacts/api-server/src/app.ts (before any other imports):
+   - DSN from env var SENTRY_DSN
+   - tracesSampleRate: 0.2 (20% of transactions)
+   - profilesSampleRate: 0.1
+   - environment: process.env.NODE_ENV
+   - Only initialise if SENTRY_DSN is set — skip silently in dev
+3. Add Sentry request handler middleware before all routes
+4. Add Sentry error handler middleware after all routes (before the generic error handler)
+5. Create a custom alert rule configuration file at docs/sentry-alerts.md documenting the following alert thresholds to configure manually in the Sentry dashboard:
+   - Error rate > 5% over 5 minutes → P1 alert (email + placeholder webhook)
+   - p99 latency > 2000ms → P2 alert
+   - Any new unhandled exception → P2 alert
+   - Database connection errors → P1 alert
+
+Client-side (Expo):
+6. Install: `pnpm add @sentry/react-native` in lib/
+7. Wrap the root App component with Sentry.wrap()
+8. Initialise with SENTRY_DSN from app.config.js (read from environment, not hardcoded)
+9. Add SENTRY_DSN to .env.example
+
+─────────────────────────────────────────────
+TASK 3 — LAUNCH DASHBOARD (INTERNAL ADMIN)
+─────────────────────────────────────────────
+Build a lightweight analytics dashboard tab inside the existing admin panel. Do not use any external BI tool — query PostgreSQL directly.
+
+1. Create a new API route file: artifacts/api-server/src/routes/analytics.ts
+   Protected by the existing admin auth middleware.
+   Expose these endpoints:
+
+   GET /api/admin/analytics/overview
+   Returns JSON:
+   {
+     dau: number,          // distinct userId, date = today
+     wau: number,          // distinct userId, last 7 days
+     totalUsers: number,
+     totalGroups: number,
+     matchAcceptanceRate: number,   // accepted / (accepted + declined), last 30 days
+     avgFeedbackRating: number,     // avg of feedback.rating, last 30 days
+     groupsByCity: { riyadh: n, jeddah: n, eastern: n },
+     signupsByDay: [{ date, count }]  // last 14 days
+   }
+
+   GET /api/admin/analytics/funnel
+   Returns JSON with counts at each funnel step (last 30 days):
+   {
+     otpRequested: number,
+     otpVerified: number,
+     profileCompleted: number,
+     groupRequested: number,
+     matchAccepted: number,
+     feedbackSubmitted: number
+   }
+
+2. Implement each query using raw SQL (no ORM). Add indexes if missing:
+   - CREATE INDEX IF NOT EXISTS idx_events_user_date ON events(user_id, created_at)
+   - CREATE INDEX IF NOT EXISTS idx_groups_city ON groups(city)
+   - If an events table does not exist, create a migration at artifacts/api-server/migrations/[timestamp]_create_events.sql with columns: id, event_name, user_id (nullable), properties (jsonb), created_at
+
+3. Add an Analytics tab to the existing admin dashboard frontend (lib/ or artifacts/admin-web/ — use whichever admin UI is already present). The tab should display:
+   - Two stat cards: DAU and WAU
+   - Three stat cards: Total Users, Match Acceptance Rate, Avg Rating
+   - A simple bar chart of signupsByDay (use the existing charting library if present, otherwise render as a plain HTML table)
+   - A funnel table showing drop-off % between each step
+
+─────────────────────────────────────────────
+TASK 4 — KPI BASELINES & PDPL COMPLIANCE AUDIT
+─────────────────────────────────────────────
+1. Create docs/KPI_BASELINES.md with the following structure:
+
+   # Tal'ah — Pilot KPI Baselines
+
+   ## Target Metrics (Weeks 6–9 Pilot)
+   | Metric | Target | Red Line (investigate if below) |
+   |---|---|---|
+   | D7 Retention | 40% | 25% |
+   | D14 Retention | 25% | 15% |
+   | Match Acceptance Rate | 75% | 60% |
+   | Dining Event Completion Rate | 80% | 65% |
+   | Average Post-Event Rating | 4.5 / 5 | 4.0 / 5 |
+   | API Error Rate | < 1% | > 3% |
+   | API p99 Latency | < 1000ms | > 2000ms |
+
+   ## How to Read the Dashboard
+   [one paragraph explaining how to use the admin analytics tab]
+
+   ## Weekly Review Cadence
+   [bullet list: who reviews, when, what to do if a metric hits the red line]
+
+2. Create docs/PDPL_DATA_AUDIT.md documenting every data point collected:
+   | Data Point | Where Stored | Retention Period | Consent Required | Legal Basis |
+   Cover at minimum: phone numbers, OTP logs, personality traits, group membership, match history, feedback ratings, Mixpanel events, Sentry error payloads.
+   Add a section: "Data Subject Rights" covering the right to access, right to erasure, and how a user triggers each.
+
+3. Add a DELETE /api/users/me endpoint if it does not exist:
+   - Permanently deletes the user's row from the users table
+   - Cascades to: group_memberships, feedback, any other FK-linked tables
+   - Sends a final confirmation via SMS: "Your Tal'ah account has been permanently deleted."
+   - Logs the deletion event (user_id anonymised as a hash) to the events table for audit purposes
+   - Returns 204 No Content
+
+Commit all changes using the repo's prefix convention: feat/, fix/, chore/, docs
