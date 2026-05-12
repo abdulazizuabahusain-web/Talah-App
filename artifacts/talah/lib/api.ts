@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 
 import type { User, TalahRequest, Group } from "@/lib/types";
+import { hasAnalyticsConsent } from "@/lib/analytics";
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/$/, "");
@@ -55,33 +56,17 @@ async function req<T>(path: string, opts: ReqOpts = {}): Promise<T> {
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   if (_token) headers["Authorization"] = `Bearer ${_token}`;
-
-  try {
-    const res = await fetch(`${BASE}${path}`, {
-      method,
-      headers,
-      signal: controller.signal,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
-
-    if (!res.ok) {
-      const err = (await res.json().catch(() => ({}))) as { error?: string };
-      const e = new Error(err.error ?? `Request failed (${res.status})`);
-      (e as Error & { status: number }).status = res.status;
-      throw e;
-    }
-
-    if (res.status === 204) return undefined as T;
-    return res.json() as Promise<T>;
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") {
-      throw new Error(
-        "Request timed out. Please check your connection and try again.",
-      );
-    }
-    throw err;
-  } finally {
-    clearTimeout(timeout);
+  if (hasAnalyticsConsent()) headers["X-Analytics-Consent"] = "accepted";
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { error?: string };
+    const e = new Error(err.error ?? `Request failed (${res.status})`);
+    (e as Error & { status: number }).status = res.status;
+    throw e;
   }
 }
 

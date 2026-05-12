@@ -117,8 +117,8 @@ export const api = {
     request<Candidate[]>(`/admin/requests/${requestId}/candidates`),
 
   getSyncStatus: () => request<SyncStatus>("/admin/sync-status"),
-  getAuditLogs: (params?: { limit?: number; offset?: number }) =>
-    request<Paginated<AdminAuditLog>>(`/admin/audit-logs${toQuery(params)}`),
+  getAnalyticsOverview: () => request<AnalyticsOverview>("/admin/analytics/overview"),
+  getAnalyticsFunnel: () => request<AnalyticsFunnel>("/admin/analytics/funnel"),
 };
 
 // ── Types (mirror the DB schema) ─────────────────────────────────────────────
@@ -279,13 +279,23 @@ export interface CompatibilityReport {
   boundaryNote: string;
 }
 
-export interface AdminAuditLog {
-  id: string;
-  actorTokenHash: string | null;
-  action: string;
-  targetTable: string;
-  targetId: string | null;
-  before: unknown;
-  after: unknown;
-  createdAt: string;
+
+export interface AnalyticsOverview {
+  dau: number;
+  wau: number;
+  totalUsers: number;
+  totalGroups: number;
+  matchAcceptanceRate: number;
+  avgFeedbackRating: number;
+  groupsByCity: { riyadh: number; jeddah: number; eastern: number };
+  signupsByDay: { date: string; count: number }[];
+}
+
+export interface AnalyticsFunnel {
+  otpRequested: number;
+  otpVerified: number;
+  profileCompleted: number;
+  groupRequested: number;
+  matchAccepted: number;
+  feedbackSubmitted: number;
 }

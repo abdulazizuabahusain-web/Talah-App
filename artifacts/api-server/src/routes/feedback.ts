@@ -3,6 +3,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db, feedbackTable, groupsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import { trackIfConsented } from "../lib/analytics";
 
 const router = Router();
 
@@ -64,6 +65,11 @@ router.post("/", requireAuth, async (req, res) => {
       fromUserId: req.user!.id,
     })
     .returning();
+
+  trackIfConsented(req, "feedback_submitted", req.user!.id, {
+    rating: parsed.data.rating,
+    groupId: parsed.data.groupId,
+  });
 
   res.status(201).json(created);
 });

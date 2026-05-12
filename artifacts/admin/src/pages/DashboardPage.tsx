@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { GitCommitHorizontal, X } from "lucide-react";
-import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type User } from "@/lib/api";
+import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type User, type AnalyticsOverview, type AnalyticsFunnel } from "@/lib/api";
 import UsersTab from "@/components/UsersTab";
 import RequestsTab from "@/components/RequestsTab";
 import GroupsTab from "@/components/GroupsTab";
 import FeedbackTab from "@/components/FeedbackTab";
 import ReportsTab from "@/components/ReportsTab";
 import CompatibilityTab from "@/components/CompatibilityTab";
-import AuditTab from "@/components/AuditTab";
+import AnalyticsTab from "@/components/AnalyticsTab";
 
-type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports" | "audit";
+type Tab = "analytics" | "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports";
 
 const TABS: { id: Tab; label: string; emoji: string }[] = [
+  { id: "analytics", label: "Analytics", emoji: "📈" },
   { id: "users", label: "Users", emoji: "👤" },
   { id: "requests", label: "Requests", emoji: "📋" },
   { id: "groups", label: "Groups", emoji: "🫂" },
@@ -30,6 +31,8 @@ interface Data {
   groups: Group[];
   feedback: Feedback[];
   reports: Report[];
+  analyticsOverview: AnalyticsOverview | null;
+  analyticsFunnel: AnalyticsFunnel | null;
 }
 
 interface HasMore {
@@ -60,9 +63,9 @@ function formatHHMM(date: Date): string {
 }
 
 export default function DashboardPage({ onLogout }: Props) {
-  const [tab, setTab] = useState<Tab>("users");
+  const [tab, setTab] = useState<Tab>("analytics");
   const [data, setData] = useState<Data>({
-    users: [], requests: [], groups: [], feedback: [], reports: [],
+    users: [], requests: [], groups: [], feedback: [], reports: [], analyticsOverview: null, analyticsFunnel: null,
   });
   const [hasMore, setHasMore] = useState<HasMore>({ users: false, requests: false, groups: false });
   const [loadingMore, setLoadingMore] = useState<Partial<Record<keyof HasMore, boolean>>>({});
@@ -111,14 +114,16 @@ export default function DashboardPage({ onLogout }: Props) {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [usersPage, requestsPage, groupsPage, feedback, reports] = await Promise.all([
+      const [usersPage, requestsPage, groupsPage, feedback, reports, analyticsOverview, analyticsFunnel] = await Promise.all([
         api.getUsers({ limit: PAGE_SIZE, offset: 0 }),
         api.getRequests({ limit: PAGE_SIZE, offset: 0 }),
         api.getGroups({ limit: PAGE_SIZE, offset: 0 }),
         api.getFeedback(),
         api.getReports(),
+        api.getAnalyticsOverview(),
+        api.getAnalyticsFunnel(),
       ]);
-      setData({ users: usersPage.data, requests: requestsPage.data, groups: groupsPage.data, feedback, reports });
+      setData({ users: usersPage.data, requests: requestsPage.data, groups: groupsPage.data, feedback, reports, analyticsOverview, analyticsFunnel });
       setHasMore({ users: usersPage.hasMore, requests: requestsPage.hasMore, groups: groupsPage.hasMore });
       setLastUpdated(new Date());
       nextRefreshAtRef.current = Date.now() + DATA_INTERVAL_MS;
@@ -620,6 +625,7 @@ export default function DashboardPage({ onLogout }: Props) {
           </div>
         ) : (
           <>
+            {tab === "analytics" && <AnalyticsTab overview={data.analyticsOverview} funnel={data.analyticsFunnel} />}
             {tab === "users" && <UsersTab users={data.users} onRefresh={load} hasMore={hasMore.users} loadingMore={!!loadingMore.users} onLoadMore={() => loadMore("users")} />}
             {tab === "requests" && <RequestsTab requests={data.requests} users={data.users} onRefresh={load} hasMore={hasMore.requests} loadingMore={!!loadingMore.requests} onLoadMore={() => loadMore("requests")} />}
             {tab === "groups" && <GroupsTab groups={data.groups} users={data.users} onRefresh={load} hasMore={hasMore.groups} loadingMore={!!loadingMore.groups} onLoadMore={() => loadMore("groups")} />}

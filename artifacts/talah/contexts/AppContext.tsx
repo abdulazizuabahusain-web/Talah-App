@@ -12,6 +12,7 @@ import { router } from "expo-router";
 import { Platform } from "react-native";
 
 import { api, setToken, toUser } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { loadJSON, saveJSON } from "@/lib/storage";
 import type { User } from "@/lib/types";
 
@@ -123,21 +124,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Check if the app was launched via a notification tap (cold start)
     Notifications.getLastNotificationResponseAsync().then((response) => {
       if (!response) return;
-      const groupId = response.notification.request.content.data?.groupId as
-        | string
-        | undefined;
+      const groupId = response.notification.request.content.data?.groupId as string | undefined;
+      void track("notification_tapped", null, { screen: groupId ? "reveal" : "unknown" });
       if (groupId) router.push(`/reveal/${groupId}`);
     });
 
     // Subscribe to notification taps while app is running
-    const sub = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const groupId = response.notification.request.content.data?.groupId as
-          | string
-          | undefined;
-        if (groupId) router.push(`/reveal/${groupId}`);
-      },
-    );
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const groupId = response.notification.request.content.data?.groupId as string | undefined;
+      void track("notification_tapped", null, { screen: groupId ? "reveal" : "unknown" });
+      if (groupId) router.push(`/reveal/${groupId}`);
+    });
 
     return () => sub.remove();
   }, []);

@@ -3,6 +3,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db, groupsTable, requestsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import { trackIfConsented } from "../lib/analytics";
 
 const router = Router();
 
@@ -63,6 +64,11 @@ router.post("/", requireAuth, async (req, res) => {
     .insert(requestsTable)
     .values({ ...parsed.data, userId: req.user!.id })
     .returning();
+
+  trackIfConsented(req, "group_requested", req.user!.id, {
+    type: parsed.data.meetupType,
+    city: req.user!.city,
+  });
 
   res.status(201).json(created);
 });

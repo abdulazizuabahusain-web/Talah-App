@@ -9,6 +9,7 @@ import {
   verifyEmailLoginCode,
 } from "../lib/auth";
 import { requireAuth } from "../middlewares/requireAuth";
+import { anonymizeId, trackIfConsented } from "../lib/analytics";
 
 const router = Router();
 
@@ -28,11 +29,8 @@ const codeVerifyLimiter = rateLimit({
   message: { error: "Too many verification attempts — please wait 15 minutes" },
 });
 
-const SendEmailCodeBody = z.object({ email: z.string().email() });
-const VerifyEmailCodeBody = z.object({
-  email: z.string().email(),
-  code: z.string().min(4).max(6),
-});
+const SendOtpBody = z.object({ phone: z.string().min(9).max(15), city: z.string().optional() });
+const VerifyOtpBody = z.object({ phone: z.string(), code: z.string().length(4), city: z.string().optional() });
 
 async function sendEmailCode(req: Request, res: Response) {
   const parsed = SendEmailCodeBody.safeParse(req.body);
@@ -48,13 +46,10 @@ async function sendEmailCode(req: Request, res: Response) {
     req.log.info({ email, code }, "Email login code created (dev mode)");
   }
 
-  // Production email delivery is intentionally deferred for this stage. In dev,
-  // return the code so Replit previews remain easy to test without an email vendor.
-  res.json({
-    ok: true,
-    ...(process.env["NODE_ENV"] !== "production" ? { code } : {}),
-  });
-}
+  trackIfConsented(req, "otp_requested", anonymizeId(parsed.data.phone), { city: parsed.data.city });
+
+  res.json({ ok: true, ...(process.env["NODE_ENV"] !== "production" ? { code } : {}) });
+});
 
 async function verifyEmailCode(req: Request, res: Response) {
   const parsed = VerifyEmailCodeBody.safeParse(req.body);
@@ -74,6 +69,8 @@ async function verifyEmailCode(req: Request, res: Response) {
     res.status(500).json({ error: "Session creation failed" });
     return;
   }
+
+  trackIfConsented(req, "otp_verified", row.user.id, { city: row.user.city ?? parsed.data.city });
 
   res.json({ token, user: row.user });
 }
