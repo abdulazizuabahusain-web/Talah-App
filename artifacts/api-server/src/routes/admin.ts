@@ -727,7 +727,7 @@ router.post("/compatibility", requireAdmin, async (req, res) => {
   const users = await db
     .select()
     .from(usersTable)
-    .where(sql`${usersTable.id} = ANY(${parsed.data.userIds})`);
+    .where(inArray(usersTable.id, parsed.data.userIds));
 
   if (users.length < 3) {
     res.status(400).json({ error: "Not enough users found" });
