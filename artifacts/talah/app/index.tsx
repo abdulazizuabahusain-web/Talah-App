@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
-import { Logo } from "@/components/Logo";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useT } from "@/lib/i18n";
@@ -30,7 +29,39 @@ export default function WelcomeScreen() {
   }, [ready, currentUser]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        overflow: "hidden",
+      }}
+    >
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: -120,
+          right: -110,
+          width: 320,
+          height: 320,
+          borderRadius: 160,
+          backgroundColor: colors.accent,
+          opacity: 0.18,
+        }}
+      />
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          bottom: 80,
+          left: -90,
+          width: 260,
+          height: 260,
+          borderRadius: 130,
+          backgroundColor: colors.primary,
+          opacity: 0.1,
+        }}
+      />
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
@@ -52,7 +83,7 @@ export default function WelcomeScreen() {
               paddingHorizontal: 14,
               paddingVertical: 8,
               borderRadius: 999,
-              backgroundColor: colors.card,
+              backgroundColor: "rgba(255,255,255,0.58)",
               borderWidth: 1,
               borderColor: colors.border,
             }}
@@ -63,16 +94,59 @@ export default function WelcomeScreen() {
           </Pressable>
         </View>
 
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", gap: 24, paddingTop: 24 }}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 24,
+            paddingTop: 24,
+          }}
+        >
           <View
             style={{
-              width: 140,
-              height: 140,
-              borderRadius: 32,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 7,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 999,
+              backgroundColor: "rgba(74,93,79,0.08)",
+              borderWidth: 1,
+              borderColor: "rgba(74,93,79,0.2)",
+            }}
+          >
+            <View
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: colors.accent,
+              }}
+            />
+            <AppText
+              variant="caption"
+              weight="medium"
+              color={colors.primary}
+              align="center"
+            >
+              قريباً في الرياض والمنطقة الشرقية
+            </AppText>
+          </View>
+
+          <View
+            style={{
+              width: 118,
+              height: 118,
+              borderRadius: 34,
               overflow: "hidden",
-              backgroundColor: colors.card,
+              backgroundColor: "rgba(255,255,255,0.48)",
               borderWidth: 1,
               borderColor: colors.border,
+              shadowColor: colors.primary,
+              shadowOpacity: 0.12,
+              shadowRadius: 24,
+              shadowOffset: { width: 0, height: 14 },
             }}
           >
             <Image
@@ -82,24 +156,29 @@ export default function WelcomeScreen() {
             />
           </View>
 
-          <View style={{ alignItems: "center", gap: 6 }}>
-            <AppText variant="display" weight="bold" align="center">
+          <View style={{ alignItems: "center", gap: 8 }}>
+            <AppText
+              variant="display"
+              weight="bold"
+              align="center"
+              color={colors.primary}
+            >
               طلعة
             </AppText>
             <AppText
               variant="title"
-              weight="medium"
+              weight="regular"
               color={colors.mutedForeground}
               align="center"
             >
-              Tal'ah
+              لقاءات حقيقية · أناس مناسبون
             </AppText>
           </View>
 
           <View style={{ gap: 12, paddingHorizontal: 8 }}>
             <AppText
               variant="h3"
-              weight="medium"
+              weight="semibold"
               align="center"
               style={{ maxWidth: 320 }}
             >
@@ -136,7 +215,7 @@ export default function WelcomeScreen() {
           />
           <Button
             label={t("welcome_signin")}
-            variant="ghost"
+            variant="outline"
             onPress={() => router.push("/login")}
           />
           <AppText
@@ -172,7 +251,7 @@ function Tag({ label }: { label: string }) {
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 999,
-        backgroundColor: colors.card,
+        backgroundColor: "rgba(255,255,255,0.55)",
         borderWidth: 1,
         borderColor: colors.border,
       }}

@@ -4,10 +4,10 @@ pnpm install --frozen-lockfile
 pnpm --filter db push
 
 # ── GitHub sync ────────────────────────────────────────────────────────────────
-# GITHUB_PAT expiry: 2026-06-02. Rotate in Replit Secrets before that date.
+# GITHUB_PAT expiry is configured through PAT_EXPIRES_AT in Replit shared env.
 # On push failure a GitHub Issue is opened as a secondary alert.
 # The primary alert is always printed to stderr (captured by Replit post-merge log).
-PAT_EXPIRY="2026-06-02"
+PAT_EXPIRY="${PAT_EXPIRES_AT:-2026-06-02}"
 REPO="abdulazizuabahusain-web/Talah-App"
 
 echo "--- Syncing to GitHub ---"
@@ -39,7 +39,7 @@ ERROR: GitHub sync skipped — GITHUB_PAT is invalid or expired (HTTP ${PAT_STAT
   - Expiry date on record: ${PAT_EXPIRY}
   - Rotate the token at https://github.com/settings/tokens
   - Update the GITHUB_PAT secret in Replit Secrets
-  - Update PAT_EXPIRY in scripts/post-merge.sh
+  - Update PAT_EXPIRES_AT in Replit shared env
   Code is NOT backed up to GitHub.
 EOF
   exit 1

@@ -19,6 +19,7 @@ const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "compatibility", label: "Compatibility", emoji: "⚡" },
   { id: "feedback", label: "Feedback", emoji: "⭐" },
   { id: "reports", label: "Reports", emoji: "🚩" },
+  { id: "audit", label: "Audit", emoji: "🧾" },
 ];
 
 const PAGE_SIZE = 50;
@@ -631,6 +632,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {tab === "compatibility" && <CompatibilityTab users={data.users} requests={data.requests} onRefresh={load} />}
             {tab === "feedback" && <FeedbackTab feedback={data.feedback} users={data.users} />}
             {tab === "reports" && <ReportsTab reports={data.reports} users={data.users} />}
+            {tab === "audit" && <AuditTab />}
           </>
         )}
       </div>

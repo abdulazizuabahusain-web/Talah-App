@@ -1,4 +1,13 @@
 const BASE = "/api";
+const TOKEN_KEY = "talah_admin_token";
+const TOKEN_EXPIRES_AT_KEY = "talah_admin_token_expires_at";
+
+function getTokenExpiry(token: string): number | null {
+  const [, expiresAtRaw] = token.split(".");
+  const expiresAt = Number(expiresAtRaw);
+
+  return Number.isFinite(expiresAt) ? expiresAt : null;
+}
 
 export interface Paginated<T> {
   data: T[];
@@ -16,15 +25,27 @@ function toQuery(params?: { limit?: number; offset?: number }): string {
 }
 
 function getToken(): string | null {
-  return localStorage.getItem("talah_admin_token");
+  const token = localStorage.getItem(TOKEN_KEY);
+  const expiresAt = Number(localStorage.getItem(TOKEN_EXPIRES_AT_KEY));
+
+  if (token && Number.isFinite(expiresAt) && expiresAt > Date.now()) {
+    return token;
+  }
+
+  clearToken();
+  return null;
 }
 
 export function setToken(t: string) {
-  localStorage.setItem("talah_admin_token", t);
+  const expiresAt = getTokenExpiry(t);
+
+  localStorage.setItem(TOKEN_KEY, t);
+  if (expiresAt) localStorage.setItem(TOKEN_EXPIRES_AT_KEY, String(expiresAt));
 }
 
 export function clearToken() {
-  localStorage.removeItem("talah_admin_token");
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -55,21 +76,33 @@ export const api = {
   getUsers: (params?: { limit?: number; offset?: number }) =>
     request<Paginated<User>>(`/admin/users${toQuery(params)}`),
   patchUser: (id: string, data: Partial<User>) =>
-    request<User>(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    request<User>(`/admin/users/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   deleteUser: (id: string) =>
     request<{ ok: boolean }>(`/admin/users/${id}`, { method: "DELETE" }),
 
   getRequests: (params?: { limit?: number; offset?: number }) =>
     request<Paginated<MeetupRequest>>(`/admin/requests${toQuery(params)}`),
   patchRequest: (id: string, data: Partial<MeetupRequest>) =>
-    request<MeetupRequest>(`/admin/requests/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    request<MeetupRequest>(`/admin/requests/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 
   getGroups: (params?: { limit?: number; offset?: number }) =>
     request<Paginated<Group>>(`/admin/groups${toQuery(params)}`),
   createGroup: (data: CreateGroupInput) =>
-    request<Group>("/admin/groups", { method: "POST", body: JSON.stringify(data) }),
+    request<Group>("/admin/groups", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   patchGroup: (id: string, data: Partial<Group>) =>
-    request<Group>(`/admin/groups/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    request<Group>(`/admin/groups/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 
   getFeedback: () => request<Feedback[]>("/admin/feedback"),
   getReports: () => request<Report[]>("/admin/reports"),
@@ -92,6 +125,7 @@ export const api = {
 export interface User {
   id: string;
   phone: string;
+  email: string | null;
   nickname: string | null;
   gender: string | null;
   city: string | null;
@@ -212,7 +246,15 @@ interface PatInfo {
 }
 
 export type SyncStatus =
-  | ({ ok: true; githubSha: string; shortSha: string; committedAt: string; message: string; upToDate: boolean; localSha: string } & PatInfo)
+  | ({
+      ok: true;
+      githubSha: string;
+      shortSha: string;
+      committedAt: string;
+      message: string;
+      upToDate: boolean;
+      localSha: string;
+    } & PatInfo)
   | ({ ok: false; error: string; localSha?: string } & Partial<PatInfo>);
 
 export interface CompatibilityReport {

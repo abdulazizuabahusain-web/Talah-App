@@ -21,7 +21,8 @@ async function registerForPushAsync(): Promise<string | null> {
   // Push tokens only work on physical devices and iOS/Android — not web or simulator
   if (Platform.OS === "web") return null;
   try {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
     if (existingStatus !== "granted") {
       const { status } = await Notifications.requestPermissionsAsync();
@@ -44,8 +45,8 @@ interface AppContextValue {
   currentUser: User | null;
   isAdmin: boolean;
   setIsAdmin: (v: boolean) => void;
-  sendOtp: (phone: string) => Promise<{ code?: string }>;
-  verifyOtp: (phone: string, code: string) => Promise<User>;
+  sendLoginCode: (email: string) => Promise<{ code?: string }>;
+  verifyLoginCode: (email: string, code: string) => Promise<User>;
   updateCurrentUser: (patch: Partial<User>) => Promise<void>;
   signOut: () => Promise<void>;
   hydrateCurrentUserFromList: (users: User[]) => void;
@@ -105,7 +106,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     registerForPushAsync().then((token) => {
       if (token) {
         // Fire-and-forget — store token on the user record server-side
-        api.updateMe({ expoPushToken: token } as Parameters<typeof api.updateMe>[0]).catch(() => {});
+        api
+          .updateMe({ expoPushToken: token } as Parameters<
+            typeof api.updateMe
+          >[0])
+          .catch(() => {});
       }
     });
   }, [currentUser]);
@@ -139,23 +144,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     saveJSON(STORAGE_LANG, l);
   }, []);
 
-  const sendOtp = useCallback(async (phone: string): Promise<{ code?: string }> => {
-    return api.sendOtp(phone);
-  }, []);
+  const sendLoginCode = useCallback(
+    async (email: string): Promise<{ code?: string }> => {
+      return api.sendLoginCode(email);
+    },
+    [],
+  );
 
-  const verifyOtp = useCallback(async (phone: string, code: string): Promise<User> => {
-    const { token, user: apiUser } = await api.verifyOtp(phone, code);
-    setToken(token);
-    await saveJSON(STORAGE_TOKEN, token);
-    const user = toUser(apiUser);
-    setCurrentUser(user);
-    return user;
-  }, []);
+  const verifyLoginCode = useCallback(
+    async (email: string, code: string): Promise<User> => {
+      const { token, user: apiUser } = await api.verifyLoginCode(email, code);
+      setToken(token);
+      await saveJSON(STORAGE_TOKEN, token);
+      const user = toUser(apiUser);
+      setCurrentUser(user);
+      return user;
+    },
+    [],
+  );
 
   const updateCurrentUser = useCallback(
     async (patch: Partial<User>) => {
       if (!currentUser) return;
-      const apiUser = await api.updateMe(patch as Parameters<typeof api.updateMe>[0]);
+      const apiUser = await api.updateMe(
+        patch as Parameters<typeof api.updateMe>[0],
+      );
       const updated = toUser(apiUser);
       setCurrentUser(updated);
     },
@@ -195,8 +208,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       currentUser,
       isAdmin,
       setIsAdmin,
-      sendOtp,
-      verifyOtp,
+      sendLoginCode,
+      verifyLoginCode,
       updateCurrentUser,
       signOut,
       hydrateCurrentUserFromList,
@@ -208,8 +221,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLanguage,
       currentUser,
       isAdmin,
-      sendOtp,
-      verifyOtp,
+      sendLoginCode,
+      verifyLoginCode,
       updateCurrentUser,
       signOut,
       hydrateCurrentUserFromList,
