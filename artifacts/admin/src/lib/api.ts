@@ -84,6 +84,8 @@ export const api = {
     request<Candidate[]>(`/admin/requests/${requestId}/candidates`),
 
   getSyncStatus: () => request<SyncStatus>("/admin/sync-status"),
+  getAnalyticsOverview: () => request<AnalyticsOverview>("/admin/analytics/overview"),
+  getAnalyticsFunnel: () => request<AnalyticsFunnel>("/admin/analytics/funnel"),
 };
 
 // ── Types (mirror the DB schema) ─────────────────────────────────────────────
@@ -233,4 +235,25 @@ export interface CompatibilityReport {
   convNote: string;
   intentNote: string;
   boundaryNote: string;
+}
+
+
+export interface AnalyticsOverview {
+  dau: number;
+  wau: number;
+  totalUsers: number;
+  totalGroups: number;
+  matchAcceptanceRate: number;
+  avgFeedbackRating: number;
+  groupsByCity: { riyadh: number; jeddah: number; eastern: number };
+  signupsByDay: { date: string; count: number }[];
+}
+
+export interface AnalyticsFunnel {
+  otpRequested: number;
+  otpVerified: number;
+  profileCompleted: number;
+  groupRequested: number;
+  matchAccepted: number;
+  feedbackSubmitted: number;
 }

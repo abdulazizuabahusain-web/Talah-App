@@ -1,4 +1,5 @@
 import type { User, TalahRequest, Group } from "@/lib/types";
+import { hasAnalyticsConsent } from "@/lib/analytics";
 
 const BASE = (process.env["EXPO_PUBLIC_API_BASE"] ?? "/api").replace(/\/$/, "");
 
@@ -21,6 +22,7 @@ async function req<T>(path: string, opts: ReqOpts = {}): Promise<T> {
   const { method = "GET", body } = opts;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (_token) headers["Authorization"] = `Bearer ${_token}`;
+  if (hasAnalyticsConsent()) headers["X-Analytics-Consent"] = "accepted";
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers,

@@ -6,22 +6,37 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import Constants from "expo-constants";
+import { Stack, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
+import { AppState, type AppStateStatus } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ConsentBanner } from "@/components/ConsentBanner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/contexts/AppContext";
+import { ConsentProvider } from "@/contexts/ConsentContext";
 import { DataProvider } from "@/contexts/DataContext";
+import { track } from "@/lib/analytics";
+import { initSentry, wrapWithSentry } from "@/lib/sentry";
+
+const sentryDsn = Constants.expoConfig?.extra?.["sentryDsn"] as string | undefined;
+initSentry(sentryDsn);
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  const segments = useSegments();
+
+  useEffect(() => {
+    void track("screen_view", null, { screen: segments.join("/") || "index" });
+  }, [segments]);
+
   return (
     <Stack
       screenOptions={{
@@ -47,7 +62,7 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -55,11 +70,27 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  useEffect(() => {
+    void track("app_opened");
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (appStateRef.current === "active" && nextState.match(/inactive|background/)) {
+        void track("app_backgrounded");
+      }
+      if (appStateRef.current.match(/inactive|background/) && nextState === "active") {
+        void track("app_opened");
+      }
+      appStateRef.current = nextState;
+    });
+    return () => subscription.remove();
+  }, []);
 
   if (!fontsLoaded && !fontError) return null;
 
@@ -69,11 +100,14 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
-              <AppProvider>
-                <DataProvider>
-                  <RootLayoutNav />
-                </DataProvider>
-              </AppProvider>
+              <ConsentProvider>
+                <AppProvider>
+                  <DataProvider>
+                    <RootLayoutNav />
+                    <ConsentBanner />
+                  </DataProvider>
+                </AppProvider>
+              </ConsentProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>
@@ -81,3 +115,6 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+
+export default wrapWithSentry(RootLayout);

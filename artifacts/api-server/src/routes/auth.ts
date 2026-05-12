@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { createOtp, verifyOtp, deleteSession, getUserFromToken } from "../lib/auth";
 import { requireAuth } from "../middlewares/requireAuth";
+import { anonymizeId, trackIfConsented } from "../lib/analytics";
 
 const router = Router();
 
@@ -24,8 +25,8 @@ const otpVerifyLimiter = rateLimit({
   message: { error: "Too many verification attempts — please wait 15 minutes" },
 });
 
-const SendOtpBody = z.object({ phone: z.string().min(9).max(15) });
-const VerifyOtpBody = z.object({ phone: z.string(), code: z.string().length(4) });
+const SendOtpBody = z.object({ phone: z.string().min(9).max(15), city: z.string().optional() });
+const VerifyOtpBody = z.object({ phone: z.string(), code: z.string().length(4), city: z.string().optional() });
 
 router.post("/otp/send", otpSendLimiter, async (req, res) => {
   const parsed = SendOtpBody.safeParse(req.body);
@@ -39,6 +40,8 @@ router.post("/otp/send", otpSendLimiter, async (req, res) => {
   if (process.env["NODE_ENV"] !== "production") {
     req.log.info({ code }, "OTP created (dev mode)");
   }
+
+  trackIfConsented(req, "otp_requested", anonymizeId(parsed.data.phone), { city: parsed.data.city });
 
   res.json({ ok: true, ...(process.env["NODE_ENV"] !== "production" ? { code } : {}) });
 });
@@ -61,6 +64,8 @@ router.post("/otp/verify", otpVerifyLimiter, async (req, res) => {
     res.status(500).json({ error: "Session creation failed" });
     return;
   }
+
+  trackIfConsented(req, "otp_verified", row.user.id, { city: row.user.city ?? parsed.data.city });
 
   res.json({ token, user: row.user });
 });

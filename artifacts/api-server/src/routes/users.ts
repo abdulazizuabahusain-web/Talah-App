@@ -1,9 +1,11 @@
 import { eq } from "drizzle-orm";
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { z } from "zod";
-import { db, usersTable, sessionsTable } from "@workspace/db";
+import { db, pool, usersTable, sessionsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { sanitizeFields } from "../lib/sanitize";
+import { anonymizeId, trackIfConsented } from "../lib/analytics";
+import { sendSms } from "../lib/sms";
 
 const router = Router();
 
@@ -44,7 +46,7 @@ const PatchProfileBody = z.object({
   expoPushToken: z.string().optional(),
 });
 
-router.patch("/me", requireAuth, async (req, res) => {
+async function updateProfile(req: Request, res: Response) {
   const parsed = PatchProfileBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid profile data", details: parsed.error.issues });
@@ -58,14 +60,39 @@ router.patch("/me", requireAuth, async (req, res) => {
     .where(eq(usersTable.id, req.user!.id))
     .returning();
 
+  if (sanitized.onboarded === true) {
+    trackIfConsented(req, "profile_completed", req.user!.id, {
+      city: updated?.city ?? req.user!.city,
+      hasPersonality: Boolean(updated?.personality || updated?.personalityTraits?.length),
+    });
+  }
+
   res.json(updated);
-});
+}
+
+router.patch("/me", requireAuth, updateProfile);
+router.post("/me", requireAuth, updateProfile);
 
 router.delete("/me", requireAuth, async (req, res) => {
-  const userId = req.user!.id;
-  await db.delete(sessionsTable).where(eq(sessionsTable.userId, userId));
-  await db.delete(usersTable).where(eq(usersTable.id, userId));
-  res.json({ ok: true });
+  const user = req.user!;
+  const anonymizedUserId = anonymizeId(user.id);
+
+  await pool.query("begin");
+  try {
+    await pool.query(
+      `insert into events (event_name, user_id, properties) values ($1, null, $2::jsonb)`,
+      ["account_deleted", JSON.stringify({ anonymizedUserId })],
+    );
+    await db.delete(sessionsTable).where(eq(sessionsTable.userId, user.id));
+    await db.delete(usersTable).where(eq(usersTable.id, user.id));
+    await pool.query("commit");
+  } catch (error) {
+    await pool.query("rollback");
+    throw error;
+  }
+
+  await sendSms(user.phone, "Your Tal'ah account has been permanently deleted.");
+  res.status(204).send();
 });
 
 // POST /api/users/block/:targetId
