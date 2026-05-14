@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api, setToken } from "@/lib/api";
+import logoUrl from "@assets/talah-app-icon-primary_1778799977421.svg";
 
 interface Props {
   onLogin: () => void;
@@ -36,10 +37,8 @@ export default function LoginPage({ onLogin }: Props) {
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             لوحة تحكم طلعة
           </div>
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-[1.4rem] bg-primary shadow-lg shadow-primary/15 mb-4">
-            <span className="text-2xl font-bold text-primary-foreground">
-              ط
-            </span>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-[1.4rem] overflow-hidden shadow-lg shadow-primary/15 mb-4">
+            <img src={logoUrl} alt="Tal'ah" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-bold text-primary">Tal'ah Admin</h1>
           <p className="text-muted-foreground text-sm mt-2">

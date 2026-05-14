@@ -1,8 +1,8 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Image } from "expo-image";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
+import { SvgXml } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
@@ -10,6 +10,14 @@ import { Button } from "@/components/Button";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useT } from "@/lib/i18n";
+
+const TALAH_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="230" fill="#3d4a2e"/>
+  <g transform="translate(192 192) scale(3.2)">
+    <rect x="28" y="108" width="140" height="58" rx="22" fill="none" stroke="#c8a84b" stroke-width="12" stroke-linejoin="round"/>
+    <line x1="150" y1="38" x2="150" y2="108" stroke="#c8a84b" stroke-width="12" stroke-linecap="round"/>
+  </g>
+</svg>`;
 
 export default function WelcomeScreen() {
   const colors = useColors();
@@ -140,20 +148,13 @@ export default function WelcomeScreen() {
               height: 118,
               borderRadius: 34,
               overflow: "hidden",
-              backgroundColor: "rgba(255,255,255,0.48)",
-              borderWidth: 1,
-              borderColor: colors.border,
               shadowColor: colors.primary,
-              shadowOpacity: 0.12,
-              shadowRadius: 24,
+              shadowOpacity: 0.18,
+              shadowRadius: 28,
               shadowOffset: { width: 0, height: 14 },
             }}
           >
-            <Image
-              source={require("../assets/images/icon.png")}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="cover"
-            />
+            <SvgXml xml={TALAH_LOGO_SVG} width="100%" height="100%" />
           </View>
 
           <View style={{ alignItems: "center", gap: 8 }}>

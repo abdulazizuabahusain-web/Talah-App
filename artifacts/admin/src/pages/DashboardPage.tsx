@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import logoUrl from "@assets/talah-app-icon-primary_1778799977421.svg";
 import { GitCommitHorizontal, X } from "lucide-react";
 import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type User } from "@/lib/api";
 import UsersTab from "@/components/UsersTab";
@@ -324,8 +325,8 @@ export default function DashboardPage({ onLogout }: Props) {
       <header className="sticky top-0 z-40 bg-card border-b border-border">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-lg font-bold text-primary-foreground">ط</span>
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0">
+              <img src={logoUrl} alt="Tal'ah" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1 className="font-bold text-foreground leading-none">Tal'ah Admin</h1>
