@@ -64,7 +64,7 @@ router.get("/connections", requireAuth, async (req, res) => {
 
   const groupIds = myGroups.map((g) => g.id);
   const allFeedback = await db
-    .select({ groupId: feedbackTable.groupId, fromUserId: feedbackTable.fromUserId, connections: feedbackTable.connections })
+    .select({ groupId: feedbackTable.groupId, fromUserId: feedbackTable.fromUserId, connections: feedbackTable.connections, createdAt: feedbackTable.createdAt })
     .from(feedbackTable)
     .where(inArray(feedbackTable.groupId, groupIds));
 
@@ -75,6 +75,7 @@ router.get("/connections", requireAuth, async (req, res) => {
     meetupType: string | null;
     city: string | null;
     meetupAt: number | null;
+    formedAt: number;
     mutualConnects: { id: string; nickname: string | null; personalityTraits: string[] }[];
   }[] = [];
 
@@ -97,7 +98,14 @@ router.get("/connections", requireAuth, async (req, res) => {
         .select({ id: usersTable.id, nickname: usersTable.nickname, personalityTraits: usersTable.personalityTraits })
         .from(usersTable)
         .where(inArray(usersTable.id, mutualIds));
-      result.push({ groupId: group.id, meetupType: group.meetupType, city: group.city, meetupAt: group.meetupAt ?? null, mutualConnects: members });
+
+      // formedAt = when the last mutual was confirmed (max created_at among involved feedback rows)
+      const involvedUserIds = new Set([userId, ...mutualIds]);
+      const formedAt = groupFeedback
+        .filter((f) => involvedUserIds.has(f.fromUserId))
+        .reduce((max, f) => Math.max(max, new Date(f.createdAt as unknown as string).getTime()), 0);
+
+      result.push({ groupId: group.id, meetupType: group.meetupType, city: group.city, meetupAt: group.meetupAt ?? null, formedAt, mutualConnects: members });
     }
   }
 

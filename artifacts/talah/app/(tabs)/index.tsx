@@ -21,6 +21,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { useApp } from "@/contexts/AppContext";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
+import { useConnectsCount } from "@/hooks/useConnectsCount";
 import { useT } from "@/lib/i18n";
 import { computeProfileCompletion } from "@/lib/profileCompletion";
 import type { TalahRequest } from "@/lib/types";
@@ -42,6 +43,7 @@ export default function HomeScreen() {
     error,
     clearError,
   } = useData();
+  const newConnects = useConnectsCount();
   const webTopPad = Platform.OS === "web" ? 67 : 0;
   const [refreshing, setRefreshing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -137,6 +139,40 @@ export default function HomeScreen() {
           </AppText>
         </Pressable>
       </View>
+
+      {/* ── New mutual connects banner ── */}
+      {newConnects > 0 && (
+        <Card
+          onPress={() => router.push("/(tabs)/connections")}
+          style={{
+            backgroundColor: colors.primary + "12",
+            borderColor: colors.primary + "35",
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: colors.primary + "22",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Feather name="heart" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText variant="body" weight="semibold" color={colors.primary}>
+                {newConnects === 1
+                  ? t("new_connects_banner_one")
+                  : t("new_connects_banner_many").replace("{{n}}", String(newConnects))}
+              </AppText>
+            </View>
+            <Feather name="chevron-right" size={18} color={colors.primary} />
+          </View>
+        </Card>
+      )}
 
       {error ? (
         <Card

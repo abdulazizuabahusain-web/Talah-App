@@ -1,13 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { useConnectsCount } from "@/hooks/useConnectsCount";
 
 export default function TabLayout() {
   const colors = useColors();
   const isWeb = Platform.OS === "web";
+  const newConnects = useConnectsCount();
 
   return (
     <Tabs
@@ -54,7 +56,22 @@ export default function TabLayout() {
         options={{
           title: "Connects",
           tabBarIcon: ({ color }) => (
-            <Feather name="heart" size={22} color={color} />
+            <View>
+              <Feather name="heart" size={22} color={color} />
+              {newConnects > 0 && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -3,
+                    right: -6,
+                    width: 10,
+                    height: 10,
+                    borderRadius: 5,
+                    backgroundColor: colors.primary,
+                  }}
+                />
+              )}
+            </View>
           ),
         }}
       />

@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { useFocusEffect, router } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,6 +18,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { markConnectsSeen } from "@/lib/connectsStore";
 
 type MutualMember = {
   id: string;
@@ -68,6 +69,13 @@ export default function ConnectionsScreen() {
     if (currentUser) load();
     else setLoading(false);
   }, [currentUser, load]);
+
+  // Clear unseen badge whenever this screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      markConnectsSeen();
+    }, []),
+  );
 
   const totalConnects = groups.reduce((n, g) => n + g.mutualConnects.length, 0);
 

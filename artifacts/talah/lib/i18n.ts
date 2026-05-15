@@ -414,6 +414,14 @@ export const STRINGS: Dict = {
     en: "You can review your connects anytime from the Connects tab",
   },
   celebrate_ok: { ar: "رائع!", en: "Awesome!" },
+  new_connects_banner_one: {
+    ar: "لديكِ تواصل متبادل جديد! اضغطي لرؤيته",
+    en: "You have a new mutual connect! Tap to see",
+  },
+  new_connects_banner_many: {
+    ar: "لديكِ {{n}} تواصلات متبادلة جديدة! اضغطي لرؤيتها",
+    en: "You have {{n}} new mutual connects! Tap to see",
+  },
   report_member: { ar: "الإبلاغ عن عضو", en: "Report a member" },
   anonymous: { ar: "مجهول", en: "Anonymous" },
 

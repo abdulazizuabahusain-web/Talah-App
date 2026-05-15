@@ -322,6 +322,7 @@ export const api = {
         meetupType: string | null;
         city: string | null;
         meetupAt: number | null;
+        formedAt: number;
         mutualConnects: {
           id: string;
           nickname: string | null;
