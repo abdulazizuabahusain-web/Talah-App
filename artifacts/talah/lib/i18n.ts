@@ -396,6 +396,24 @@ export const STRINGS: Dict = {
     ar: "لا يوجد تواصل متبادل في هذه الطلعة",
     en: "No mutual connects from this Tal'ah",
   },
+  connections_tab: { ar: "تواصل", en: "Connects" },
+  connections_title: { ar: "تواصلاتي", en: "My Connects" },
+  connections_empty_title: { ar: "لا تواصلات بعد", en: "No connects yet" },
+  connections_empty_sub: {
+    ar: "بعد إتمام طلعتك وتقديم تقييمك، ستظهر هنا التواصلات المتبادلة",
+    en: "After you complete a Tal'ah and submit feedback, your mutual connects will appear here",
+  },
+  connections_from: { ar: "من طلعة", en: "From a Tal'ah" },
+  celebrate_title: { ar: "تهانينا! 🎉", en: "It's a match! 🎉" },
+  celebrate_body: {
+    ar: "تواصلتِ بشكل متبادل مع",
+    en: "You mutually connected with",
+  },
+  celebrate_body_suffix: {
+    ar: "يمكنكِ مراجعة التواصلات في أي وقت من تبويب «تواصل»",
+    en: "You can review your connects anytime from the Connects tab",
+  },
+  celebrate_ok: { ar: "رائع!", en: "Awesome!" },
   report_member: { ar: "الإبلاغ عن عضو", en: "Report a member" },
   anonymous: { ar: "مجهول", en: "Anonymous" },
 

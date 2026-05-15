@@ -75,9 +75,30 @@ export default function FeedbackScreen() {
         wouldMeetAgain: wouldMeetAgain ?? undefined,
         comment: comment.trim() || undefined,
       });
-      Alert.alert(t("feedback_thanks"), undefined, [
-        { text: t("done"), onPress: () => router.replace("/(tabs)") },
-      ]);
+
+      // Check for mutual connects immediately after submitting
+      let mutualNames: string[] = [];
+      try {
+        const res = await api.getMutualConnects(group.id);
+        mutualNames = res.mutualConnects
+          .map((m) => m.nickname ?? t("anonymous"))
+          .filter(Boolean);
+      } catch {
+        // non-fatal
+      }
+
+      if (mutualNames.length > 0) {
+        const nameList = mutualNames.join("، ");
+        Alert.alert(
+          t("celebrate_title"),
+          `${t("celebrate_body")} ${nameList}.\n\n${t("celebrate_body_suffix")}`,
+          [{ text: t("celebrate_ok"), onPress: () => router.replace("/(tabs)/connections") }],
+        );
+      } else {
+        Alert.alert(t("feedback_thanks"), undefined, [
+          { text: t("done"), onPress: () => router.replace("/(tabs)") },
+        ]);
+      }
     } catch (e) {
       Alert.alert(t("error_title"), (e as Error).message || t("error_generic"));
     } finally {

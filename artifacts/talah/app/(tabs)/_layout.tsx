@@ -50,6 +50,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="connections"
+        options={{
+          title: "Connects",
+          tabBarIcon: ({ color }) => (
+            <Feather name="heart" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",

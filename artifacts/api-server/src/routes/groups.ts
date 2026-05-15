@@ -42,6 +42,68 @@ router.get("/", requireAuth, async (req, res) => {
   res.json(withMembers);
 });
 
+// GET /connections — all mutual connects across every completed group the user belongs to
+router.get("/connections", requireAuth, async (req, res) => {
+  const userId = req.user!.id;
+
+  const myGroups = await db
+    .select()
+    .from(groupsTable)
+    .where(
+      and(
+        sql`${groupsTable.memberIds} @> ARRAY[${userId}]::text[]`,
+        eq(groupsTable.status, "completed"),
+      ),
+    )
+    .orderBy(groupsTable.meetupAt);
+
+  if (myGroups.length === 0) {
+    res.json({ connections: [] });
+    return;
+  }
+
+  const groupIds = myGroups.map((g) => g.id);
+  const allFeedback = await db
+    .select({ groupId: feedbackTable.groupId, fromUserId: feedbackTable.fromUserId, connections: feedbackTable.connections })
+    .from(feedbackTable)
+    .where(inArray(feedbackTable.groupId, groupIds));
+
+  type Connection = { userId: string; verdict: "connect" | "pass" };
+
+  const result: {
+    groupId: string;
+    meetupType: string | null;
+    city: string | null;
+    meetupAt: number | null;
+    mutualConnects: { id: string; nickname: string | null; personalityTraits: string[] }[];
+  }[] = [];
+
+  for (const group of myGroups) {
+    const groupFeedback = allFeedback.filter((f) => f.groupId === group.id);
+    const connectsFrom = new Map<string, Set<string>>();
+    for (const row of groupFeedback) {
+      const conns = (row.connections ?? []) as Connection[];
+      const chosen = new Set(conns.filter((c) => c.verdict === "connect").map((c) => c.userId));
+      connectsFrom.set(row.fromUserId, chosen);
+    }
+
+    const requesterChoices = connectsFrom.get(userId) ?? new Set<string>();
+    const mutualIds = group.memberIds.filter(
+      (id) => id !== userId && requesterChoices.has(id) && (connectsFrom.get(id)?.has(userId) ?? false),
+    );
+
+    if (mutualIds.length > 0) {
+      const members = await db
+        .select({ id: usersTable.id, nickname: usersTable.nickname, personalityTraits: usersTable.personalityTraits })
+        .from(usersTable)
+        .where(inArray(usersTable.id, mutualIds));
+      result.push({ groupId: group.id, meetupType: group.meetupType, city: group.city, meetupAt: group.meetupAt ?? null, mutualConnects: members });
+    }
+  }
+
+  res.json({ connections: result });
+});
+
 router.get("/:id", requireAuth, async (req, res) => {
   const [group] = await db
     .select()

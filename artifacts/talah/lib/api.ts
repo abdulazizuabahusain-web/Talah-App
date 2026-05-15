@@ -315,6 +315,20 @@ export const api = {
       }[];
       hasFeedback: boolean;
     }>(`/groups/${groupId}/mutual-connects`),
+  getConnections: () =>
+    req<{
+      connections: {
+        groupId: string;
+        meetupType: string | null;
+        city: string | null;
+        meetupAt: number | null;
+        mutualConnects: {
+          id: string;
+          nickname: string | null;
+          personalityTraits: string[];
+        }[];
+      }[];
+    }>(`/groups/connections`),
 
   // Feedback
   submitFeedback: (body: {
