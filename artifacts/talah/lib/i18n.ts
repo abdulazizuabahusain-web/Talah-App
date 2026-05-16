@@ -422,6 +422,26 @@ export const STRINGS: Dict = {
     ar: "لديكِ {{n}} تواصلات متبادلة جديدة! اضغطي لرؤيتها",
     en: "You have {{n}} new mutual connects! Tap to see",
   },
+  exchange_share_contact: { ar: "مشاركة طريقة التواصل", en: "Share contact" },
+  exchange_share_back: { ar: "شاركي أيضًا!", en: "Share back!" },
+  exchange_waiting: { ar: "في انتظار {{name}}…", en: "Waiting for {{name}}…" },
+  exchange_they_shared: {
+    ar: "{{name}} شاركت معكِ طريقة تواصلها",
+    en: "{{name}} shared their contact with you",
+  },
+  exchange_contact_label: { ar: "طريقة التواصل", en: "Contact" },
+  exchange_your_contact: { ar: "ما شاركتِه", en: "You shared" },
+  exchange_placeholder: {
+    ar: "واتساب: 05XXXXXXXX أو إنستغرام: @اسمك",
+    en: "e.g. WhatsApp: +966 5X XXX or Instagram: @handle",
+  },
+  exchange_submit: { ar: "مشاركة", en: "Share" },
+  exchange_cancel: { ar: "إلغاء", en: "Cancel" },
+  exchange_copied: { ar: "تم النسخ!", en: "Copied!" },
+  exchange_privacy_note: {
+    ar: "ستُشارَك فقط مع هذا الشخص عند تأكيد التبادل المتبادل",
+    en: "Only shared with this person once they share back",
+  },
   report_member: { ar: "الإبلاغ عن عضو", en: "Report a member" },
   anonymous: { ar: "مجهول", en: "Anonymous" },
 

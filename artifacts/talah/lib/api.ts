@@ -331,6 +331,20 @@ export const api = {
       }[];
     }>(`/groups/connections`),
 
+  // Contact Exchange
+  shareContact: (body: { groupId: string; toUserId: string; contactValue: string }) =>
+    req<{ ok: boolean }>("/connections/exchange", { method: "POST", body }),
+  getExchanges: () =>
+    req<{
+      exchanges: {
+        groupId: string;
+        theirUserId: string;
+        theirNickname: string | null;
+        myContactValue: string | null;
+        theirContactValue: string | null;
+      }[];
+    }>("/connections/exchanges"),
+
   // Feedback
   submitFeedback: (body: {
     groupId: string;
