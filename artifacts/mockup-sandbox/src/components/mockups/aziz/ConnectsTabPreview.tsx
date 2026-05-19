@@ -8,7 +8,7 @@ const MUTED = "#8A8A8A";
 const BORDER = "#E8DDD0";
 const CARD = "#FFFFFF";
 
-// ── Brand SVG icons ──────────────────────────────────────────────────────────
+// ── Brand SVG icons ───────────────────────────────────────────────────────────
 
 function WhatsAppIcon({ size = 18 }: { size?: number }) {
   return (
@@ -23,13 +23,13 @@ function InstagramIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
       <defs>
-        <linearGradient id="igG2" x1="0%" y1="100%" x2="100%" y2="0%">
+        <linearGradient id="igG3" x1="0%" y1="100%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#833AB4" />
           <stop offset="50%" stopColor="#E1306C" />
           <stop offset="100%" stopColor="#FCAF45" />
         </linearGradient>
       </defs>
-      <rect width="32" height="32" rx="8" fill="url(#igG2)" />
+      <rect width="32" height="32" rx="8" fill="url(#igG3)" />
       <rect x="7" y="7" width="18" height="18" rx="5" stroke="#fff" strokeWidth="2" fill="none" />
       <circle cx="16" cy="16" r="4.5" stroke="#fff" strokeWidth="2" fill="none" />
       <circle cx="22" cy="10" r="1.2" fill="#fff" />
@@ -45,8 +45,6 @@ function XIcon({ size = 18 }: { size?: number }) {
     </svg>
   );
 }
-
-// ── Small icons ───────────────────────────────────────────────────────────────
 
 function CopyIcon({ size = 13 }: { size?: number }) {
   return (
@@ -75,64 +73,180 @@ function ExternalIcon({ size = 13 }: { size?: number }) {
   );
 }
 
-function HeartIcon({ size = 14, filled = false }: { size?: number; filled?: boolean }) {
+function ChevronIcon({ down }: { down: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? OLIVE : "none"} stroke={OLIVE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+      style={{ transition: "transform 0.25s", transform: down ? "rotate(180deg)" : "rotate(0deg)" }}>
+      <polyline points="6 9 12 15 18 9" />
     </svg>
   );
 }
 
-function LinkIcon({ size = 14 }: { size?: number }) {
+function VerifiedIcon() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={OLIVE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-      <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={OLIVE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
     </svg>
   );
 }
 
-// ── Platforms for مها ─────────────────────────────────────────────────────────
+// ── Contact row ───────────────────────────────────────────────────────────────
 
-const mahaContacts = [
-  { key: "phone",     Icon: WhatsAppIcon, bg: "#25D36622", label: "Mobile / WhatsApp", value: "0551122334", href: "https://wa.me/966551122334" },
-  { key: "instagram", Icon: InstagramIcon, bg: "#E1306C18", label: "Instagram",        value: "@maha.sa",   href: "https://instagram.com/maha.sa" },
-  { key: "twitter",   Icon: XIcon,        bg: "#00000012", label: "X / Twitter",       value: "@maha_x",    href: "https://x.com/maha_x" },
-];
+type Platform = { key: string; Icon: React.FC<{ size?: number }>; bg: string; label: string; value: string; href: string };
 
-function ContactRow({ c, idx }: { c: typeof mahaContacts[0]; idx: number }) {
+function ContactRow({ c }: { c: Platform }) {
   const [copied, setCopied] = useState(false);
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 10,
-      padding: "10px 12px", borderRadius: 12,
+      padding: "9px 10px", borderRadius: 11,
       background: SAND, border: `1px solid ${BORDER}`,
-      animation: `fadeIn 0.3s ease ${0.35 + idx * 0.08}s both`,
     }}>
       <div style={{
-        width: 34, height: 34, borderRadius: 10,
+        width: 32, height: 32, borderRadius: 9,
         background: c.bg, display: "flex", alignItems: "center",
         justifyContent: "center", flexShrink: 0,
       }}>
-        <c.Icon size={20} />
+        <c.Icon size={18} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11, color: MUTED, fontWeight: 600, marginBottom: 2 }}>{c.label}</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: CHARCOAL, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.value}</div>
+        <div style={{ fontSize: 10, color: MUTED, fontWeight: 600, marginBottom: 1 }}>{c.label}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: CHARCOAL, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.value}</div>
       </div>
-      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+      <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
         <a href={c.href} target="_blank" rel="noopener noreferrer"
-          style={{ width: 28, height: 28, borderRadius: 8, background: "#F0EBE4", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", color: MUTED }}>
-          <ExternalIcon size={13} />
+          style={{ width: 26, height: 26, borderRadius: 7, background: "#F0EBE4", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", color: MUTED }}>
+          <ExternalIcon size={12} />
         </a>
         <button onClick={() => { navigator.clipboard.writeText(c.value); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-          style={{ width: 28, height: 28, borderRadius: 8, background: copied ? OLIVE + "20" : "#F0EBE4", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: copied ? OLIVE : MUTED, transition: "all 0.2s" }}>
+          style={{ width: 26, height: 26, borderRadius: 7, background: copied ? OLIVE + "20" : "#F0EBE4", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: copied ? OLIVE : MUTED, transition: "all 0.2s" }}>
           {copied ? <CheckIcon /> : <CopyIcon />}
         </button>
       </div>
     </div>
   );
 }
+
+// ── Member card ───────────────────────────────────────────────────────────────
+
+type Member = {
+  initial: string;
+  name: string;
+  traits: string;
+  contacts: Platform[] | null;
+};
+
+function MemberCard({ member, defaultOpen = false }: { member: Member; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div style={{
+      background: CARD, borderRadius: 16,
+      border: `1px solid ${open ? OLIVE + "35" : BORDER}`,
+      overflow: "hidden",
+      boxShadow: open ? "0 4px 16px rgba(107,122,78,0.08)" : "0 1px 4px rgba(0,0,0,0.04)",
+      transition: "box-shadow 0.25s, border-color 0.25s",
+    }}>
+      {/* Header row — always visible */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: "100%", background: "none", border: "none", cursor: "pointer",
+          padding: "13px 14px",
+          display: "flex", alignItems: "center", gap: 12,
+          textAlign: "left",
+        }}
+      >
+        {/* Avatar */}
+        <div style={{
+          width: 44, height: 44, borderRadius: "50%",
+          background: GOLD + "33",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 19, fontWeight: 800, color: GOLD, flexShrink: 0,
+        }}>
+          {member.initial}
+        </div>
+
+        {/* Info */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: CHARCOAL }}>{member.name}</span>
+            <VerifiedIcon />
+          </div>
+          <div style={{ fontSize: 12, color: MUTED, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {member.traits}
+          </div>
+        </div>
+
+        {/* Platform icon preview when collapsed */}
+        {!open && member.contacts && (
+          <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+            {member.contacts.slice(0, 3).map(c => (
+              <div key={c.key} style={{
+                width: 22, height: 22, borderRadius: 6,
+                background: c.bg, display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <c.Icon size={13} />
+              </div>
+            ))}
+            {member.contacts.length > 3 && (
+              <div style={{ width: 22, height: 22, borderRadius: 6, background: "#F0EBE4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: MUTED, fontWeight: 700 }}>
+                +{member.contacts.length - 3}
+              </div>
+            )}
+          </div>
+        )}
+
+        <ChevronIcon down={open} />
+      </button>
+
+      {/* Expanded contact rows */}
+      {open && (
+        <div style={{
+          padding: "0 12px 13px",
+          display: "flex", flexDirection: "column", gap: 7,
+          animation: "expandIn 0.2s ease",
+        }}>
+          {member.contacts && member.contacts.length > 0 ? (
+            member.contacts.map(c => <ContactRow key={c.key} c={c} />)
+          ) : (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 12px", borderRadius: 10,
+              background: SAND, border: `1px dashed ${BORDER}`,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span style={{ fontSize: 12, color: MUTED }}>لم تُضف {member.name} معلومات تواصل بعد</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+
+const members: Member[] = [
+  {
+    initial: "م",
+    name: "مها",
+    traits: "هادئة · فضولية · منظّمة",
+    contacts: [
+      { key: "phone",     Icon: WhatsAppIcon,  bg: "#25D36622", label: "Mobile / WhatsApp", value: "0551122334", href: "https://wa.me/966551122334" },
+      { key: "instagram", Icon: InstagramIcon, bg: "#E1306C18", label: "Instagram",          value: "@maha.sa",   href: "https://instagram.com/maha.sa" },
+      { key: "twitter",   Icon: XIcon,         bg: "#00000012", label: "X / Twitter",        value: "@maha_x",    href: "https://x.com/maha_x" },
+    ],
+  },
+  {
+    initial: "ش",
+    name: "شذى",
+    traits: "اجتماعية · مبدعة",
+    contacts: null,
+  },
+];
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
@@ -142,10 +256,10 @@ export default function ConnectsTabPreview() {
       minHeight: "100vh", background: SAND,
       display: "flex", flexDirection: "column", alignItems: "center",
       fontFamily: "'Segoe UI', system-ui, sans-serif",
-      padding: 0,
     }}>
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        @keyframes expandIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
         * { box-sizing: border-box; }
         a:hover, button:hover { opacity: 0.8; }
       `}</style>
@@ -153,138 +267,55 @@ export default function ConnectsTabPreview() {
       {/* Top bar */}
       <div style={{
         width: "100%", padding: "16px 20px 12px",
-        background: SAND, borderBottom: `1px solid ${BORDER}`,
+        borderBottom: `1px solid ${BORDER}`,
         display: "flex", alignItems: "center", gap: 10,
         animation: "fadeIn 0.3s ease",
       }}>
-        <HeartIcon size={18} filled />
+        <svg width="18" height="18" viewBox="0 0 24 24" fill={OLIVE} stroke={OLIVE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+        </svg>
         <span style={{ fontSize: 17, fontWeight: 800, color: CHARCOAL }}>معارفي</span>
         <div style={{
-          marginLeft: "auto", display: "flex", alignItems: "center", gap: 6,
+          marginLeft: "auto",
           background: OLIVE + "12", borderRadius: 999,
           padding: "4px 12px", fontSize: 12, fontWeight: 700, color: OLIVE,
         }}>
-          <HeartIcon size={12} filled />
-          2 معارف متبادلون
+          2 معارف
         </div>
       </div>
 
-      <div style={{ width: "100%", padding: "16px 16px 40px", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ width: "100%", padding: "16px 14px 40px", display: "flex", flexDirection: "column", gap: 12 }}>
 
         {/* Event label */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, animation: "fadeIn 0.3s ease 0.1s both" }}>
-          <span style={{ fontSize: 13, color: MUTED }}>☕</span>
-          <span style={{ fontSize: 13, color: MUTED, fontWeight: 600 }}>
-            من طلعة الدمام · مارس 2025
-          </span>
-          <span style={{ marginLeft: "auto", fontSize: 12, color: OLIVE, cursor: "pointer" }}>
-            ↗
-          </span>
+          <span style={{ fontSize: 12, color: MUTED, fontWeight: 600 }}>☕  طلعة الدمام · مارس 2025</span>
         </div>
 
-        {/* Mutual connect card — مها */}
-        <div style={{
-          background: CARD, borderRadius: 18,
-          border: `1px solid ${OLIVE}25`,
-          backgroundColor: OLIVE + "06",
-          overflow: "hidden",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-          animation: "fadeIn 0.35s ease 0.15s both",
-        }}>
-          {/* Member header */}
-          <div style={{ padding: "14px 16px 10px", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{
-              width: 46, height: 46, borderRadius: "50%",
-              background: GOLD + "33",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 20, fontWeight: 800, color: GOLD,
-            }}>
-              م
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 15, fontWeight: 800, color: CHARCOAL }}>مها</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={OLIVE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              </div>
-              <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>هادئة · فضولية · منظّمة</div>
-            </div>
-            <LinkIcon size={15} />
+        {/* Member cards — مها open by default to illustrate */}
+        {members.map((m, i) => (
+          <div key={m.name} style={{ animation: `fadeIn 0.3s ease ${0.15 + i * 0.08}s both` }}>
+            <MemberCard member={m} defaultOpen={i === 0} />
           </div>
+        ))}
 
-          {/* Contact rows */}
-          <div style={{ padding: "0 12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-            {mahaContacts.map((c, i) => (
-              <ContactRow key={c.key} c={c} idx={i} />
-            ))}
-          </div>
-        </div>
-
-        {/* Second connect — شذى (no contact info added) */}
-        <div style={{
-          background: CARD, borderRadius: 18,
-          border: `1px solid ${OLIVE}25`,
-          backgroundColor: OLIVE + "06",
-          overflow: "hidden",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-          animation: "fadeIn 0.35s ease 0.2s both",
-        }}>
-          <div style={{ padding: "14px 16px 14px", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{
-              width: 46, height: 46, borderRadius: "50%",
-              background: GOLD + "33",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 20, fontWeight: 800, color: GOLD,
-            }}>
-              ش
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 15, fontWeight: 800, color: CHARCOAL }}>شذى</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={OLIVE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              </div>
-              <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>اجتماعية · مبدعة</div>
-            </div>
-            <LinkIcon size={15} />
-          </div>
-
-          {/* No contact info state */}
-          <div style={{ padding: "0 12px 14px" }}>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "10px 12px", borderRadius: 10, background: "#F5EFE6",
-              border: `1px dashed ${BORDER}`,
-            }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              <span style={{ fontSize: 12, color: MUTED }}>لم تُضف شذى معلومات تواصل بعد</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Nudge to fill own contact info */}
+        {/* Nudge */}
         <div style={{
           display: "flex", alignItems: "center", gap: 10,
-          padding: "12px 16px", borderRadius: 14,
+          padding: "11px 14px", borderRadius: 12,
           background: GOLD + "10", border: `1px solid ${GOLD}30`,
-          cursor: "pointer", animation: "fadeIn 0.35s ease 0.4s both",
+          cursor: "pointer", animation: "fadeIn 0.3s ease 0.35s both",
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
           </svg>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>أضف معلومات تواصلك</div>
-            <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>حتى يتمكن معارفك من التواصل معك</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: GOLD }}>أضف معلومات تواصلك</div>
+            <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>حتى يتمكن معارفك من التواصل معك</div>
           </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </div>
-
       </div>
     </div>
   );
