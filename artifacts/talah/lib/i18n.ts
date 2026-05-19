@@ -577,6 +577,44 @@ export const STRINGS: Dict = {
   feedback_prompt_body: { ar: "شاركينا تقييمك للمجموعة", en: "Share your rating for the group" },
   feedback_prompt_cta: { ar: "تقييم الآن", en: "Rate now" },
 
+  // Contact info
+  contact_info_title: { ar: "معلومات التواصل", en: "Contact Info" },
+  contact_info_subtitle: {
+    ar: "تُكشف فقط لمن تبادلتم الإعجاب المتبادل",
+    en: "Only revealed to your mutual connects",
+  },
+  contact_edit_title: { ar: "تعديل معلومات التواصل", en: "Edit Contact Info" },
+  contact_add_cta: {
+    ar: "أضف معلومات تواصلك لتظهر لمعارفك",
+    en: "Add your contact details to share with connects",
+  },
+  contact_privacy_notice: {
+    ar: "هذه المعلومات خاصة تماماً — لا تظهر إلا للأشخاص الذين تبادلتم معهم اختيار «تواصل» في نفس المجموعة.",
+    en: "This information is completely private — it only appears to people who mutually chose 'Connect' with you in the same group.",
+  },
+  contact_fields_optional_note: {
+    ar: "جميع الحقول اختيارية. أضف ما تريد مشاركته فقط.",
+    en: "All fields are optional. Only add what you're comfortable sharing.",
+  },
+  contact_phone_label: { ar: "رقم الجوال / واتساب", en: "Mobile / WhatsApp" },
+  contact_phone_placeholder: { ar: "5XXXXXXXX", en: "e.g. 0501234567" },
+  contact_instagram_label: { ar: "انستغرام", en: "Instagram" },
+  contact_instagram_placeholder: { ar: "اسم المستخدم", en: "username" },
+  contact_snapchat_label: { ar: "سناب شات", en: "Snapchat" },
+  contact_snapchat_placeholder: { ar: "اسم المستخدم", en: "username" },
+  contact_twitter_label: { ar: "تويتر / X", en: "Twitter / X" },
+  contact_twitter_placeholder: { ar: "اسم المستخدم", en: "username" },
+  contact_tiktok_label: { ar: "تيك توك", en: "TikTok" },
+  contact_tiktok_placeholder: { ar: "اسم المستخدم", en: "username" },
+  contact_not_added_yet: {
+    ar: "لم تُضف {{name}} معلومات تواصل بعد",
+    en: "{{name}} hasn't added contact info yet",
+  },
+  contact_add_yours: {
+    ar: "أضف معلوماتك ليتمكن معارفك من التواصل معك",
+    en: "Add your info so your connects can reach you",
+  },
+
   // Misc / placeholders
   no_data: { ar: "لا يوجد بيانات بعد", en: "Nothing here yet" },
 };

@@ -99,6 +99,14 @@ export interface UserScores {
   boundaryScore: number;
 }
 
+export interface ContactInfo {
+  contactPhone?: string | null;
+  instagram?: string | null;
+  snapchat?: string | null;
+  twitter?: string | null;
+  tiktok?: string | null;
+}
+
 export interface User {
   id: string;
   phone: string;
@@ -140,6 +148,13 @@ export interface User {
 
   // Block list — IDs of users this user has blocked; excluded from future matching
   blockedUserIds?: string[];
+
+  // Contact info — private; only revealed to mutual connects
+  contactPhone?: string | null;
+  instagram?: string | null;
+  snapchat?: string | null;
+  twitter?: string | null;
+  tiktok?: string | null;
 }
 
 export interface TalahRequest {

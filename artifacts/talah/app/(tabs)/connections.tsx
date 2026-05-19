@@ -1,37 +1,29 @@
 import { Feather } from "@expo/vector-icons";
-import { useFocusEffect, router } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Clipboard,
-  KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   RefreshControl,
   ScrollView,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
-import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
+import type { ApiMutualConnect } from "@/lib/api";
 import { api } from "@/lib/api";
 import { markConnectsSeen } from "@/lib/connectsStore";
 import { useT } from "@/lib/i18n";
 
-// ── types ─────────────────────────────────────────────────────────────────
-
-type MutualMember = {
-  id: string;
-  nickname: string | null;
-  personalityTraits: string[];
-};
+// ── types ─────────────────────────────────────────────────────────────────────
 
 type ConnectionGroup = {
   groupId: string;
@@ -39,30 +31,8 @@ type ConnectionGroup = {
   city: string | null;
   meetupAt: number | null;
   formedAt: number;
-  mutualConnects: MutualMember[];
+  mutualConnects: ApiMutualConnect[];
 };
-
-type Exchange = {
-  groupId: string;
-  theirUserId: string;
-  theirNickname: string | null;
-  myContactValue: string | null;
-  theirContactValue: string | null;
-};
-
-type ExchangeStatus =
-  | "none"       // neither shared
-  | "i_shared"   // only I shared
-  | "they_shared"// only they shared (action needed from me)
-  | "mutual";    // both shared
-
-function exchangeStatus(ex: Exchange | undefined): ExchangeStatus {
-  if (!ex) return "none";
-  if (ex.myContactValue && ex.theirContactValue) return "mutual";
-  if (ex.myContactValue) return "i_shared";
-  if (ex.theirContactValue) return "they_shared";
-  return "none";
-}
 
 const MEETUP_TYPE_LABEL: Record<string, string> = {
   coffee: "☕",
@@ -71,7 +41,61 @@ const MEETUP_TYPE_LABEL: Record<string, string> = {
   dinner: "🌙",
 };
 
-// ── main screen ────────────────────────────────────────────────────────────
+// ── platform meta ─────────────────────────────────────────────────────────────
+
+type PlatformItem = {
+  key: keyof ApiMutualConnect;
+  icon: keyof typeof Feather.glyphMap;
+  color: string;
+  label: string;
+  buildUrl?: (handle: string) => string;
+};
+
+const PLATFORM_ITEMS: PlatformItem[] = [
+  {
+    key: "contactPhone",
+    icon: "phone",
+    color: "#2ECC71",
+    label: "WhatsApp / جوال",
+    buildUrl: (v) => `https://wa.me/${v.replace(/\D/g, "")}`,
+  },
+  {
+    key: "instagram",
+    icon: "camera",
+    color: "#E1306C",
+    label: "Instagram",
+    buildUrl: (v) => `https://instagram.com/${v.replace(/^@/, "")}`,
+  },
+  {
+    key: "snapchat",
+    icon: "message-circle",
+    color: "#FFFC00",
+    label: "Snapchat",
+    buildUrl: (v) => `https://snapchat.com/add/${v}`,
+  },
+  {
+    key: "twitter",
+    icon: "twitter",
+    color: "#1DA1F2",
+    label: "X / Twitter",
+    buildUrl: (v) => `https://x.com/${v.replace(/^@/, "")}`,
+  },
+  {
+    key: "tiktok",
+    icon: "music",
+    color: "#010101",
+    label: "TikTok",
+    buildUrl: (v) => `https://tiktok.com/@${v.replace(/^@/, "")}`,
+  },
+];
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function hasAnyContact(m: ApiMutualConnect): boolean {
+  return !!(m.contactPhone || m.instagram || m.snapchat || m.twitter || m.tiktok);
+}
+
+// ── main screen ───────────────────────────────────────────────────────────────
 
 export default function ConnectionsScreen() {
   const colors = useColors();
@@ -84,16 +108,11 @@ export default function ConnectionsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [groups, setGroups] = useState<ConnectionGroup[]>([]);
-  const [exchanges, setExchanges] = useState<Exchange[]>([]);
 
   const load = useCallback(async () => {
     try {
-      const [conRes, exRes] = await Promise.all([
-        api.getConnections(),
-        api.getExchanges(),
-      ]);
-      setGroups(conRes.connections);
-      setExchanges(exRes.exchanges);
+      const res = await api.getConnections();
+      setGroups(res.connections);
     } catch {
       // silent
     } finally {
@@ -113,15 +132,7 @@ export default function ConnectionsScreen() {
     }, []),
   );
 
-  const handleShare = async (groupId: string, toUserId: string, contactValue: string) => {
-    await api.shareContact({ groupId, toUserId, contactValue });
-    await load(); // refresh after sharing
-  };
-
   const totalConnects = groups.reduce((n, g) => n + g.mutualConnects.length, 0);
-
-  const getExchange = (groupId: string, theirUserId: string) =>
-    exchanges.find((e) => e.groupId === groupId && e.theirUserId === theirUserId);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -131,199 +142,151 @@ export default function ConnectionsScreen() {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingTop: webTopPad + 4,
+            paddingBottom: Math.max(insets.bottom + 24, 40),
+            gap: 20,
+            flexGrow: 1,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                load();
+              }}
+              tintColor={colors.primary}
+            />
+          }
         >
-          <ScrollView
-            contentContainerStyle={{
-              paddingHorizontal: 20,
-              paddingTop: webTopPad + 4,
-              paddingBottom: Math.max(insets.bottom + 24, 40),
-              gap: 20,
-              flexGrow: 1,
-            }}
-            keyboardShouldPersistTaps="handled"
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => { setRefreshing(true); load(); }}
-                tintColor={colors.primary}
-              />
-            }
-          >
-            {groups.length === 0 ? (
+          {groups.length === 0 ? (
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 14,
+                paddingTop: 80,
+              }}
+            >
               <View
                 style={{
-                  flex: 1,
+                  width: 72,
+                  height: 72,
+                  borderRadius: 36,
+                  backgroundColor: colors.primary + "15",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 14,
-                  paddingTop: 80,
                 }}
               >
-                <View
-                  style={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: 36,
-                    backgroundColor: colors.primary + "15",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Feather name="heart" size={32} color={colors.primary} />
-                </View>
-                <AppText variant="title" weight="semibold" style={{ textAlign: "center" }}>
-                  {t("connections_empty_title")}
-                </AppText>
-                <AppText
-                  variant="body"
-                  color={colors.mutedForeground}
-                  style={{ textAlign: "center", maxWidth: 280 }}
-                >
-                  {t("connections_empty_sub")}
+                <Feather name="heart" size={32} color={colors.primary} />
+              </View>
+              <AppText variant="title" weight="semibold" style={{ textAlign: "center" }}>
+                {t("connections_empty_title")}
+              </AppText>
+              <AppText
+                variant="body"
+                color={colors.mutedForeground}
+                style={{ textAlign: "center", maxWidth: 280 }}
+              >
+                {t("connections_empty_sub")}
+              </AppText>
+            </View>
+          ) : (
+            <>
+              {/* Summary pill */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  backgroundColor: colors.primary + "12",
+                  borderRadius: 999,
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  alignSelf: "flex-start",
+                }}
+              >
+                <Feather name="heart" size={16} color={colors.primary} />
+                <AppText variant="label" weight="semibold" color={colors.primary}>
+                  {totalConnects} {t("mutual_connects")}
                 </AppText>
               </View>
-            ) : (
-              <>
-                {/* Summary pill */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    backgroundColor: colors.primary + "12",
-                    borderRadius: 999,
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    alignSelf: "flex-start",
-                  }}
-                >
-                  <Feather name="heart" size={16} color={colors.primary} />
-                  <AppText variant="label" weight="semibold" color={colors.primary}>
-                    {totalConnects} {t("mutual_connects")}
-                  </AppText>
-                </View>
 
-                {groups.map((g) => (
-                  <View key={g.groupId} style={{ gap: 10 }}>
-                    {/* Event label */}
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <AppText variant="label" weight="semibold" color={colors.mutedForeground}>
-                        {MEETUP_TYPE_LABEL[g.meetupType ?? ""] ?? "🎉"}
-                      </AppText>
-                      <AppText variant="label" color={colors.mutedForeground}>
-                        {t("connections_from")}
-                        {g.city ? ` · ${g.city}` : ""}
-                        {g.meetupAt
-                          ? ` · ${new Date(g.meetupAt).toLocaleDateString("ar-SA", { month: "short", day: "numeric" })}`
-                          : ""}
-                      </AppText>
-                      <Pressable
-                        onPress={() => router.push(`/reveal/${g.groupId}`)}
-                        hitSlop={8}
-                        style={{ marginLeft: "auto" }}
-                      >
-                        <Feather name="external-link" size={14} color={colors.mutedForeground} />
-                      </Pressable>
-                    </View>
-
-                    {g.mutualConnects.map((m) => (
-                      <MutualConnectCard
-                        key={m.id}
-                        member={m}
-                        groupId={g.groupId}
-                        exchange={getExchange(g.groupId, m.id)}
-                        onShare={handleShare}
-                      />
-                    ))}
+              {groups.map((g) => (
+                <View key={g.groupId} style={{ gap: 10 }}>
+                  {/* Event label */}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <AppText variant="label" weight="semibold" color={colors.mutedForeground}>
+                      {MEETUP_TYPE_LABEL[g.meetupType ?? ""] ?? "🎉"}
+                    </AppText>
+                    <AppText variant="label" color={colors.mutedForeground}>
+                      {t("connections_from")}
+                      {g.city ? ` · ${g.city}` : ""}
+                      {g.meetupAt
+                        ? ` · ${new Date(g.meetupAt).toLocaleDateString("ar-SA", { month: "short", day: "numeric" })}`
+                        : ""}
+                    </AppText>
+                    <Pressable
+                      onPress={() => router.push(`/reveal/${g.groupId}`)}
+                      hitSlop={8}
+                      style={{ marginLeft: "auto" }}
+                    >
+                      <Feather name="external-link" size={14} color={colors.mutedForeground} />
+                    </Pressable>
                   </View>
-                ))}
-              </>
-            )}
-          </ScrollView>
-        </KeyboardAvoidingView>
+
+                  {g.mutualConnects.map((m) => (
+                    <MutualConnectCard key={m.id} member={m} />
+                  ))}
+                </View>
+              ))}
+            </>
+          )}
+        </ScrollView>
       )}
     </View>
   );
 }
 
-// ── MutualConnectCard ──────────────────────────────────────────────────────
+// ── MutualConnectCard ─────────────────────────────────────────────────────────
 
-function MutualConnectCard({
-  member,
-  groupId,
-  exchange,
-  onShare,
-}: {
-  member: MutualMember;
-  groupId: string;
-  exchange: Exchange | undefined;
-  onShare: (groupId: string, toUserId: string, contactValue: string) => Promise<void>;
-}) {
+function MutualConnectCard({ member }: { member: ApiMutualConnect }) {
   const colors = useColors();
   const t = useT();
-  const [showForm, setShowForm] = useState(false);
-  const [contactValue, setContactValue] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const inputRef = useRef<TextInput>(null);
+  const { currentUser } = useApp();
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const status = exchangeStatus(exchange);
-  const theySharedButIHavent = status === "they_shared";
+  const isOwnProfile = currentUser?.id === member.id;
 
-  // Auto-open form if they've shared and we haven't responded
-  useEffect(() => {
-    if (theySharedButIHavent && !showForm) setShowForm(true);
-  }, [theySharedButIHavent]);
-
-  const handleSubmit = async () => {
-    const val = contactValue.trim();
-    if (!val) return;
-    setSubmitting(true);
-    try {
-      await onShare(groupId, member.id, val);
-      setShowForm(false);
-      setContactValue("");
-    } catch (e) {
-      Alert.alert("خطأ", (e as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
+  const handleCopy = (val: string, key: string) => {
+    Clipboard.setString(val);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const handleCopy = (text: string) => {
-    Clipboard.setString(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleOpen = (platform: PlatformItem, val: string) => {
+    if (!platform.buildUrl) return;
+    const url = platform.buildUrl(val);
+    Linking.openURL(url).catch(() => {});
   };
+
+  const filledPlatforms = PLATFORM_ITEMS.filter(
+    (p) => member[p.key] && String(member[p.key]).trim().length > 0,
+  );
 
   return (
-    <Card
-      style={{
-        backgroundColor:
-          status === "mutual"
-            ? colors.primary + "08"
-            : theySharedButIHavent
-            ? colors.accent + "08"
-            : colors.card,
-        borderColor:
-          status === "mutual"
-            ? colors.primary + "30"
-            : theySharedButIHavent
-            ? colors.accent + "40"
-            : colors.border,
-      }}
-    >
-      <View style={{ gap: 12 }}>
-        {/* ── Member row ── */}
+    <Card style={{ backgroundColor: colors.primary + "06", borderColor: colors.primary + "20" }}>
+      <View style={{ gap: 14 }}>
+        {/* Member header */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <View
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
+              width: 46,
+              height: 46,
+              borderRadius: 23,
               backgroundColor: colors.primary + "22",
               alignItems: "center",
               justifyContent: "center",
@@ -346,211 +309,132 @@ function MutualConnectCard({
               </AppText>
             )}
           </View>
-          {/* Status indicator */}
-          {status === "mutual" && (
-            <Feather name="link" size={16} color={colors.primary} />
-          )}
-          {status === "i_shared" && (
-            <Feather name="clock" size={16} color={colors.mutedForeground} />
-          )}
-          {theySharedButIHavent && (
-            <View
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 5,
-                backgroundColor: colors.accent,
-              }}
-            />
-          )}
+          <Feather name="link" size={15} color={colors.primary} />
         </View>
 
-        {/* ── State A: neither shared ── */}
-        {status === "none" && !showForm && (
-          <Pressable
-            onPress={() => { setShowForm(true); setTimeout(() => inputRef.current?.focus(), 50); }}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              paddingVertical: 10,
-              borderRadius: 999,
-              borderWidth: 1,
-              borderColor: colors.primary,
-            }}
-          >
-            <Feather name="share-2" size={15} color={colors.primary} />
-            <AppText variant="label" weight="semibold" color={colors.primary}>
-              {t("exchange_share_contact")}
-            </AppText>
-          </Pressable>
-        )}
-
-        {/* ── State B: I shared, waiting for them ── */}
-        {status === "i_shared" && (
-          <View style={{ gap: 6 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                paddingVertical: 8,
-                paddingHorizontal: 12,
-                borderRadius: 10,
-                backgroundColor: colors.muted,
-              }}
-            >
-              <Feather name="clock" size={14} color={colors.mutedForeground} />
-              <AppText variant="bodySmall" color={colors.mutedForeground} style={{ flex: 1 }}>
-                {t("exchange_waiting").replace("{{name}}", member.nickname ?? "…")}
-              </AppText>
-            </View>
-            <AppText variant="bodySmall" color={colors.mutedForeground}>
-              {t("exchange_your_contact")}: {exchange?.myContactValue}
-            </AppText>
-          </View>
-        )}
-
-        {/* ── State C: they shared, I haven't → prompt shown automatically ── */}
-        {theySharedButIHavent && !showForm && (
-          <Pressable
-            onPress={() => { setShowForm(true); setTimeout(() => inputRef.current?.focus(), 50); }}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              paddingVertical: 10,
-              borderRadius: 999,
-              backgroundColor: colors.accent,
-            }}
-          >
-            <Feather name="heart" size={15} color="#fff" />
-            <AppText variant="label" weight="semibold" color="#fff">
-              {t("exchange_share_back")}
-            </AppText>
-          </Pressable>
-        )}
-
-        {/* ── State D: both shared ── */}
-        {status === "mutual" && (
+        {/* Contact cards */}
+        {filledPlatforms.length > 0 ? (
           <View style={{ gap: 8 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                padding: 12,
-                borderRadius: 12,
-                backgroundColor: colors.primary + "10",
-              }}
-            >
-              <Feather name="phone" size={15} color={colors.primary} />
-              <AppText variant="body" weight="semibold" style={{ flex: 1 }}>
-                {exchange?.theirContactValue}
-              </AppText>
-              <Pressable onPress={() => handleCopy(exchange?.theirContactValue ?? "")} hitSlop={8}>
-                <Feather
-                  name={copied ? "check" : "copy"}
-                  size={16}
-                  color={copied ? colors.primary : colors.mutedForeground}
-                />
-              </Pressable>
-            </View>
-            <AppText variant="bodySmall" color={colors.mutedForeground}>
-              {t("exchange_your_contact")}: {exchange?.myContactValue}
+            {filledPlatforms.map((platform) => {
+              const val = String(member[platform.key]);
+              const display =
+                platform.key === "contactPhone"
+                  ? val
+                  : `@${val.replace(/^@/, "")}`;
+              return (
+                <View
+                  key={platform.key}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: 12,
+                    borderRadius: 12,
+                    backgroundColor: colors.background,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      backgroundColor: platform.color + "18",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Feather name={platform.icon} size={16} color={platform.color} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <AppText variant="caption" color={colors.mutedForeground}>
+                      {platform.label}
+                    </AppText>
+                    <AppText variant="body" weight="semibold" numberOfLines={1}>
+                      {display}
+                    </AppText>
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    {platform.buildUrl && (
+                      <Pressable
+                        onPress={() => handleOpen(platform, val)}
+                        hitSlop={8}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          backgroundColor: platform.color + "15",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Feather name="external-link" size={14} color={platform.color} />
+                      </Pressable>
+                    )}
+                    <Pressable
+                      onPress={() => handleCopy(val, platform.key)}
+                      hitSlop={8}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        backgroundColor: colors.muted,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Feather
+                        name={copiedKey === platform.key ? "check" : "copy"}
+                        size={14}
+                        color={
+                          copiedKey === platform.key
+                            ? colors.primary
+                            : colors.mutedForeground
+                        }
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        ) : isOwnProfile ? null : (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              padding: 12,
+              borderRadius: 12,
+              backgroundColor: colors.muted,
+            }}
+          >
+            <Feather name="info" size={14} color={colors.mutedForeground} />
+            <AppText variant="bodySmall" color={colors.mutedForeground} style={{ flex: 1 }}>
+              {t("contact_not_added_yet").replace("{{name}}", member.nickname ?? "…")}
             </AppText>
           </View>
         )}
 
-        {/* ── Inline share form (states A & C) ── */}
-        {showForm && status !== "mutual" && status !== "i_shared" && (
-          <View style={{ gap: 10 }}>
-            {theySharedButIHavent && (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: 10,
-                  borderRadius: 10,
-                  backgroundColor: colors.accent + "10",
-                }}
-              >
-                <Feather name="bell" size={14} color={colors.accent} />
-                <AppText variant="bodySmall" color={colors.accent} style={{ flex: 1 }}>
-                  {t("exchange_they_shared").replace("{{name}}", member.nickname ?? "…")}
-                </AppText>
-              </View>
-            )}
-
-            <TextInput
-              ref={inputRef}
-              value={contactValue}
-              onChangeText={setContactValue}
-              placeholder={t("exchange_placeholder")}
-              placeholderTextColor={colors.mutedForeground}
-              multiline={false}
-              returnKeyType="done"
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 12,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                fontSize: 15,
-                color: colors.foreground,
-                backgroundColor: colors.background,
-              }}
-            />
-
-            <AppText variant="bodySmall" color={colors.mutedForeground}>
-              {t("exchange_privacy_note")}
+        {/* Nudge to fill own contact info if viewing own card somehow — shouldn't normally appear */}
+        {isOwnProfile && !hasAnyContact(member) && (
+          <Pressable
+            onPress={() => router.push("/edit-contact")}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              padding: 12,
+              borderRadius: 12,
+              backgroundColor: colors.accent + "12",
+            }}
+          >
+            <Feather name="plus-circle" size={15} color={colors.accent} />
+            <AppText variant="bodySmall" color={colors.accent} style={{ flex: 1 }}>
+              {t("contact_add_yours")}
             </AppText>
-
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <Pressable
-                onPress={() => { setShowForm(false); setContactValue(""); }}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  alignItems: "center",
-                }}
-              >
-                <AppText variant="label" weight="semibold" color={colors.mutedForeground}>
-                  {t("exchange_cancel")}
-                </AppText>
-              </Pressable>
-              <Pressable
-                onPress={handleSubmit}
-                disabled={!contactValue.trim() || submitting}
-                style={{
-                  flex: 2,
-                  paddingVertical: 10,
-                  borderRadius: 999,
-                  backgroundColor:
-                    contactValue.trim() && !submitting ? colors.primary : colors.muted,
-                  alignItems: "center",
-                }}
-              >
-                {submitting ? (
-                  <ActivityIndicator size="small" color={colors.primaryForeground} />
-                ) : (
-                  <AppText
-                    variant="label"
-                    weight="semibold"
-                    color={contactValue.trim() ? colors.primaryForeground : colors.mutedForeground}
-                  >
-                    {t("exchange_submit")}
-                  </AppText>
-                )}
-              </Pressable>
-            </View>
-          </View>
+          </Pressable>
         )}
       </View>
     </Card>

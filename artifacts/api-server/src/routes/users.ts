@@ -43,6 +43,12 @@ const PatchProfileBody = z.object({
   boundaryScore: z.number().int().optional(),
   onboarded: z.boolean().optional(),
   expoPushToken: z.string().optional(),
+  // Contact info — private; only revealed to mutual connects
+  contactPhone: z.string().max(30).nullable().optional(),
+  instagram: z.string().max(60).nullable().optional(),
+  snapchat: z.string().max(60).nullable().optional(),
+  twitter: z.string().max(60).nullable().optional(),
+  tiktok: z.string().max(60).nullable().optional(),
 });
 
 router.patch("/me", requireAuth, async (req, res) => {

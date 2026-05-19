@@ -24,6 +24,24 @@ async function embedMembers(memberIds: string[]) {
   return rows;
 }
 
+// Fields revealed to mutual connects
+async function embedMutualConnects(memberIds: string[]) {
+  if (memberIds.length === 0) return [];
+  return db
+    .select({
+      id: usersTable.id,
+      nickname: usersTable.nickname,
+      personalityTraits: usersTable.personalityTraits,
+      contactPhone: usersTable.contactPhone,
+      instagram: usersTable.instagram,
+      snapchat: usersTable.snapchat,
+      twitter: usersTable.twitter,
+      tiktok: usersTable.tiktok,
+    })
+    .from(usersTable)
+    .where(inArray(usersTable.id, memberIds));
+}
+
 router.get("/", requireAuth, async (req, res) => {
   const userId = req.user!.id;
   const rows = await db
@@ -64,7 +82,12 @@ router.get("/connections", requireAuth, async (req, res) => {
 
   const groupIds = myGroups.map((g) => g.id);
   const allFeedback = await db
-    .select({ groupId: feedbackTable.groupId, fromUserId: feedbackTable.fromUserId, connections: feedbackTable.connections, createdAt: feedbackTable.createdAt })
+    .select({
+      groupId: feedbackTable.groupId,
+      fromUserId: feedbackTable.fromUserId,
+      connections: feedbackTable.connections,
+      createdAt: feedbackTable.createdAt,
+    })
     .from(feedbackTable)
     .where(inArray(feedbackTable.groupId, groupIds));
 
@@ -76,7 +99,16 @@ router.get("/connections", requireAuth, async (req, res) => {
     city: string | null;
     meetupAt: number | null;
     formedAt: number;
-    mutualConnects: { id: string; nickname: string | null; personalityTraits: string[] }[];
+    mutualConnects: {
+      id: string;
+      nickname: string | null;
+      personalityTraits: string[];
+      contactPhone: string | null;
+      instagram: string | null;
+      snapchat: string | null;
+      twitter: string | null;
+      tiktok: string | null;
+    }[];
   }[] = [];
 
   for (const group of myGroups) {
@@ -84,28 +116,40 @@ router.get("/connections", requireAuth, async (req, res) => {
     const connectsFrom = new Map<string, Set<string>>();
     for (const row of groupFeedback) {
       const conns = (row.connections ?? []) as Connection[];
-      const chosen = new Set(conns.filter((c) => c.verdict === "connect").map((c) => c.userId));
+      const chosen = new Set(
+        conns.filter((c) => c.verdict === "connect").map((c) => c.userId),
+      );
       connectsFrom.set(row.fromUserId, chosen);
     }
 
     const requesterChoices = connectsFrom.get(userId) ?? new Set<string>();
     const mutualIds = group.memberIds.filter(
-      (id) => id !== userId && requesterChoices.has(id) && (connectsFrom.get(id)?.has(userId) ?? false),
+      (id) =>
+        id !== userId &&
+        requesterChoices.has(id) &&
+        (connectsFrom.get(id)?.has(userId) ?? false),
     );
 
     if (mutualIds.length > 0) {
-      const members = await db
-        .select({ id: usersTable.id, nickname: usersTable.nickname, personalityTraits: usersTable.personalityTraits })
-        .from(usersTable)
-        .where(inArray(usersTable.id, mutualIds));
+      const members = await embedMutualConnects(mutualIds);
 
-      // formedAt = when the last mutual was confirmed (max created_at among involved feedback rows)
       const involvedUserIds = new Set([userId, ...mutualIds]);
       const formedAt = groupFeedback
         .filter((f) => involvedUserIds.has(f.fromUserId))
-        .reduce((max, f) => Math.max(max, new Date(f.createdAt as unknown as string).getTime()), 0);
+        .reduce(
+          (max, f) =>
+            Math.max(max, new Date(f.createdAt as unknown as string).getTime()),
+          0,
+        );
 
-      result.push({ groupId: group.id, meetupType: group.meetupType, city: group.city, meetupAt: group.meetupAt ?? null, formedAt, mutualConnects: members });
+      result.push({
+        groupId: group.id,
+        meetupType: group.meetupType,
+        city: group.city,
+        meetupAt: group.meetupAt ?? null,
+        formedAt,
+        mutualConnects: members,
+      });
     }
   }
 
@@ -134,7 +178,6 @@ router.get("/:id", requireAuth, async (req, res) => {
 });
 
 // GET /groups/:id/mutual-connects
-// Returns members who mutually chose "connect" with the requesting user.
 router.get("/:id/mutual-connects", requireAuth, async (req, res) => {
   const groupId = req.params["id"] as string;
   const requesterId = req.user!.id;
@@ -145,38 +188,44 @@ router.get("/:id/mutual-connects", requireAuth, async (req, res) => {
     .where(eq(groupsTable.id, groupId))
     .limit(1);
 
-  if (!group) { res.status(404).json({ error: "Group not found" }); return; }
-  if (!group.memberIds.includes(requesterId)) { res.status(403).json({ error: "Not a member" }); return; }
+  if (!group) {
+    res.status(404).json({ error: "Group not found" });
+    return;
+  }
+  if (!group.memberIds.includes(requesterId)) {
+    res.status(403).json({ error: "Not a member" });
+    return;
+  }
 
-  // Fetch all feedback rows for this group
   const allFeedback = await db
-    .select({ fromUserId: feedbackTable.fromUserId, connections: feedbackTable.connections })
+    .select({
+      fromUserId: feedbackTable.fromUserId,
+      connections: feedbackTable.connections,
+    })
     .from(feedbackTable)
     .where(eq(feedbackTable.groupId, groupId));
 
   type Connection = { userId: string; verdict: "connect" | "pass" };
 
-  // Build a map: userId → set of userIds they chose "connect" for
   const connectsFrom = new Map<string, Set<string>>();
   for (const row of allFeedback) {
     const conns = (row.connections ?? []) as Connection[];
-    const chosen = new Set(conns.filter((c) => c.verdict === "connect").map((c) => c.userId));
+    const chosen = new Set(
+      conns.filter((c) => c.verdict === "connect").map((c) => c.userId),
+    );
     connectsFrom.set(row.fromUserId, chosen);
   }
 
-  // Find users who the requester chose connect AND who also chose connect back
   const requesterChoices = connectsFrom.get(requesterId) ?? new Set<string>();
   const mutualIds = group.memberIds.filter(
-    (id) => id !== requesterId && requesterChoices.has(id) && (connectsFrom.get(id)?.has(requesterId) ?? false),
+    (id) =>
+      id !== requesterId &&
+      requesterChoices.has(id) &&
+      (connectsFrom.get(id)?.has(requesterId) ?? false),
   );
 
-  // Embed basic member info for the mutual connects
-  const members = mutualIds.length > 0
-    ? await db
-        .select({ id: usersTable.id, nickname: usersTable.nickname, personalityTraits: usersTable.personalityTraits })
-        .from(usersTable)
-        .where(inArray(usersTable.id, mutualIds))
-    : [];
+  const members =
+    mutualIds.length > 0 ? await embedMutualConnects(mutualIds) : [];
 
   res.json({ mutualConnects: members, hasFeedback: connectsFrom.has(requesterId) });
 });
@@ -199,7 +248,9 @@ router.get("/:id/feedback-pending", requireAuth, async (req, res) => {
 
   const now = Date.now();
   const meetupInPast =
-    group.meetupAt !== null && group.meetupAt !== undefined && group.meetupAt < now;
+    group.meetupAt !== null &&
+    group.meetupAt !== undefined &&
+    group.meetupAt < now;
 
   if (!meetupInPast) {
     res.json({ pending: false });

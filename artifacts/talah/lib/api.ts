@@ -22,9 +22,6 @@ function resolveApiBase(): string {
   const replitDomain = process.env["EXPO_PUBLIC_DOMAIN"]?.trim();
   if (replitDomain) return domainToApiBase(replitDomain);
 
-  // Relative paths work in the Replit web preview where the API is routed under
-  // the same origin. Native Expo builds should set EXPO_PUBLIC_DOMAIN or
-  // EXPO_PUBLIC_API_BASE so fetch has an absolute API origin.
   return Platform.OS === "web" ? "/api" : "/api";
 }
 
@@ -124,6 +121,12 @@ export interface ApiUser {
   opennessScore: number | null;
   boundaryScore: number | null;
   blockedUserIds: string[];
+  // Contact info — private; only returned to the user themselves or mutual connects
+  contactPhone: string | null;
+  instagram: string | null;
+  snapchat: string | null;
+  twitter: string | null;
+  tiktok: string | null;
   createdAt: string;
 }
 
@@ -151,6 +154,17 @@ export type ApiGroupMember = Pick<
   | "funFact"
   | "personalityTraits"
 >;
+
+export interface ApiMutualConnect {
+  id: string;
+  nickname: string | null;
+  personalityTraits: string[];
+  contactPhone: string | null;
+  instagram: string | null;
+  snapchat: string | null;
+  twitter: string | null;
+  tiktok: string | null;
+}
 
 export interface ApiGroup {
   id: string;
@@ -234,6 +248,11 @@ export function toUser(u: ApiUser | ApiGroupMember): User {
     opennessScore: nullToUndefined(a.opennessScore),
     boundaryScore: nullToUndefined(a.boundaryScore),
     blockedUserIds: (a.blockedUserIds as string[] | null | undefined) ?? [],
+    contactPhone: nullToUndefined(a.contactPhone),
+    instagram: nullToUndefined(a.instagram),
+    snapchat: nullToUndefined(a.snapchat),
+    twitter: nullToUndefined(a.twitter),
+    tiktok: nullToUndefined(a.tiktok),
   };
 }
 
@@ -308,11 +327,7 @@ export const api = {
   getGroup: (id: string) => req<ApiGroup>(`/groups/${id}`),
   getMutualConnects: (groupId: string) =>
     req<{
-      mutualConnects: {
-        id: string;
-        nickname: string | null;
-        personalityTraits: string[];
-      }[];
+      mutualConnects: ApiMutualConnect[];
       hasFeedback: boolean;
     }>(`/groups/${groupId}/mutual-connects`),
   getConnections: () =>
@@ -323,27 +338,9 @@ export const api = {
         city: string | null;
         meetupAt: number | null;
         formedAt: number;
-        mutualConnects: {
-          id: string;
-          nickname: string | null;
-          personalityTraits: string[];
-        }[];
+        mutualConnects: ApiMutualConnect[];
       }[];
     }>(`/groups/connections`),
-
-  // Contact Exchange
-  shareContact: (body: { groupId: string; toUserId: string; contactValue: string }) =>
-    req<{ ok: boolean }>("/connections/exchange", { method: "POST", body }),
-  getExchanges: () =>
-    req<{
-      exchanges: {
-        groupId: string;
-        theirUserId: string;
-        theirNickname: string | null;
-        myContactValue: string | null;
-        theirContactValue: string | null;
-      }[];
-    }>("/connections/exchanges"),
 
   // Feedback
   submitFeedback: (body: {

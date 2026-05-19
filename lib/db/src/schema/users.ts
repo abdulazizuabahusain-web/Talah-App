@@ -46,8 +46,13 @@ export const usersTable = pgTable(
     interactionScore: integer("interaction_score"),
     opennessScore: integer("openness_score"),
     boundaryScore: integer("boundary_score"),
+    // Contact info — private; only revealed to mutual connects
+    contactPhone: text("contact_phone"),
+    instagram: text("instagram"),
+    snapchat: text("snapchat"),
+    twitter: text("twitter"),
+    tiktok: text("tiktok"),
     // Safety
-    // blockedUserIds: list of user IDs this user has blocked — they will never be co-matched
     blockedUserIds: text("blocked_user_ids").array().notNull().default([]),
     // Push notifications — Expo push token, registered on device at app start
     expoPushToken: text("expo_push_token"),
