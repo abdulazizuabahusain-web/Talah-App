@@ -1,8 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Clipboard,
   Linking,
   Platform,
@@ -257,9 +258,30 @@ function MutualConnectCard({ member }: { member: ApiMutualConnect }) {
   const colors = useColors();
   const t = useT();
   const { currentUser } = useApp();
+  const [expanded, setExpanded] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const chevronAnim = useRef(new Animated.Value(0)).current;
 
   const isOwnProfile = currentUser?.id === member.id;
+
+  const filledPlatforms = PLATFORM_ITEMS.filter(
+    (p) => member[p.key] && String(member[p.key]).trim().length > 0,
+  );
+
+  const toggle = () => {
+    const toValue = expanded ? 0 : 1;
+    setExpanded((v) => !v);
+    Animated.timing(chevronAnim, {
+      toValue,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const chevronRotate = chevronAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "180deg"],
+  });
 
   const handleCopy = (val: string, key: string) => {
     Clipboard.setString(val);
@@ -269,53 +291,107 @@ function MutualConnectCard({ member }: { member: ApiMutualConnect }) {
 
   const handleOpen = (platform: PlatformItem, val: string) => {
     if (!platform.buildUrl) return;
-    const url = platform.buildUrl(val);
-    Linking.openURL(url).catch(() => {});
+    Linking.openURL(platform.buildUrl(val)).catch(() => {});
   };
 
-  const filledPlatforms = PLATFORM_ITEMS.filter(
-    (p) => member[p.key] && String(member[p.key]).trim().length > 0,
-  );
-
   return (
-    <Card style={{ backgroundColor: colors.primary + "06", borderColor: colors.primary + "20" }}>
-      <View style={{ gap: 14 }}>
-        {/* Member header */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <View
-            style={{
-              width: 46,
-              height: 46,
-              borderRadius: 23,
-              backgroundColor: colors.primary + "22",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <AppText variant="title" weight="bold" color={colors.primary}>
-              {(member.nickname ?? "?").charAt(0)}
-            </AppText>
-          </View>
-          <View style={{ flex: 1, gap: 3 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <AppText variant="body" weight="semibold">
-                {member.nickname ?? t("anonymous")}
-              </AppText>
-              <Feather name="check-circle" size={14} color={colors.primary} />
-            </View>
-            {member.personalityTraits.length > 0 && (
-              <AppText variant="bodySmall" color={colors.mutedForeground} numberOfLines={1}>
-                {member.personalityTraits.slice(0, 3).join(" · ")}
-              </AppText>
-            )}
-          </View>
-          <Feather name="link" size={15} color={colors.primary} />
+    <Card
+      style={{
+        backgroundColor: expanded ? colors.primary + "08" : colors.card,
+        borderColor: expanded ? colors.primary + "30" : colors.border,
+        padding: 0,
+        overflow: "hidden",
+      }}
+    >
+      {/* ── Tappable header ── */}
+      <Pressable
+        onPress={toggle}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          padding: 14,
+        }}
+      >
+        {/* Avatar */}
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: colors.primary + "22",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <AppText variant="title" weight="bold" color={colors.primary}>
+            {(member.nickname ?? "?").charAt(0)}
+          </AppText>
         </View>
 
-        {/* Contact cards */}
-        {filledPlatforms.length > 0 ? (
-          <View style={{ gap: 8 }}>
-            {filledPlatforms.map((platform) => {
+        {/* Name + traits */}
+        <View style={{ flex: 1, gap: 3 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <AppText variant="body" weight="semibold">
+              {member.nickname ?? t("anonymous")}
+            </AppText>
+            <Feather name="check-circle" size={14} color={colors.primary} />
+          </View>
+          {member.personalityTraits.length > 0 && (
+            <AppText variant="bodySmall" color={colors.mutedForeground} numberOfLines={1}>
+              {member.personalityTraits.slice(0, 3).join(" · ")}
+            </AppText>
+          )}
+        </View>
+
+        {/* Platform dot previews when collapsed */}
+        {!expanded && filledPlatforms.length > 0 && (
+          <View style={{ flexDirection: "row", gap: 4 }}>
+            {filledPlatforms.slice(0, 3).map((p) => (
+              <View
+                key={p.key}
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 6,
+                  backgroundColor: p.color + "22",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Feather name={p.icon} size={11} color={p.color} />
+              </View>
+            ))}
+            {filledPlatforms.length > 3 && (
+              <View
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 6,
+                  backgroundColor: colors.muted,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <AppText variant="caption" color={colors.mutedForeground}>
+                  +{filledPlatforms.length - 3}
+                </AppText>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Animated chevron */}
+        <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
+          <Feather name="chevron-down" size={16} color={colors.mutedForeground} />
+        </Animated.View>
+      </Pressable>
+
+      {/* ── Expanded contact rows ── */}
+      {expanded && (
+        <View style={{ paddingHorizontal: 12, paddingBottom: 14, gap: 8 }}>
+          {filledPlatforms.length > 0 ? (
+            filledPlatforms.map((platform) => {
               const val = String(member[platform.key]);
               const display =
                 platform.key === "contactPhone"
@@ -328,7 +404,7 @@ function MutualConnectCard({ member }: { member: ApiMutualConnect }) {
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 10,
-                    padding: 12,
+                    padding: 11,
                     borderRadius: 12,
                     backgroundColor: colors.background,
                     borderWidth: 1,
@@ -337,15 +413,15 @@ function MutualConnectCard({ member }: { member: ApiMutualConnect }) {
                 >
                   <View
                     style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
+                      width: 32,
+                      height: 32,
+                      borderRadius: 9,
                       backgroundColor: platform.color + "18",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <Feather name={platform.icon} size={16} color={platform.color} />
+                    <Feather name={platform.icon} size={15} color={platform.color} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <AppText variant="caption" color={colors.mutedForeground}>
@@ -355,38 +431,41 @@ function MutualConnectCard({ member }: { member: ApiMutualConnect }) {
                       {display}
                     </AppText>
                   </View>
-                  <View style={{ flexDirection: "row", gap: 8 }}>
+                  <View style={{ flexDirection: "row", gap: 6 }}>
                     {platform.buildUrl && (
                       <Pressable
                         onPress={() => handleOpen(platform, val)}
                         hitSlop={8}
                         style={{
-                          width: 32,
-                          height: 32,
+                          width: 30,
+                          height: 30,
                           borderRadius: 8,
                           backgroundColor: platform.color + "15",
                           alignItems: "center",
                           justifyContent: "center",
                         }}
                       >
-                        <Feather name="external-link" size={14} color={platform.color} />
+                        <Feather name="external-link" size={13} color={platform.color} />
                       </Pressable>
                     )}
                     <Pressable
                       onPress={() => handleCopy(val, platform.key)}
                       hitSlop={8}
                       style={{
-                        width: 32,
-                        height: 32,
+                        width: 30,
+                        height: 30,
                         borderRadius: 8,
-                        backgroundColor: colors.muted,
+                        backgroundColor:
+                          copiedKey === platform.key
+                            ? colors.primary + "18"
+                            : colors.muted,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
                       <Feather
                         name={copiedKey === platform.key ? "check" : "copy"}
-                        size={14}
+                        size={13}
                         color={
                           copiedKey === platform.key
                             ? colors.primary
@@ -397,46 +476,46 @@ function MutualConnectCard({ member }: { member: ApiMutualConnect }) {
                   </View>
                 </View>
               );
-            })}
-          </View>
-        ) : isOwnProfile ? null : (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              padding: 12,
-              borderRadius: 12,
-              backgroundColor: colors.muted,
-            }}
-          >
-            <Feather name="info" size={14} color={colors.mutedForeground} />
-            <AppText variant="bodySmall" color={colors.mutedForeground} style={{ flex: 1 }}>
-              {t("contact_not_added_yet").replace("{{name}}", member.nickname ?? "…")}
-            </AppText>
-          </View>
-        )}
+            })
+          ) : isOwnProfile ? null : (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                padding: 12,
+                borderRadius: 12,
+                backgroundColor: colors.muted,
+              }}
+            >
+              <Feather name="info" size={14} color={colors.mutedForeground} />
+              <AppText variant="bodySmall" color={colors.mutedForeground} style={{ flex: 1 }}>
+                {t("contact_not_added_yet").replace("{{name}}", member.nickname ?? "…")}
+              </AppText>
+            </View>
+          )}
 
-        {/* Nudge to fill own contact info if viewing own card somehow — shouldn't normally appear */}
-        {isOwnProfile && !hasAnyContact(member) && (
-          <Pressable
-            onPress={() => router.push("/edit-contact")}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              padding: 12,
-              borderRadius: 12,
-              backgroundColor: colors.accent + "12",
-            }}
-          >
-            <Feather name="plus-circle" size={15} color={colors.accent} />
-            <AppText variant="bodySmall" color={colors.accent} style={{ flex: 1 }}>
-              {t("contact_add_yours")}
-            </AppText>
-          </Pressable>
-        )}
-      </View>
+          {/* Nudge own card */}
+          {isOwnProfile && !hasAnyContact(member) && (
+            <Pressable
+              onPress={() => router.push("/edit-contact")}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                padding: 12,
+                borderRadius: 12,
+                backgroundColor: colors.accent + "12",
+              }}
+            >
+              <Feather name="plus-circle" size={15} color={colors.accent} />
+              <AppText variant="bodySmall" color={colors.accent} style={{ flex: 1 }}>
+                {t("contact_add_yours")}
+              </AppText>
+            </Pressable>
+          )}
+        </View>
+      )}
     </Card>
   );
 }
