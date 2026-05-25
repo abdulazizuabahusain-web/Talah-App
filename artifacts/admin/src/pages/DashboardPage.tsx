@@ -18,7 +18,7 @@ type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "rep
 const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "analytics", label: "Analytics", emoji: "📈" },
   { id: "users", label: "Users", emoji: "👤" },
-  { id: "type-requests", label: "Type Requests", emoji: "🔄" },
+  // { id: "type-requests", label: "Type Requests", emoji: "🔄" }, // hidden until change-request flow is activated
   { id: "requests", label: "Requests", emoji: "📋" },
   { id: "groups", label: "Groups", emoji: "🫂" },
   { id: "compatibility", label: "Compatibility", emoji: "⚡" },
@@ -350,6 +350,7 @@ export default function DashboardPage({ onLogout }: Props) {
                 {flaggedUsers} flagged
               </span>
             )}
+            {/* type-change badge hidden until flow is activated
             {pendingTypeChanges > 0 && (
               <button
                 onClick={() => setTab("type-requests")}
@@ -358,6 +359,7 @@ export default function DashboardPage({ onLogout }: Props) {
                 🔄 {pendingTypeChanges} type change{pendingTypeChanges !== 1 ? "s" : ""}
               </button>
             )}
+            */}
 
             {/* GitHub Sync + PAT — mobile: collapsed icon button; desktop: full badges */}
 
@@ -647,12 +649,14 @@ export default function DashboardPage({ onLogout }: Props) {
             {tab === "analytics" && <AnalyticsTab />}
             {tab === "audit" && <AuditTab />}
             {tab === "surveys" && <SurveysTab />}
+            {/* type-requests tab hidden until flow is activated
             {tab === "type-requests" && (
               <TalahTypeRequestsTab
                 requests={data.typeChangeRequests}
                 onRefresh={() => load(true)}
               />
             )}
+            */}
           </>
         )}
       </div>

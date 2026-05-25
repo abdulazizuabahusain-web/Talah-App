@@ -447,24 +447,24 @@ export default function EditPreferencesScreen() {
 
           <View style={{ height: 1, backgroundColor: colors.border }} />
 
-          {/* Pending / rejected / approved status badge */}
-          {!loadingRequest && pendingRequest && (
+          {/* Pending / rejected / approved status badge — hidden until change-request flow is activated */}
+          {false && !loadingRequest && pendingRequest && (
             <View
               style={{
                 margin: 12,
                 padding: 12,
                 borderRadius: 12,
                 backgroundColor:
-                  pendingRequest.status === "pending"
+                  pendingRequest?.status === "pending"
                     ? "#F59E0B15"
-                    : pendingRequest.status === "rejected"
+                    : pendingRequest?.status === "rejected"
                       ? colors.destructive + "12"
                       : colors.primary + "12",
                 borderWidth: 1,
                 borderColor:
-                  pendingRequest.status === "pending"
+                  pendingRequest?.status === "pending"
                     ? "#F59E0B40"
-                    : pendingRequest.status === "rejected"
+                    : pendingRequest?.status === "rejected"
                       ? colors.destructive + "40"
                       : colors.primary + "40",
                 flexDirection: "row",
@@ -474,17 +474,17 @@ export default function EditPreferencesScreen() {
             >
               <Feather
                 name={
-                  pendingRequest.status === "pending"
+                  pendingRequest?.status === "pending"
                     ? "clock"
-                    : pendingRequest.status === "rejected"
+                    : pendingRequest?.status === "rejected"
                       ? "x-circle"
                       : "check-circle"
                 }
                 size={16}
                 color={
-                  pendingRequest.status === "pending"
+                  pendingRequest?.status === "pending"
                     ? "#F59E0B"
-                    : pendingRequest.status === "rejected"
+                    : pendingRequest?.status === "rejected"
                       ? colors.destructive
                       : colors.primary
                 }
@@ -494,32 +494,32 @@ export default function EditPreferencesScreen() {
                   variant="caption"
                   weight="semibold"
                   color={
-                    pendingRequest.status === "pending"
+                    pendingRequest?.status === "pending"
                       ? "#B45309"
-                      : pendingRequest.status === "rejected"
+                      : pendingRequest?.status === "rejected"
                         ? colors.destructive
                         : colors.primary
                   }
                 >
                   {t(
-                    pendingRequest.status === "pending"
+                    pendingRequest?.status === "pending"
                       ? "type_change_pending_badge"
-                      : pendingRequest.status === "rejected"
+                      : pendingRequest?.status === "rejected"
                         ? "type_change_rejected_badge"
                         : "type_change_approved_badge",
                   )}
                 </AppText>
-                {pendingRequest.adminNotes ? (
+                {pendingRequest?.adminNotes ? (
                   <AppText variant="caption" color={colors.mutedForeground} style={{ marginTop: 2 }}>
-                    {pendingRequest.adminNotes}
+                    {pendingRequest?.adminNotes}
                   </AppText>
                 ) : null}
               </View>
             </View>
           )}
 
-          {/* Request change button — only shown if no pending request */}
-          {!loadingRequest && pendingRequest?.status !== "pending" && (
+          {/* Request change button — hidden until change-request flow is activated */}
+          {false && !loadingRequest && pendingRequest?.status !== "pending" && (
             <Pressable
               onPress={() => setShowTypeModal(true)}
               style={({ pressed }) => ({
