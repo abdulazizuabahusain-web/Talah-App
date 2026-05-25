@@ -134,31 +134,14 @@ export interface User {
   nickname: string | null;
   gender: string | null;
   city: string | null;
-  ageRange: string | null;
-  lifestyle: string | null;
+  lifeStage: string | null;
   interests: string[];
-  personality: string | null;
   preferredMeetup: string | null;
-  preferredDays: string[];
-  preferredTimes: string[];
-  funFact: string | null;
   socialEnergy: string | null;
   conversationStyle: string | null;
-  enjoyedTopics: string[];
-  socialIntent: string | null;
-  planningPreference: string | null;
-  meetupAtmosphere: string | null;
-  interactionPreference: string | null;
   personalityTraits: string[];
-  opennessLevel: string | null;
-  socialBoundary: string | null;
   socialEnergyScore: number | null;
   conversationDepthScore: number | null;
-  planningScore: number | null;
-  atmosphereScore: number | null;
-  interactionScore: number | null;
-  opennessScore: number | null;
-  boundaryScore: number | null;
   onboarded: boolean;
   verified: boolean;
   flagged: boolean;
@@ -166,6 +149,24 @@ export interface User {
   blockedUserIds: string[] | null;
   expoPushToken: string | null;
   createdAt: string;
+  // @deprecated — kept for display of legacy data
+  ageRange: string | null;
+  lifestyle: string | null;
+  preferredDays: string[];
+  preferredTimes: string[];
+  funFact: string | null;
+  enjoyedTopics: string[];
+  socialIntent: string | null;
+  planningPreference: string | null;
+  meetupAtmosphere: string | null;
+  interactionPreference: string | null;
+  opennessLevel: string | null;
+  socialBoundary: string | null;
+  planningScore: number | null;
+  atmosphereScore: number | null;
+  interactionScore: number | null;
+  opennessScore: number | null;
+  boundaryScore: number | null;
 }
 
 export interface MeetupRequest {

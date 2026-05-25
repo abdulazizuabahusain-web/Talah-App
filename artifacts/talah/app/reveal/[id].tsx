@@ -165,11 +165,11 @@ export default function RevealScreen() {
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                     {(m.personalityTraits && m.personalityTraits.length > 0
                       ? m.personalityTraits.slice(0, 3)
-                      : [m.personality]
+                      : (m.personality ? [m.personality] : [])
                     ).map((trait) => (
-                      <Chip key={trait} label={t(TRAIT_KEY[trait] ?? `pers_${trait}`)} size="sm" tone="accent" />
+                      <Chip key={trait} label={t(TRAIT_KEY[trait ?? ""] ?? `pers_${trait}`)} size="sm" tone="accent" />
                     ))}
-                    <Chip label={m.ageRange} size="sm" />
+                    {m.ageRange ? <Chip label={m.ageRange} size="sm" /> : null}
                   </View>
 
                   {m.funFact ? (

@@ -120,54 +120,158 @@ export const STRINGS: Dict = {
   },
   step_of: { ar: "من", en: "of" },
 
+  // Step 0 — Nickname
   q_nickname: {
-    ar: "ما اسمك أو اسمك المستعار؟",
-    en: "What's your name or nickname?",
+    ar: "وش نقدر نسميك؟ ✨",
+    en: "What should we call you? ✨",
   },
-  nickname_placeholder: { ar: "اكتب اسمك", en: "Type your name" },
+  nickname_placeholder: { ar: "اكتب اسمك أو لقبك", en: "Your name or nickname" },
 
-  q_gender: { ar: "إلى أي مجموعة تنتمي؟", en: "Which group do you belong to?" },
-  gender_woman: { ar: "نساء فقط", en: "Women-only" },
-  gender_man: { ar: "رجال فقط", en: "Men-only" },
+  // Step 1 — Tal'ah Type (gender)
+  q_gender: {
+    ar: "نوع الطلعة المناسبة لك",
+    en: "Which Tal'ah experience fits you?",
+  },
+  gender_woman: { ar: "طلعات نساء", en: "Women-only Tal'ahs" },
+  gender_man: { ar: "طلعات رجال", en: "Men-only Tal'ahs" },
   gender_note: {
-    ar: "تختلط النساء بنساء فقط، والرجال برجال فقط.",
-    en: "Women meet women, and men meet men.",
+    ar: "طلعة توفر حالياً لقاءات منفصلة للنساء والرجال",
+    en: "Tal'ah currently offers separate gatherings for women and men",
   },
 
-  q_city: { ar: "ما مدينتك؟", en: "What's your city?" },
+  // Step 2 — City
+  q_city: { ar: "وين تسكن؟", en: "Where do you live?" },
+  city_other: { ar: "مدينة أخرى", en: "Other city" },
+  city_other_placeholder: { ar: "اكتب اسم مدينتك", en: "Type your city name" },
 
+  // Step 3 — Life Stage
+  q_life_stage: {
+    ar: "أي مرحلة قريبة لك أكثر؟",
+    en: "Which stage feels closest to you?",
+  },
+  life_stage_university: {
+    ar: "جامعة أو بداية المشوار",
+    en: "University or early journey",
+  },
+  life_stage_early_career: { ar: "بداية الحياة المهنية", en: "Early career" },
+  life_stage_established: { ar: "مستقر مهنيًا", en: "Professionally established" },
+  life_stage_family: { ar: "عندي عائلة أو أطفال", en: "Have family or kids" },
+  life_stage_prefer_not: { ar: "أفضّل عدم التحديد", en: "Prefer not to say" },
+
+  // Step 4 — Interests
+  q_interests: { ar: "شو اهتماماتك؟", en: "What are your interests?" },
+  q_interests_hint: { ar: "اختر بين ٣ و٥", en: "Pick 3 to 5" },
+
+  // Interest category labels
+  cat_food_coffee: { ar: "الأكل والكوفي", en: "Food & Coffee" },
+  cat_wellness: { ar: "الصحة والرفاهية", en: "Wellness" },
+  cat_creativity: { ar: "الإبداع والهوايات", en: "Creativity & Hobbies" },
+  cat_life: { ar: "الحياة والتجارب", en: "Life & Experiences" },
+  cat_entertainment: { ar: "الترفيه", en: "Entertainment" },
+  cat_outdoor: { ar: "الأنشطة الخارجية", en: "Outdoor" },
+
+  // Interest options
+  int_coffee: { ar: "كوفي", en: "Coffee" },
+  int_restaurants: { ar: "مطاعم وتجارب", en: "Restaurants" },
+  int_cooking: { ar: "طبخ", en: "Cooking" },
+  int_desserts: { ar: "حلويات ومخبوزات", en: "Desserts & baking" },
+  int_fitness: { ar: "رياضة ولياقة", en: "Fitness" },
+  int_walking: { ar: "مشي", en: "Walking" },
+  int_wellness: { ar: "صحة وعافية", en: "Wellness" },
+  int_yoga: { ar: "يوغا وتأمل", en: "Yoga & meditation" },
+  int_photography: { ar: "تصوير", en: "Photography" },
+  int_art: { ar: "فن وتصميم", en: "Art & design" },
+  int_writing: { ar: "كتابة وقراءة", en: "Writing & reading" },
+  int_music: { ar: "موسيقى", en: "Music" },
+  int_travel: { ar: "سفر", en: "Travel" },
+  int_social_convos: { ar: "جلسات وسوالف", en: "Social conversations" },
+  int_self_development: { ar: "تطوير الذات", en: "Self-development" },
+  int_business: { ar: "أعمال وريادة", en: "Business & entrepreneurship" },
+  int_movies: { ar: "أفلام ومسلسلات", en: "Movies & series" },
+  int_games: { ar: "ألعاب", en: "Games" },
+  int_anime: { ar: "أنمي ومانجا", en: "Anime & manga" },
+  int_hiking: { ar: "هايكنق", en: "Hiking" },
+  int_sea_outdoor: { ar: "بحر وأنشطة خارجية", en: "Sea & outdoor" },
+  int_camping: { ar: "كشتات وتخييم", en: "Camping" },
+
+  // Legacy interest keys kept for backward compat
+  int_books: { ar: "كتب", en: "Books" },
+  int_food: { ar: "طعام", en: "Food" },
+  int_outdoor: { ar: "هواء طلق", en: "Outdoor" },
+
+  // Step 5 — Meetup Type
+  q_meetup: { ar: "تفضّل إيش في الطلعة؟", en: "What's your preferred meetup?" },
+  meet_coffee: { ar: "☕ قهوة", en: "☕ Coffee" },
+  meet_dinner: { ar: "🍽 عشاء", en: "🍽 Dinner" },
+
+  // ── Section 2 banner (steps 6-8)
+  vibe_section_banner: {
+    ar: "خلّنا نتعرف على جوّك أكثر ✨",
+    en: "Let's get to know your vibe a little better ✨",
+  },
+
+  // Step 6 — Social Energy
+  q_social_energy: {
+    ar: "كيف تكون عادةً مع ناس جدد؟",
+    en: "How are you usually with new people?",
+  },
+  se_very_social: { ar: "أندمج بسرعة 🔥", en: "I open up quickly 🔥" },
+  se_friendly_balanced: { ar: "اجتماعي ومتوازن ✌️", en: "Social and balanced ✌️" },
+  se_quiet_open_later: { ar: "أحتاج وقت بالبداية 🌱", en: "I need some time at first 🌱" },
+  se_prefer_listening: { ar: "أفضّل أسمع أكثر 🎧", en: "I prefer listening more 🎧" },
+
+  // Step 7 — Conversation Style
+  q_conversation_style: {
+    ar: "تحب الأحاديث تكون كيف؟",
+    en: "What kind of conversations do you enjoy?",
+  },
+  cs_light_fun: { ar: "خفيفة ووناسة 😄", en: "Light and fun 😄" },
+  cs_balanced: { ar: "بين كذا وكذا 🙂", en: "A bit of both 🙂" },
+  cs_deep_meaningful: { ar: "عميقة شوي 🌊", en: "A bit deeper 🌊" },
+
+  // Step 8 — Personality Traits
+  q_personality_traits: {
+    ar: "وش أكثر شيء يشبهك؟",
+    en: "What describes you most?",
+  },
+  q_personality_traits_hint: { ar: "اختر ١ أو ٢", en: "Pick 1 or 2" },
+  // Gender-adaptive labels are handled in the component; these are fallbacks
+  pt_calm: { ar: "هادئ", en: "Calm" },
+  pt_social: { ar: "اجتماعي", en: "Social" },
+  pt_curious: { ar: "فضولي", en: "Curious" },
+  pt_energetic: { ar: "نشيط", en: "Energetic" },
+  pt_funny: { ar: "مرح", en: "Funny" },
+  pt_creative: { ar: "مبدع", en: "Creative" },
+  // Legacy trait keys kept for backward compat
+  pt_thoughtful: { ar: "مفكّر/ة", en: "Thoughtful" },
+  pt_organized: { ar: "منظّم/ة", en: "Organized" },
+
+  // Completion screen
+  onboarding_complete_title: { ar: "خلصنا ✨", en: "You're all set ✨" },
+  onboarding_complete_sub: {
+    ar: "الحين تقدر تطلب أول طلعة لك",
+    en: "You can now request your first Tal'ah",
+  },
+  onboarding_complete_desc: {
+    ar: "اختر نوع اللقاء والوقت المناسب، وخلّي طلعة ترتب لك المجموعة",
+    en: "Choose the meetup type and time, and Tal'ah will arrange your group",
+  },
+  onboarding_complete_cta: { ar: "طلب أول طلعة", en: "Request first Tal'ah" },
+
+  // Deprecated onboarding strings — kept for legacy screens
   q_age: { ar: "كم عمرك؟", en: "Your age range" },
-
   q_lifestyle: { ar: "أسلوب حياتك", en: "Lifestyle" },
   ls_employee: { ar: "موظف/ـة", en: "Employee" },
   ls_student: { ar: "طالب/ـة", en: "Student" },
   ls_parent: { ar: "والد/ـة", en: "Parent" },
   ls_entrepreneur: { ar: "ريادي/ـة", en: "Entrepreneur" },
   ls_other: { ar: "أخرى", en: "Other" },
-
-  q_interests: { ar: "اهتماماتك", en: "Your interests" },
-  q_interests_hint: { ar: "اختر ٣ على الأقل", en: "Pick at least 3" },
-  int_coffee: { ar: "قهوة", en: "Coffee" },
-  int_books: { ar: "كتب", en: "Books" },
-  int_fitness: { ar: "رياضة", en: "Fitness" },
-  int_wellness: { ar: "صحة وعافية", en: "Wellness" },
-  int_art: { ar: "فنون", en: "Art" },
-  int_business: { ar: "أعمال", en: "Business" },
-  int_food: { ar: "طعام", en: "Food" },
-  int_outdoor: { ar: "هواء طلق", en: "Outdoor" },
-  int_self_development: { ar: "تطوير الذات", en: "Self-development" },
-
   q_personality: { ar: "شخصيتك تميل إلى...", en: "Your personality" },
   pers_calm: { ar: "هادئ/ـة", en: "Calm" },
   pers_social: { ar: "اجتماعي/ـة", en: "Social" },
   pers_curious: { ar: "فضولي/ـة", en: "Curious" },
   pers_active: { ar: "نشيط/ـة", en: "Active" },
   pers_creative: { ar: "مبدع/ـة", en: "Creative" },
-
-  q_meetup: { ar: "نوع اللقاء المفضّل", en: "Preferred meetup" },
-  meet_coffee: { ar: "قهوة", en: "Coffee" },
-  meet_dinner: { ar: "عشاء", en: "Dinner" },
-
   q_days: { ar: "الأيام المناسبة", en: "Days that work for you" },
   q_times: { ar: "الأوقات المفضّلة", en: "Preferred times" },
   day_sat: { ar: "السبت", en: "Sat" },
@@ -180,148 +284,44 @@ export const STRINGS: Dict = {
   time_morning: { ar: "صباحًا", en: "Morning" },
   time_afternoon: { ar: "بعد الظهر", en: "Afternoon" },
   time_evening: { ar: "مساءً", en: "Evening" },
-
   q_funfact: { ar: "حقيقة طريفة عنك", en: "A fun fact about you" },
   funfact_placeholder: {
     ar: "مثال: أحب التحميص اليدوي للقهوة",
     en: "e.g. I roast my own coffee at home",
   },
-
-  // ── NEW: Personality & Compatibility Questions ──────────────────────
-  q_social_energy: {
-    ar: "مستوى طاقتك الاجتماعية",
-    en: "Your social energy level",
-  },
-  se_very_social: {
-    ar: "اجتماعي/ـة جداً ومحب/ـة للحديث",
-    en: "Very social and talkative",
-  },
-  se_friendly_balanced: { ar: "ودود/ة ومتوازن/ة", en: "Friendly and balanced" },
-  se_quiet_open_later: {
-    ar: "هادئ/ـة في البداية، أنفتح لاحقاً",
-    en: "Quiet at first, open later",
-  },
-  se_prefer_listening: {
-    ar: "أفضّل الاستماع أكثر من الكلام",
-    en: "Prefer listening more than talking",
-  },
-
-  q_conversation_style: {
-    ar: "أسلوب حديثك المفضّل",
-    en: "Preferred conversation style",
-  },
-  cs_light_fun: { ar: "خفيف وممتع", en: "Light and fun" },
-  cs_balanced: { ar: "متوازن", en: "Balanced" },
-  cs_deep_meaningful: { ar: "عميق وذو معنى", en: "Deep and meaningful" },
-
   q_enjoyed_topics: { ar: "المواضيع التي تستمتع بها", en: "Topics you enjoy" },
-  q_enjoyed_topics_hint: {
-    ar: "اختر واحداً أو أكثر",
-    en: "Select one or more",
-  },
+  q_enjoyed_topics_hint: { ar: "اختر واحداً أو أكثر", en: "Select one or more" },
   et_daily_life: { ar: "الحياة اليومية", en: "Daily life" },
   et_work_ambition: { ar: "العمل والطموح", en: "Work & ambition" },
-  et_family_relationships: {
-    ar: "الأسرة والعلاقات",
-    en: "Family & relationships",
-  },
+  et_family_relationships: { ar: "الأسرة والعلاقات", en: "Family & relationships" },
   et_travel: { ar: "السفر", en: "Travel" },
-  et_wellness_growth: {
-    ar: "الصحة والتطوير الذاتي",
-    en: "Wellness & self-growth",
-  },
-  et_hobbies_activities: {
-    ar: "الهوايات والأنشطة",
-    en: "Hobbies & activities",
-  },
-
+  et_wellness_growth: { ar: "الصحة والتطوير الذاتي", en: "Wellness & self-growth" },
+  et_hobbies_activities: { ar: "الهوايات والأنشطة", en: "Hobbies & activities" },
   q_social_intent: { ar: "ما الذي تبحث عنه؟", en: "What are you looking for?" },
   si_new_friends: { ar: "صداقات جديدة", en: "New friends" },
-  si_expand_circle: {
-    ar: "توسيع دائرتي الاجتماعية",
-    en: "Expanding my social circle",
-  },
-  si_casual_conversations: {
-    ar: "محادثات غير رسمية",
-    en: "Casual conversations",
-  },
-  si_long_term_connections: {
-    ar: "علاقات اجتماعية طويلة الأمد",
-    en: "Long-term meaningful connections",
-  },
-
-  q_planning_preference: {
-    ar: "كيف تفضّل التخطيط؟",
-    en: "Planning preference",
-  },
+  si_expand_circle: { ar: "توسيع دائرتي الاجتماعية", en: "Expanding my social circle" },
+  si_casual_conversations: { ar: "محادثات غير رسمية", en: "Casual conversations" },
+  si_long_term_connections: { ar: "علاقات اجتماعية طويلة الأمد", en: "Long-term meaningful connections" },
+  q_planning_preference: { ar: "كيف تفضّل التخطيط؟", en: "Planning preference" },
   pp_structured: { ar: "منظّم ومحدد", en: "Structured" },
   pp_flexible: { ar: "مرن", en: "Flexible" },
   pp_spontaneous: { ar: "عفوي وتلقائي", en: "Spontaneous" },
-
-  q_meetup_atmosphere: {
-    ar: "أجواء اللقاء المفضّلة",
-    en: "Preferred meetup atmosphere",
-  },
+  q_meetup_atmosphere: { ar: "أجواء اللقاء المفضّلة", en: "Preferred meetup atmosphere" },
   ma_calm_relaxed: { ar: "هادئة ومريحة", en: "Calm and relaxed" },
   ma_moderate_energy: { ar: "نشاط معتدل", en: "Moderate energy" },
-  ma_lively_energetic: {
-    ar: "حيوية ونابضة بالحياة",
-    en: "Lively and energetic",
-  },
-
-  q_interaction_preference: {
-    ar: "كيف تفضّل التفاعل؟",
-    en: "Interaction preference",
-  },
+  ma_lively_energetic: { ar: "حيوية ونابضة بالحياة", en: "Lively and energetic" },
+  q_interaction_preference: { ar: "كيف تفضّل التفاعل؟", en: "Interaction preference" },
   ip_mostly_conversation: { ar: "محادثة في الغالب", en: "Mostly conversation" },
-  ip_mix_conversation_activity: {
-    ar: "مزيج من المحادثة والنشاط الخفيف",
-    en: "A mix of conversation and light activity",
-  },
-  ip_activity_based: {
-    ar: "نشاط بالدرجة الأولى",
-    en: "Activity-based interaction",
-  },
-
-  q_personality_traits: {
-    ar: "أبرز سماتك الشخصية",
-    en: "Your personality traits",
-  },
-  q_personality_traits_hint: { ar: "اختر ٣ كحد أقصى", en: "Pick up to 3" },
-  pt_calm: { ar: "هادئ/ـة", en: "Calm" },
-  pt_social: { ar: "اجتماعي/ـة", en: "Social" },
-  pt_curious: { ar: "فضولي/ـة", en: "Curious" },
-  pt_thoughtful: { ar: "مفكّر/ة", en: "Thoughtful" },
-  pt_energetic: { ar: "نشيط/ـة", en: "Energetic" },
-  pt_funny: { ar: "مرح/ـة", en: "Funny" },
-  pt_organized: { ar: "منظّم/ة", en: "Organized" },
-  pt_creative: { ar: "مبدع/ـة", en: "Creative" },
-
-  q_openness_level: {
-    ar: "مدى انفتاحك مع أشخاص جدد",
-    en: "Openness with new people",
-  },
+  ip_mix_conversation_activity: { ar: "مزيج من المحادثة والنشاط الخفيف", en: "A mix of conversation and light activity" },
+  ip_activity_based: { ar: "نشاط بالدرجة الأولى", en: "Activity-based interaction" },
+  q_openness_level: { ar: "مدى انفتاحك مع أشخاص جدد", en: "Openness with new people" },
   ol_open_quickly: { ar: "أنفتح بسرعة", en: "Open up quickly" },
   ol_open_gradually: { ar: "أنفتح تدريجياً", en: "Open up gradually" },
-  ol_take_your_time: {
-    ar: "أحتاج وقتاً قبل الانفتاح",
-    en: "Prefer to take your time",
-  },
-
+  ol_take_your_time: { ar: "أحتاج وقتاً قبل الانفتاح", en: "Prefer to take your time" },
   q_social_boundary: { ar: "حدودك الاجتماعية", en: "Social comfort boundary" },
-  sb_very_relaxed: {
-    ar: "مريح/ـة جداً ومنفتح/ـة",
-    en: "Very relaxed and open",
-  },
-  sb_respectful_balanced: {
-    ar: "محترم/ـة ومتوازن/ة",
-    en: "Respectful and balanced",
-  },
-  sb_more_reserved: {
-    ar: "أكثر تحفظاً وخصوصية",
-    en: "More reserved and private",
-  },
-  // ────────────────────────────────────────────────────────────────────
+  sb_very_relaxed: { ar: "مريح/ـة جداً ومنفتح/ـة", en: "Very relaxed and open" },
+  sb_respectful_balanced: { ar: "محترم/ـة ومتوازن/ة", en: "Respectful and balanced" },
+  sb_more_reserved: { ar: "أكثر تحفظاً وخصوصية", en: "More reserved and private" },
 
   finish_onboarding: { ar: "إنهاء", en: "Finish" },
 

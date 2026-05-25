@@ -19,8 +19,11 @@ export const usersTable = pgTable(
     nickname: text("nickname"),
     gender: text("gender"), // 'woman' | 'man'
     city: text("city"),
-    ageRange: text("age_range"), // '18-24' | '25-29' | '30-34' | '35-44' | '45+'
-    lifestyle: text("lifestyle"), // 'employee' | 'student' | 'parent' | 'entrepreneur' | 'other'
+    lifeStage: text("life_stage"), // NEW: 'university_early' | 'early_career' | 'professionally_established' | 'have_family' | 'prefer_not_to_say'
+    // @deprecated — kept for backward compat; no longer collected in onboarding
+    ageRange: text("age_range"),
+    // @deprecated — kept for backward compat; no longer collected in onboarding
+    lifestyle: text("lifestyle"),
     interests: text("interests").array().notNull().default([]),
     personality: text("personality"), // 'calm' | 'social' | 'curious' | 'active' | 'creative'
     preferredMeetup: text("preferred_meetup"), // 'coffee' | 'dinner'

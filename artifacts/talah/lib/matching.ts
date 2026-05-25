@@ -6,43 +6,29 @@ export interface MatchCandidate {
   score: number;
 }
 
-const AGE_ORDER = ["18-24", "25-29", "30-34", "35-44", "45+"];
-
-export function ageDistance(a: User, b: User): number {
-  return Math.abs(AGE_ORDER.indexOf(a.ageRange) - AGE_ORDER.indexOf(b.ageRange));
-}
-
 export function sharedInterestCount(a: User, b: User): number {
   const setB = new Set(b.interests);
   return a.interests.filter((i) => setB.has(i)).length;
 }
 
-export function sharedTopicCount(a: User, b: User): number {
-  const at = a.enjoyedTopics ?? [];
-  const bt = new Set(b.enjoyedTopics ?? []);
-  return at.filter((t) => bt.has(t)).length;
-}
-
 export function scorePair(a: User, b: User): number {
   const interestScore = sharedInterestCount(a, b) * 3;
-  const topicScore = sharedTopicCount(a, b) * 2;
-  const ageScore = Math.max(0, 4 - ageDistance(a, b)) * 2;
-  const lifestyleScore = a.lifestyle === b.lifestyle ? 2 : 0;
-  const personalityScore = a.personality === b.personality ? 1 : 0;
 
-  const energyDiff = a.socialEnergyScore !== undefined && b.socialEnergyScore !== undefined
-    ? Math.abs(a.socialEnergyScore - b.socialEnergyScore)
-    : 0;
+  const energyDiff =
+    a.socialEnergyScore !== undefined && b.socialEnergyScore !== undefined
+      ? Math.abs(a.socialEnergyScore - b.socialEnergyScore)
+      : 0;
   const energyScore = energyDiff <= 1 ? 2 : energyDiff <= 2 ? 1 : 0;
 
-  const convDiff = a.conversationDepthScore !== undefined && b.conversationDepthScore !== undefined
-    ? Math.abs(a.conversationDepthScore - b.conversationDepthScore)
-    : 0;
+  const convDiff =
+    a.conversationDepthScore !== undefined && b.conversationDepthScore !== undefined
+      ? Math.abs(a.conversationDepthScore - b.conversationDepthScore)
+      : 0;
   const convScore = convDiff <= 1 ? 2 : 0;
 
-  const intentScore = a.socialIntent && b.socialIntent && a.socialIntent === b.socialIntent ? 2 : 0;
+  const lifeStageScore = a.lifeStage && b.lifeStage && a.lifeStage === b.lifeStage ? 2 : 0;
 
-  return interestScore + topicScore + ageScore + lifestyleScore + personalityScore + energyScore + convScore + intentScore;
+  return interestScore + energyScore + convScore + lifeStageScore;
 }
 
 export function findCandidatesFor(
@@ -51,7 +37,6 @@ export function findCandidatesFor(
   allUsers: User[],
   allRequests: TalahRequest[],
 ): MatchCandidate[] {
-  // Build mutual block sets — exclude anyone either party has blocked
   const requesterBlocked = new Set(requester.blockedUserIds ?? []);
 
   const candidates: MatchCandidate[] = [];
@@ -63,10 +48,8 @@ export function findCandidatesFor(
     if (!u) continue;
     if (u.gender !== requester.gender) continue;
     if (u.city !== requester.city) continue;
-    // Skip if either party has blocked the other
     if (requesterBlocked.has(u.id)) continue;
     if ((u.blockedUserIds ?? []).includes(requester.id)) continue;
-    // Skip flagged users — admin must clear them before they can be matched
     if (u.flagged) continue;
     const sameDate = r.preferredDate === request.preferredDate;
     const overlapTime = r.preferredTime === request.preferredTime;
@@ -82,22 +65,23 @@ export interface CompatibilityReport {
   label: "excellent" | "good" | "moderate" | "weak";
   genderOk: boolean;
   cityOk: boolean;
-  commonDays: string[];
-  commonTimes: string[];
-  availabilityOk: boolean;
   sharedInterests: string[];
   interestOverlapPct: number;
-  lifestyleAligned: boolean;
-  lifestyleNote: string;
   energyBalance: "balanced" | "too_high" | "too_low";
   energyNote: string;
   avgEnergyScore: number;
   convCompatible: boolean;
   convNote: string;
-  intentNote: string;
-  boundaryNote: string;
   warnings: string[];
   notes: string[];
+  // Kept for backward compat with display layer
+  commonDays: string[];
+  commonTimes: string[];
+  availabilityOk: boolean;
+  lifestyleAligned: boolean;
+  lifestyleNote: string;
+  intentNote: string;
+  boundaryNote: string;
 }
 
 export function calculateGroupCompatibility(users: User[]): CompatibilityReport {
@@ -110,37 +94,24 @@ export function calculateGroupCompatibility(users: User[]): CompatibilityReport 
   const cityOk = new Set(users.map((u) => u.city)).size === 1;
   if (!cityOk) warnings.push("Users are from different cities.");
 
-  const dayIntersection = users
-    .map((u) => new Set<string>(u.preferredDays))
-    .reduce<Set<string>>((acc, s) => new Set([...acc].filter((x) => s.has(x))), new Set<string>(users[0]?.preferredDays ?? []));
-  const commonDays = [...dayIntersection];
-
-  const timeIntersection = users
-    .map((u) => new Set<string>(u.preferredTimes))
-    .reduce<Set<string>>((acc, s) => new Set([...acc].filter((x) => s.has(x))), new Set<string>(users[0]?.preferredTimes ?? []));
-  const commonTimes = [...timeIntersection];
-
-  const availabilityOk = commonDays.length > 0 && commonTimes.length > 0;
-  if (!availabilityOk) warnings.push("No common availability window found.");
-
+  // Interest overlap (30% weight via interests, 20% meetup type)
   const allInterests = users.flatMap((u) => u.interests);
-  const allTopics = users.flatMap((u) => u.enjoyedTopics ?? []);
   const interestCounts = new Map<string, number>();
-  [...allInterests, ...allTopics].forEach((i) => interestCounts.set(i, (interestCounts.get(i) ?? 0) + 1));
+  allInterests.forEach((i) => interestCounts.set(i, (interestCounts.get(i) ?? 0) + 1));
   const sharedInterests = [...interestCounts.entries()]
     .filter(([, c]) => c >= Math.ceil(users.length / 2))
     .map(([k]) => k);
-
-  const uniqueInterests = new Set([...allInterests, ...allTopics]);
+  const uniqueInterests = new Set(allInterests);
   const interestOverlapPct = uniqueInterests.size > 0
     ? Math.round((sharedInterests.length / uniqueInterests.size) * 100)
     : 0;
 
-  const lifestyles = users.map((u) => u.lifestyle);
-  const uniqueLifestyles = new Set(lifestyles);
-  const lifestyleAligned = uniqueLifestyles.size === 1;
-  const lifestyleNote = lifestyleAligned ? "Lifestyles are aligned." : `Mixed lifestyles: ${[...uniqueLifestyles].join(", ")}.`;
+  // Meetup type alignment
+  const meetupTypes = new Set(users.map((u) => u.preferredMeetup));
+  const meetupAligned = meetupTypes.size === 1;
+  if (!meetupAligned) notes.push("Mixed meetup preferences (coffee vs dinner)");
 
+  // Social energy (15% weight)
   const energyScores = users.map((u) => u.socialEnergyScore ?? 0);
   const avgEnergyScore = energyScores.reduce((a, b) => a + b, 0) / energyScores.length;
   let energyBalance: CompatibilityReport["energyBalance"] = "balanced";
@@ -150,40 +121,44 @@ export function calculateGroupCompatibility(users: User[]): CompatibilityReport 
     energyNote = "Group may be too high-energy.";
   } else if (avgEnergyScore < -1) {
     energyBalance = "too_low";
-    energyNote = "Group may be too quiet/reserved.";
+    energyNote = "Group may be too quiet / reserved.";
   }
 
+  // Conversation style (10% weight)
   const convScores = users.map((u) => u.conversationDepthScore ?? 0);
   const convSpread = Math.max(...convScores) - Math.min(...convScores);
   const convCompatible = convSpread <= 1;
   const convNote = convCompatible
-    ? "Conversation style is reasonably aligned."
+    ? "Conversation style is aligned."
     : "Conversation depth may be mismatched.";
 
-  const intents = users.map((u) => u.socialIntent).filter(Boolean);
-  const intentCounts = new Map<string, number>();
-  intents.forEach((i) => intentCounts.set(i!, (intentCounts.get(i!) ?? 0) + 1));
-  const topIntent = [...intentCounts.entries()].sort((a, b) => b[1] - a[1])[0];
-  const intentAligned = topIntent ? topIntent[1] >= Math.ceil(users.length / 2) : false;
-  const intentNote = intentAligned ? `Most users share the same social intent.` : "Social intent is varied across the group.";
+  // Life stage (5% weight)
+  const lifeStages = new Set(users.map((u) => u.lifeStage).filter(Boolean));
+  const lifeStageAligned = lifeStages.size <= 2;
+  if (!lifeStageAligned) notes.push("Group spans many different life stages");
 
-  const boundaryScores = users.map((u) => u.boundaryScore ?? 0);
-  const hasVeryOpen = boundaryScores.some((s) => s >= 1);
-  const hasReserved = boundaryScores.some((s) => s <= -1);
-  const boundaryNote =
-    hasVeryOpen && hasReserved
-      ? "Caution: group includes both very open and reserved members."
-      : "Boundary styles are compatible.";
+  // Personality trait overlap (5% weight)
+  const allTraits = users.flatMap((u) => u.personalityTraits ?? []);
+  const traitCounts = new Map<string, number>();
+  allTraits.forEach((t) => traitCounts.set(t, (traitCounts.get(t) ?? 0) + 1));
+  const sharedTraits = [...traitCounts.entries()]
+    .filter(([, c]) => c >= 2)
+    .map(([k]) => k);
+  if (sharedTraits.length > 0) notes.push(`Shared traits: ${sharedTraits.join(", ")}`);
 
-  const hardScore =
-    ((genderOk ? 1 : 0) * 0.4 + (cityOk ? 1 : 0) * 0.4 + (availabilityOk ? 1 : 0) * 0.2) * 25;
-  const interestScore = (interestOverlapPct / 100) * 25;
-  const lifestyleScore = (lifestyleAligned ? 1 : 0.5) * 15;
-  const energyScore = energyBalance === "balanced" ? 15 : 7;
+  // Scoring per spec weights:
+  // 30% gender+city (hard requirements), 20% interests, 15% meetup, 15% energy, 10% conversation, 5% life stage, 5% personality
+  const hardScore = ((genderOk ? 0.5 : 0) + (cityOk ? 0.5 : 0)) * 30;
+  const interestScore = (interestOverlapPct / 100) * 20;
+  const meetupScore = (meetupAligned ? 1 : 0.5) * 15;
+  const energyScore = (energyBalance === "balanced" ? 1 : 0.5) * 15;
   const convScore = (convCompatible ? 1 : 0.5) * 10;
-  const intentBoundScore = (intentAligned ? 0.6 : 0.3 + (hasVeryOpen && hasReserved ? 0 : 0.4)) * 10;
+  const lifeStageScore = (lifeStageAligned ? 1 : 0.5) * 5;
+  const traitScore = (sharedTraits.length > 0 ? 1 : 0.5) * 5;
 
-  const overallScore = Math.round(hardScore + interestScore + lifestyleScore + energyScore + convScore + intentBoundScore);
+  const overallScore = Math.round(
+    hardScore + interestScore + meetupScore + energyScore + convScore + lifeStageScore + traitScore,
+  );
 
   let label: CompatibilityReport["label"] = "weak";
   if (overallScore >= 85) label = "excellent";
@@ -195,21 +170,22 @@ export function calculateGroupCompatibility(users: User[]): CompatibilityReport 
     label,
     genderOk,
     cityOk,
-    commonDays,
-    commonTimes,
-    availabilityOk,
     sharedInterests,
     interestOverlapPct,
-    lifestyleAligned,
-    lifestyleNote,
     energyBalance,
     energyNote,
     avgEnergyScore,
     convCompatible,
     convNote,
-    intentNote,
-    boundaryNote,
     warnings,
     notes,
+    // Backward compat fields (availability removed from onboarding)
+    commonDays: [],
+    commonTimes: [],
+    availabilityOk: true,
+    lifestyleAligned: true,
+    lifestyleNote: "",
+    intentNote: "",
+    boundaryNote: "",
   };
 }

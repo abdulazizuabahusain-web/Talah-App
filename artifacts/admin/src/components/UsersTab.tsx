@@ -1,50 +1,25 @@
 import { useState } from "react";
 import { api, type User } from "@/lib/api";
 
-// ── Matching notes — mirrors generateMatchingNotes() from the mobile lib/types.ts ──
 function generateMatchingNotes(u: User): string[] {
   const notes: string[] = [];
   if (u.socialEnergyScore !== null && u.socialEnergyScore !== undefined) {
     if (u.socialEnergyScore >= 2) notes.push("High-energy social user");
-    else if (u.socialEnergyScore <= -1) notes.push("Reserved user — best matched with a balanced group");
+    else if (u.socialEnergyScore <= -1) notes.push("Reserved — best matched with a balanced group");
   }
   if (u.conversationDepthScore !== null && u.conversationDepthScore !== undefined) {
-    if (u.conversationDepthScore >= 1) notes.push("Prefers deep conversations");
+    if (u.conversationDepthScore >= 1) notes.push("Prefers deeper conversations");
     else if (u.conversationDepthScore <= -1) notes.push("Prefers light and fun conversations");
-  }
-  if (u.atmosphereScore !== null && u.atmosphereScore !== undefined) {
-    if (u.atmosphereScore <= -1) notes.push("Prefers calm, relaxed meetups");
-    else if (u.atmosphereScore >= 1) notes.push("Enjoys lively, energetic atmospheres");
-  }
-  if (u.interactionScore !== null && u.interactionScore !== undefined) {
-    if (u.interactionScore >= 1) notes.push("Activity-oriented — prefers doing over talking");
-  }
-  if (u.boundaryScore !== null && u.boundaryScore !== undefined) {
-    if (u.boundaryScore <= -1) notes.push("Strong privacy preference — handle with care");
-  }
-  if (u.opennessScore !== null && u.opennessScore !== undefined) {
-    if (u.opennessScore <= -1) notes.push("Opens up slowly — needs a comfortable group");
-  }
-  if (u.socialIntent === "long_term_connections") {
-    notes.push("Best for long-term connection groups");
-  } else if (
-    u.socialIntent === "new_friends" ||
-    u.socialIntent === "expand_circle" ||
-    u.socialIntent === "casual_conversations"
-  ) {
-    notes.push("Best for casual / social-circle expansion groups");
   }
   return notes;
 }
 
-const SCORE_LABELS: Record<string, string> = {
-  socialEnergyScore: "Energy",
-  conversationDepthScore: "Conv.",
-  planningScore: "Plan",
-  atmosphereScore: "Atm.",
-  interactionScore: "Inter.",
-  opennessScore: "Open.",
-  boundaryScore: "Bound.",
+const LIFE_STAGE_LABELS: Record<string, string> = {
+  university_early: "University / Early journey",
+  early_career: "Early career",
+  professionally_established: "Professionally established",
+  have_family: "Has family / kids",
+  prefer_not_to_say: "Prefer not to say",
 };
 
 function ScoreBadge({ label, value }: { label: string; value: number | null }) {
@@ -59,13 +34,15 @@ function ScoreBadge({ label, value }: { label: string; value: number | null }) {
 
 function completionPct(u: User): number {
   const checks = [
-    !!u.nickname, !!u.city, !!u.gender, !!u.ageRange, !!u.lifestyle,
-    u.interests.length >= 3, !!u.personality, !!u.preferredMeetup,
-    u.preferredDays.length > 0, u.preferredTimes.length > 0, !!u.funFact,
-    !!u.socialEnergy, !!u.conversationStyle, u.enjoyedTopics.length >= 1,
-    !!u.socialIntent, !!u.planningPreference, !!u.meetupAtmosphere,
-    !!u.interactionPreference, u.personalityTraits.length >= 1,
-    !!u.opennessLevel, !!u.socialBoundary,
+    !!u.nickname,
+    !!u.city,
+    !!u.gender,
+    !!u.lifeStage,
+    u.interests.length >= 3,
+    !!u.preferredMeetup,
+    !!u.socialEnergy,
+    !!u.conversationStyle,
+    u.personalityTraits.length >= 1,
   ];
   return Math.round(checks.filter(Boolean).length / checks.length * 100);
 }
@@ -125,15 +102,17 @@ export default function UsersTab({ users, onRefresh, hasMore, loadingMore, onLoa
                   {u.verified && <span className="text-xs bg-primary/15 text-primary px-2 py-0.5 rounded-full font-medium">Verified</span>}
                   {u.isAdmin && <span className="text-xs bg-accent/15 text-accent px-2 py-0.5 rounded-full font-medium">Admin</span>}
                 </div>
-                <p className="text-sm text-muted-foreground">{(u.email ?? u.phone)} · {u.city ?? "—"} · {u.gender ?? "—"} · {u.ageRange ?? "—"}</p>
+                <p className="text-sm text-muted-foreground">
+                  {(u.email ?? u.phone)} · {u.city ?? "—"} · {u.gender ?? "—"}
+                  {u.lifeStage ? ` · ${LIFE_STAGE_LABELS[u.lifeStage] ?? u.lifeStage}` : ""}
+                </p>
               </div>
               <span className="text-xs text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</span>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              {Object.entries(SCORE_LABELS).map(([k, label]) => (
-                <ScoreBadge key={k} label={label} value={(u as unknown as Record<string, number | null>)[k] ?? null} />
-              ))}
+              <ScoreBadge label="Energy" value={u.socialEnergyScore} />
+              <ScoreBadge label="Conv." value={u.conversationDepthScore} />
             </div>
 
             <div>
@@ -172,8 +151,6 @@ export default function UsersTab({ users, onRefresh, hasMore, loadingMore, onLoa
   );
 }
 
-// ── User detail modal ─────────────────────────────────────────────────────────
-
 function UserDetailModal({
   user: u,
   onClose,
@@ -202,7 +179,6 @@ function UserDetailModal({
         className="bg-card w-full max-w-lg rounded-3xl border border-border shadow-xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="sticky top-0 bg-card rounded-t-3xl border-b border-border px-5 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-lg font-bold">{u.nickname ?? u.email ?? u.phone}</h2>
@@ -213,7 +189,6 @@ function UserDetailModal({
         </div>
 
         <div className="p-5 space-y-5">
-          {/* Quick actions */}
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => action("flag", { flagged: !u.flagged })}
@@ -231,52 +206,29 @@ function UserDetailModal({
             </button>
           </div>
 
-          {/* Basic profile */}
           <Section title="Basic Profile">
-            <Row label="Email" value={u.email ?? u.phone} />
+            <Row label="Email / Phone" value={u.email ?? u.phone} />
             <Row label="City" value={u.city} />
             <Row label="Gender" value={u.gender} />
-            <Row label="Age range" value={u.ageRange} />
-            <Row label="Lifestyle" value={u.lifestyle} />
+            <Row label="Life stage" value={u.lifeStage ? (LIFE_STAGE_LABELS[u.lifeStage] ?? u.lifeStage) : null} />
             <Row label="Preferred meetup" value={u.preferredMeetup} />
-            <Row label="Preferred days" value={u.preferredDays?.join(", ")} />
-            <Row label="Preferred times" value={u.preferredTimes?.join(", ")} />
           </Section>
 
-          {/* Fun fact */}
-          {u.funFact ? (
-            <Section title="Fun Fact">
-              <p className="text-sm text-foreground italic">"{u.funFact}"</p>
-            </Section>
-          ) : null}
-
-          {/* Personality */}
-          <Section title="Personality & Interests">
-            <Row label="Personality" value={u.personality} />
-            <Row label="Traits" value={u.personalityTraits?.join(", ")} />
+          <Section title="Interests & Vibe">
             <Row label="Interests" value={u.interests?.join(", ")} />
-            <Row label="Topics enjoyed" value={u.enjoyedTopics?.join(", ")} />
             <Row label="Social energy" value={u.socialEnergy} />
             <Row label="Conversation style" value={u.conversationStyle} />
-            <Row label="Social intent" value={u.socialIntent} />
-            <Row label="Planning pref." value={u.planningPreference} />
-            <Row label="Atmosphere" value={u.meetupAtmosphere} />
-            <Row label="Interaction pref." value={u.interactionPreference} />
-            <Row label="Openness" value={u.opennessLevel} />
-            <Row label="Social boundary" value={u.socialBoundary} />
+            <Row label="Personality traits" value={u.personalityTraits?.join(", ")} />
           </Section>
 
-          {/* Personality scores */}
           <Section title="Personality Scores">
             <div className="flex flex-wrap gap-1.5">
-              {Object.entries(SCORE_LABELS).map(([k, label]) => (
-                <ScoreBadge key={k} label={label} value={(u as unknown as Record<string, number | null>)[k] ?? null} />
-              ))}
+              <ScoreBadge label="Energy" value={u.socialEnergyScore} />
+              <ScoreBadge label="Conv." value={u.conversationDepthScore} />
             </div>
           </Section>
 
-          {/* Matching notes */}
-          {notes.length > 0 ? (
+          {notes.length > 0 && (
             <Section title="Matching Notes">
               <ul className="space-y-1">
                 {notes.map((n, i) => (
@@ -286,18 +238,16 @@ function UserDetailModal({
                 ))}
               </ul>
             </Section>
-          ) : null}
+          )}
 
-          {/* Blocked users */}
-          {(u.blockedUserIds ?? []).length > 0 ? (
+          {(u.blockedUserIds ?? []).length > 0 && (
             <Section title={`Blocked Users (${u.blockedUserIds!.length})`}>
               <p className="text-sm text-muted-foreground font-mono break-all">
                 {u.blockedUserIds!.join(", ")}
               </p>
             </Section>
-          ) : null}
+          )}
 
-          {/* Metadata */}
           <Section title="Account">
             <Row label="Joined" value={new Date(u.createdAt).toLocaleString()} />
             <Row label="Onboarded" value={u.onboarded ? "Yes" : "No"} />
@@ -308,8 +258,6 @@ function UserDetailModal({
     </div>
   );
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

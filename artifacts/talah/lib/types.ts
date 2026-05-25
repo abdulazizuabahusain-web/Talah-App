@@ -1,5 +1,13 @@
 export type Gender = "woman" | "man";
 
+export type LifeStage =
+  | "university_early"
+  | "early_career"
+  | "professionally_established"
+  | "have_family"
+  | "prefer_not_to_say";
+
+// @deprecated — kept for backward compat; no longer collected in onboarding
 export type Lifestyle =
   | "employee"
   | "student"
@@ -7,35 +15,54 @@ export type Lifestyle =
   | "entrepreneur"
   | "other";
 
-export type Interest =
-  | "coffee"
-  | "books"
-  | "fitness"
-  | "wellness"
-  | "art"
-  | "business"
-  | "food"
-  | "outdoor"
-  | "self_development";
+// @deprecated — kept for backward compat; no longer collected in onboarding
+export type AgeRange = "18-24" | "25-29" | "30-34" | "35-44" | "45+";
 
+export type Interest =
+  // Food & Coffee
+  | "coffee"
+  | "restaurants"
+  | "cooking"
+  | "desserts"
+  // Wellness
+  | "fitness"
+  | "walking"
+  | "wellness"
+  | "yoga"
+  // Creativity & Hobbies
+  | "photography"
+  | "art"
+  | "writing"
+  | "music"
+  // Life & Experiences
+  | "travel"
+  | "social_convos"
+  | "self_development"
+  | "business"
+  // Entertainment
+  | "movies"
+  | "games"
+  | "anime"
+  // Outdoor
+  | "hiking"
+  | "sea_outdoor"
+  | "camping";
+
+// @deprecated — kept for backward compat
 export type Personality = "calm" | "social" | "curious" | "active" | "creative";
 
 export type PersonalityTrait =
   | "calm"
   | "social"
   | "curious"
-  | "thoughtful"
   | "energetic"
   | "funny"
-  | "organized"
   | "creative";
 
 export type MeetupType = "coffee" | "dinner";
 
-export type AgeRange = "18-24" | "25-29" | "30-34" | "35-44" | "45+";
-
+// @deprecated — kept for backward compat; scheduling moved to request flow
 export type DayOfWeek = "sat" | "sun" | "mon" | "tue" | "wed" | "thu" | "fri";
-
 export type TimeOfDay = "morning" | "afternoon" | "evening";
 
 export type SocialEnergy =
@@ -46,6 +73,7 @@ export type SocialEnergy =
 
 export type ConversationStyle = "light_fun" | "balanced" | "deep_meaningful";
 
+// @deprecated — no longer collected in onboarding
 export type EnjoyedTopic =
   | "daily_life"
   | "work_ambition"
@@ -54,33 +82,19 @@ export type EnjoyedTopic =
   | "wellness_growth"
   | "hobbies_activities";
 
+// @deprecated — no longer collected in onboarding
 export type SocialIntent =
   | "new_friends"
   | "expand_circle"
   | "casual_conversations"
   | "long_term_connections";
 
+// @deprecated — no longer collected in onboarding
 export type PlanningPreference = "structured" | "flexible" | "spontaneous";
-
-export type MeetupAtmosphere =
-  | "calm_relaxed"
-  | "moderate_energy"
-  | "lively_energetic";
-
-export type InteractionPreference =
-  | "mostly_conversation"
-  | "mix_conversation_activity"
-  | "activity_based";
-
-export type OpennessLevel =
-  | "open_quickly"
-  | "open_gradually"
-  | "take_your_time";
-
-export type SocialBoundary =
-  | "very_relaxed"
-  | "respectful_balanced"
-  | "more_reserved";
+export type MeetupAtmosphere = "calm_relaxed" | "moderate_energy" | "lively_energetic";
+export type InteractionPreference = "mostly_conversation" | "mix_conversation_activity" | "activity_based";
+export type OpennessLevel = "open_quickly" | "open_gradually" | "take_your_time";
+export type SocialBoundary = "very_relaxed" | "respectful_balanced" | "more_reserved";
 
 export type GroupStatus =
   | "pending"
@@ -92,11 +106,12 @@ export type GroupStatus =
 export interface UserScores {
   socialEnergyScore: number;
   conversationDepthScore: number;
-  planningScore: number;
-  atmosphereScore: number;
-  interactionScore: number;
-  opennessScore: number;
-  boundaryScore: number;
+  // @deprecated — no longer computed
+  planningScore?: number;
+  atmosphereScore?: number;
+  interactionScore?: number;
+  opennessScore?: number;
+  boundaryScore?: number;
 }
 
 export interface ContactInfo {
@@ -114,14 +129,9 @@ export interface User {
   nickname: string;
   gender: Gender;
   city: string;
-  ageRange: AgeRange;
-  lifestyle: Lifestyle;
+  lifeStage?: LifeStage | null;
   interests: Interest[];
-  personality: Personality;
   preferredMeetup: MeetupType;
-  preferredDays: DayOfWeek[];
-  preferredTimes: TimeOfDay[];
-  funFact?: string;
   verified: boolean;
   flagged: boolean;
   onboarded: boolean;
@@ -129,24 +139,32 @@ export interface User {
 
   socialEnergy?: SocialEnergy;
   conversationStyle?: ConversationStyle;
+  personalityTraits?: PersonalityTrait[];
+
+  socialEnergyScore?: number;
+  conversationDepthScore?: number;
+
+  // @deprecated fields — kept so old data doesn't break runtime
+  ageRange?: AgeRange;
+  lifestyle?: Lifestyle;
+  personality?: Personality;
+  preferredDays?: DayOfWeek[];
+  preferredTimes?: TimeOfDay[];
+  funFact?: string;
   enjoyedTopics?: EnjoyedTopic[];
   socialIntent?: SocialIntent;
   planningPreference?: PlanningPreference;
   meetupAtmosphere?: MeetupAtmosphere;
   interactionPreference?: InteractionPreference;
-  personalityTraits?: PersonalityTrait[];
   opennessLevel?: OpennessLevel;
   socialBoundary?: SocialBoundary;
-
-  socialEnergyScore?: number;
-  conversationDepthScore?: number;
   planningScore?: number;
   atmosphereScore?: number;
   interactionScore?: number;
   opennessScore?: number;
   boundaryScore?: number;
 
-  // Block list — IDs of users this user has blocked; excluded from future matching
+  // Block list
   blockedUserIds?: string[];
 
   // Contact info — private; only revealed to mutual connects
@@ -230,98 +248,21 @@ export function computeScores(user: Partial<User>): Partial<UserScores> {
     user.conversationStyle,
   );
 
-  const planningScore = lookup(
-    {
-      structured: 1,
-      flexible: 0,
-      spontaneous: -1,
-    },
-    user.planningPreference,
-  );
-
-  const atmosphereScore = lookup(
-    {
-      calm_relaxed: -1,
-      moderate_energy: 0,
-      lively_energetic: 1,
-    },
-    user.meetupAtmosphere,
-  );
-
-  const interactionScore = lookup(
-    {
-      mostly_conversation: -1,
-      mix_conversation_activity: 0,
-      activity_based: 1,
-    },
-    user.interactionPreference,
-  );
-
-  const opennessScore = lookup(
-    {
-      open_quickly: 1,
-      open_gradually: 0,
-      take_your_time: -1,
-    },
-    user.opennessLevel,
-  );
-
-  const boundaryScore = lookup(
-    {
-      very_relaxed: 1,
-      respectful_balanced: 0,
-      more_reserved: -1,
-    },
-    user.socialBoundary,
-  );
-
-  return {
-    socialEnergyScore,
-    conversationDepthScore,
-    planningScore,
-    atmosphereScore,
-    interactionScore,
-    opennessScore,
-    boundaryScore,
-  };
+  return { socialEnergyScore, conversationDepthScore };
 }
 
 export function generateMatchingNotes(user: User): string[] {
   const notes: string[] = [];
   const se = user.socialEnergyScore;
   const cd = user.conversationDepthScore;
-  const at = user.atmosphereScore;
-  const ip = user.interactionScore;
-  const bs = user.boundaryScore;
-  const intent = user.socialIntent;
 
   if (se !== undefined) {
     if (se >= 2) notes.push("High-energy social user");
-    else if (se <= -1)
-      notes.push("Reserved user; best matched with balanced group");
+    else if (se <= -1) notes.push("Reserved — best matched with a balanced group");
   }
   if (cd !== undefined) {
-    if (cd >= 1) notes.push("Prefers deep conversations");
+    if (cd >= 1) notes.push("Prefers deeper conversations");
     else if (cd <= -1) notes.push("Prefers light and fun conversations");
-  }
-  if (at !== undefined) {
-    if (at <= -1) notes.push("Prefers calm meetups");
-    else if (at >= 1) notes.push("Enjoys lively atmospheres");
-  }
-  if (ip !== undefined) {
-    if (ip >= 1) notes.push("Activity-oriented user");
-  }
-  if (bs !== undefined) {
-    if (bs <= -1) notes.push("Strong privacy preference");
-  }
-  if (intent === "long_term_connections") {
-    notes.push("Best for long-term connection groups");
-  } else if (
-    intent === "new_friends" ||
-    intent === "expand_circle" ||
-    intent === "casual_conversations"
-  ) {
-    notes.push("Best for casual/social-circle expansion groups");
   }
   return notes;
 }

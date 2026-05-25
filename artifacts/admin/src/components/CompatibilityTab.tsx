@@ -565,21 +565,16 @@ function CompatibilityResult({ report: r }: { report: CompatibilityReport }) {
         </div>
       )}
 
-      <CheckCard label="Hard Filters" ok={r.genderOk && r.cityOk && r.availabilityOk} notes={[
+      <CheckCard label="Hard Filters (30%)" ok={r.genderOk && r.cityOk} notes={[
         r.genderOk ? "✓ Same gender" : "✗ Mixed genders",
         r.cityOk ? "✓ Same city" : "✗ Different cities",
-        r.availabilityOk
-          ? `✓ Common days: ${r.commonDays.join(", ")} / ${r.commonTimes.join(", ")}`
-          : "✗ No availability overlap",
       ]} />
-      <CheckCard label="Shared Interests" ok={r.interestOverlapPct >= 40} notes={[
+      <CheckCard label="Shared Interests (20%)" ok={r.interestOverlapPct >= 40} notes={[
         `${r.interestOverlapPct}% overlap`,
         r.sharedInterests.length > 0 ? `Shared: ${r.sharedInterests.slice(0, 5).join(", ")}` : "No shared interests",
       ]} />
-      <CheckCard label="Lifestyle" ok={r.lifestyleAligned} notes={[r.lifestyleNote]} />
-      <CheckCard label="Social Energy" ok={r.energyBalance === "balanced"} notes={[r.energyNote]} />
-      <CheckCard label="Conversation Style" ok={r.convCompatible} notes={[r.convNote]} />
-      <CheckCard label="Intent & Boundary" ok={!r.boundaryNote.startsWith("Caution")} notes={[r.intentNote, r.boundaryNote]} />
+      <CheckCard label="Social Energy (15%)" ok={r.energyBalance === "balanced"} notes={[r.energyNote]} />
+      <CheckCard label="Conversation Style (10%)" ok={r.convCompatible} notes={[r.convNote]} />
     </div>
   );
 }

@@ -747,22 +747,10 @@ function computeGroupCompatibility(users: AnyUser[]) {
   const genderOk = genders.length === 1;
   const cityOk = cities.length === 1;
 
-  const allDays = users.map((u) => new Set(u.preferredDays));
-  const commonDays = [...allDays[0]!].filter((d) =>
-    allDays.every((s) => s.has(d)),
-  );
-  const allTimes = users.map((u) => new Set(u.preferredTimes));
-  const commonTimes = [...allTimes[0]!].filter((t) =>
-    allTimes.every((s) => s.has(t)),
-  );
-  const availabilityOk = commonDays.length > 0 && commonTimes.length > 0;
-
-  const hardScore =
-    [genderOk, cityOk, availabilityOk].filter(Boolean).length / 3;
+  const hardScore = ((genderOk ? 0.5 : 0) + (cityOk ? 0.5 : 0)) * 30;
   const warnings: string[] = [];
   if (!genderOk) warnings.push("Mixed genders — not allowed");
   if (!cityOk) warnings.push(`Different cities: ${cities.join(", ")}`);
-  if (!availabilityOk) warnings.push("No overlapping availability");
 
   const allInterests = users.flatMap((u) => u.interests);
   const interestCounts: Record<string, number> = {};
@@ -772,73 +760,50 @@ function computeGroupCompatibility(users: AnyUser[]) {
     .filter(([, c]) => c >= Math.ceil(users.length / 2))
     .map(([k]) => k);
   const interestOverlapPct = Math.round(
-    (sharedInterests.length / Math.max(1, Object.keys(interestCounts).length)) *
-      100,
+    (sharedInterests.length / Math.max(1, Object.keys(interestCounts).length)) * 100,
   );
-  const interestScore = interestOverlapPct / 100;
+  const interestScore = (interestOverlapPct / 100) * 20;
 
-  const lifestyles = [...new Set(users.map((u) => u.lifestyle))];
-  const lifestyleAligned = lifestyles.length <= 2;
-  const lifestyleNote = lifestyleAligned
-    ? `Lifestyles compatible: ${lifestyles.join(", ")}`
-    : `Too many lifestyle types: ${lifestyles.join(", ")}`;
-  const lifestyleScore = lifestyleAligned ? 1 : 0.4;
+  // Meetup type alignment (15%)
+  const meetupTypes = new Set(users.map((u) => u.preferredMeetup));
+  const meetupAligned = meetupTypes.size === 1;
+  const meetupScore = (meetupAligned ? 1 : 0.5) * 15;
 
+  // Social energy (15%)
   const energyScores = users.map((u) => u.socialEnergyScore ?? 0);
   const avgEnergyScore = energyScores.reduce((a, b) => a + b, 0) / users.length;
   const energyVariance =
-    energyScores.reduce((a, b) => a + Math.abs(b - avgEnergyScore), 0) /
-    users.length;
-  const energyBalance =
-    energyVariance <= 1
-      ? "balanced"
-      : energyVariance <= 2
-        ? "moderate"
-        : "divergent";
+    energyScores.reduce((a, b) => a + Math.abs(b - avgEnergyScore), 0) / users.length;
+  const energyBalance = energyVariance <= 1 ? "balanced" : energyVariance <= 2 ? "moderate" : "divergent";
   const energyNote = `Energy variance: ${energyVariance.toFixed(1)} (${energyBalance})`;
-  const energyScore =
-    energyBalance === "balanced" ? 1 : energyBalance === "moderate" ? 0.6 : 0.3;
+  const energyScore = (energyBalance === "balanced" ? 1 : energyBalance === "moderate" ? 0.6 : 0.3) * 15;
 
+  // Conversation style (10%)
   const convStyles = [...new Set(users.map((u) => u.conversationStyle))];
   const convCompatible = convStyles.length <= 2;
   const convNote = convCompatible
     ? `Conversation styles align: ${convStyles.join(", ")}`
     : `Mismatched styles: ${convStyles.join(", ")}`;
-  const convScore = convCompatible ? 1 : 0.4;
+  const convScore = (convCompatible ? 1 : 0.4) * 10;
 
-  const intents = [...new Set(users.map((u) => u.socialIntent))];
-  const intentNote =
-    intents.length <= 2
-      ? `Aligned intent: ${intents.join(", ")}`
-      : `Mixed intent: ${intents.join(", ")}`;
-  const boundaries = [...new Set(users.map((u) => u.socialBoundary))];
-  const hasMismatch =
-    boundaries.includes("very_relaxed") && boundaries.includes("more_reserved");
-  const boundaryNote = hasMismatch
-    ? `Caution: very different boundary levels`
-    : `Boundaries compatible`;
-  const intentScore =
-    (intents.length <= 2 ? 0.6 : 0.3) + (hasMismatch ? 0 : 0.4);
+  // Life stage (5%)
+  const lifeStages = [...new Set(users.map((u) => u.lifeStage).filter(Boolean))];
+  const lifeStageAligned = lifeStages.length <= 2;
+  const lifeStageScore = (lifeStageAligned ? 1 : 0.5) * 5;
+
+  // Personality traits (5%)
+  const allTraits = users.flatMap((u) => u.personalityTraits ?? []);
+  const traitCounts: Record<string, number> = {};
+  for (const t of allTraits) traitCounts[t] = (traitCounts[t] ?? 0) + 1;
+  const sharedTraits = Object.entries(traitCounts).filter(([, c]) => c >= 2).map(([k]) => k);
+  const traitScore = (sharedTraits.length > 0 ? 1 : 0.5) * 5;
 
   const overall = Math.round(
-    hardScore * 25 +
-      interestScore * 25 +
-      lifestyleScore * 15 +
-      energyScore * 15 +
-      convScore * 10 +
-      intentScore * 10,
+    hardScore + interestScore + meetupScore + energyScore + convScore + lifeStageScore + traitScore,
   );
 
-  // Thresholds aligned to blueprint spec (and matching.ts client-side):
-  // Excellent ≥85 · Good ≥70 · Moderate ≥55 · Weak <55
   const label =
-    overall >= 85
-      ? "excellent"
-      : overall >= 70
-        ? "good"
-        : overall >= 55
-          ? "moderate"
-          : "weak";
+    overall >= 85 ? "excellent" : overall >= 70 ? "good" : overall >= 55 ? "moderate" : "weak";
 
   return {
     overallScore: overall,
@@ -846,20 +811,20 @@ function computeGroupCompatibility(users: AnyUser[]) {
     warnings,
     genderOk,
     cityOk,
-    availabilityOk,
-    commonDays,
-    commonTimes,
+    availabilityOk: true,
+    commonDays: [],
+    commonTimes: [],
     sharedInterests,
     interestOverlapPct,
-    lifestyleAligned,
-    lifestyleNote,
+    lifestyleAligned: true,
+    lifestyleNote: "",
     avgEnergyScore,
     energyBalance,
     energyNote,
     convCompatible,
     convNote,
-    intentNote,
-    boundaryNote,
+    intentNote: "",
+    boundaryNote: "",
   };
 }
 

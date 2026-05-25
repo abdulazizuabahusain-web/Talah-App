@@ -1,0 +1,616 @@
+You are working on my Tal’ah / طلعة MVP.
+
+I want you to implement the final optimized onboarding changes based on the revised product direction below.
+
+Important:
+Scheduling availability should NOT be part of onboarding. Users will select preferred date/time only when they request a Tal’ah. Do not add availability back into onboarding.
+
+Before implementation:
+1. Briefly summarize what you will change.
+2. Identify files/components likely affected.
+3. Then implement carefully in small changes.
+4. Do not rewrite the whole app unnecessarily.
+
+====================
+PRODUCT CONTEXT
+====================
+
+Tal’ah is a Saudi-native, privacy-first curated social meetup app.
+
+It supports:
+- Women-only Tal’ahs
+- Men-only Tal’ahs
+- No mixed groups at launch
+- No public profile browsing
+- No swiping
+- No pre-meetup chat
+- Admin-controlled matching
+- Small groups of 3–5 users
+- Saudi Arabic-first tone with English support
+
+Tal’ah is NOT:
+- a dating app
+- a social media app
+- an open events marketplace
+
+The onboarding should feel:
+- light
+- warm
+- Saudi-native
+- conversational
+- not like a personality test
+- not like a long survey
+
+====================
+FINAL ONBOARDING FLOW
+====================
+
+SECTION 1 — BASICS
+
+Step 1 — Name
+
+Arabic:
+وش نقدر نسميك؟ ✨
+
+English:
+What should we call you?
+
+Type:
+Free text
+
+Store as:
+nickname
+
+---
+
+Step 2 — Tal’ah Type
+
+Arabic:
+نوع الطلعة المناسبة لك
+
+Supporting Arabic:
+حالياً طلعة توفر لقاءات منفصلة للنساء والرجال
+
+English:
+Which Tal’ah experience fits you?
+
+Supporting English:
+Tal’ah currently offers separate gatherings for women and men.
+
+Options:
+- طلعات نساء / Women-only Tal’ahs
+- طلعات رجال / Men-only Tal’ahs
+
+Internal storage:
+Store as strict gender field:
+- woman
+- man
+
+Important:
+This field is user-facing as “Tal’ah Type” but internally it is used as gender for safety, moderation, and group validation.
+
+Admin must be able to use this field to prevent invalid group creation.
+
+Mixed woman/man groups must remain blocked.
+
+---
+
+Step 3 — City
+
+Arabic:
+مدينتك
+
+English:
+City
+
+UI:
+Use a hybrid city selector:
+- show quick chips for the main cities
+- provide “مدينة أخرى / Other city” that opens a searchable dropdown/list
+
+Quick chips:
+- الرياض
+- جدة
+- الدمام
+- الخبر
+- مكة المكرمة
+- المدينة المنورة
+
+Full city list for other city:
+- الرياض
+- جدة
+- الدمام
+- الخبر
+- الظهران
+- مكة المكرمة
+- المدينة المنورة
+- الطائف
+- أبها
+- تبوك
+- القصيم
+- حائل
+- جازان
+- نجران
+- الأحساء
+- الجبيل
+- ينبع
+
+Store as:
+city
+
+---
+
+Step 4 — Life Stage
+
+Arabic:
+أي مرحلة قريبة لك أكثر؟
+
+English:
+Which stage feels closest to you?
+
+Options:
+- جامعة أو بداية المشوار / University or early journey
+- بداية الحياة المهنية / Early career
+- مستقر مهنيًا / Professionally established
+- عندي عائلة أو أطفال / Have family or kids
+- أفضل عدم التحديد / Prefer not to say
+
+Store as:
+lifeStage
+
+Important:
+This replaces both:
+- age range
+- lifestyle
+
+Remove age range from onboarding.
+Remove lifestyle from onboarding.
+
+Do not ask for age range.
+Do not ask for lifestyle.
+
+---
+
+Step 5 — Interests
+
+Arabic:
+اهتماماتك
+
+English:
+Your interests
+
+Type:
+Multi-select
+
+Rules:
+- minimum 3 selections
+- maximum 5 selections
+
+Use categorized Saudi-relevant interest list.
+
+Categories:
+
+1. الأكل والكوفي / Food & Coffee
+- قهوة / Coffee
+- مطاعم وتجارب / Restaurants & experiences
+- طبخ / Cooking
+- حلويات ومخبوزات / Desserts & baking
+
+2. الصحة والرفاهية / Wellness
+- رياضة / Fitness
+- مشي / Walking
+- صحة وعافية / Wellness
+- يوغا وتأمل / Yoga & meditation
+
+3. الإبداع والهوايات / Creativity & Hobbies
+- تصوير / Photography
+- فن وتصميم / Art & design
+- كتابة وقراءة / Writing & reading
+- موسيقى / Music
+
+4. الحياة والتجارب / Life & Experiences
+- سفر / Travel
+- جلسات وسوالف / Social conversations
+- تطوير الذات / Self-development
+- أعمال وريادة / Business & entrepreneurship
+
+5. الترفيه / Entertainment
+- أفلام ومسلسلات / Movies & series
+- ألعاب / Games
+- أنمي ومانجا / Anime & manga
+
+6. الأنشطة الخارجية / Outdoor
+- هايكنق / Hiking
+- بحر وأنشطة خارجية / Sea & outdoor activities
+- كشتات وتخييم / Camping & outdoor gatherings
+
+Store as:
+interests array
+
+Remove the old separate “topics you enjoy” question because expanded interests now cover that signal.
+
+---
+
+Step 6 — Preferred Meetup Type
+
+Arabic:
+نوع اللقاء المفضل
+
+English:
+Preferred meetup
+
+Options:
+- قهوة / Coffee
+- عشاء / Dinner
+
+Store as:
+meetupType
+
+Important:
+Keep this in onboarding because it is a stable preference and useful for matching/experience design.
+
+But do NOT ask for preferred days/times in onboarding.
+
+====================
+SECTION 2 — YOUR VIBE
+====================
+
+Transition banner:
+
+Arabic:
+خلنا نتعرف على جوك أكثر ✨
+
+English:
+Let’s get to know your vibe a little better ✨
+
+---
+
+Step 7 — Social Energy
+
+Arabic:
+كيف تكون عادةً مع ناس جدد؟
+
+English:
+How are you usually with new people?
+
+Options:
+- أندمج بسرعة / I open up quickly
+- اجتماعي ومتوازن / Social and balanced
+- أحتاج وقت بالبداية / I need some time at first
+- أفضل أسمع أكثر / I prefer listening more
+
+Store as:
+socialEnergy
+
+Scoring:
+- أندمج بسرعة = +2
+- اجتماعي ومتوازن = +1
+- أحتاج وقت بالبداية = -1
+- أفضل أسمع أكثر = -2
+
+Store score as:
+socialEnergyScore
+
+---
+
+Step 8 — Conversation Style
+
+Arabic:
+تحب الأحاديث تكون كيف؟
+
+English:
+What kind of conversations do you enjoy?
+
+Options:
+- خفيفة ووناسة / Light and fun
+- متوازنة / Balanced
+- عميقة شوي / A bit deeper
+
+Store as:
+conversationStyle
+
+Scoring:
+- خفيفة ووناسة = -1
+- متوازنة = 0
+- عميقة شوي = +1
+
+Store score as:
+conversationDepthScore
+
+---
+
+Step 9 — Personality Chips
+
+Arabic:
+وش أكثر شيء يشبهك؟
+
+English:
+What describes you most?
+
+Type:
+Multi-select
+
+Rules:
+- maximum 2 selections
+- required: at least 1 selection
+
+Important:
+Arabic adjective options must dynamically adapt based on Tal’ah Type / gender selected in Step 2.
+
+If woman:
+- هادئة / Calm
+- اجتماعية / Social
+- فضولية / Curious
+- نشيطة / Energetic
+- مرحة / Funny
+- مبدعة / Creative
+
+If man:
+- هادئ / Calm
+- اجتماعي / Social
+- فضولي / Curious
+- نشيط / Energetic
+- مرح / Funny
+- مبدع / Creative
+
+Store the English-normalized trait values internally:
+- calm
+- social
+- curious
+- energetic
+- funny
+- creative
+
+Store Arabic display separately if needed.
+
+====================
+QUESTIONS TO REMOVE
+====================
+
+Remove these from onboarding:
+- age range
+- lifestyle
+- preferred days
+- preferred times
+- fun fact
+- topics you enjoy
+- social intent
+- planning preference
+- meetup atmosphere
+- interaction preference
+- openness
+- social comfort boundary
+
+Reason:
+They are redundant, too analytical, low-value for MVP, or better captured during the Tal’ah request flow / post-event feedback.
+
+====================
+REQUEST TAL’AH FLOW
+====================
+
+Scheduling should exist only in the Request Tal’ah flow.
+
+When user requests a Tal’ah, ask:
+- preferred date
+- preferred time
+- area preference
+- coffee/dinner if user wants to override default preference
+
+Do not ask these during onboarding.
+
+====================
+DATABASE / SCHEMA CHANGES
+====================
+
+Update the user schema/data model:
+
+Keep:
+- id
+- phone
+- nickname
+- gender
+- city
+- lifeStage
+- interests
+- meetupType
+- socialEnergy
+- conversationStyle
+- personalityTraits
+- socialEnergyScore
+- conversationDepthScore
+- profileComplete
+- createdAt
+- idVerified
+- flagged
+
+Remove or stop using:
+- ageRange
+- lifestyle
+- availability from onboarding
+- enjoyedTopics
+- socialIntent
+- planningPreference
+- meetupAtmosphere
+- interactionPreference
+- openness
+- socialBoundary
+- planningScore
+- atmosphereScore
+- interactionScore
+- opennessScore
+- boundaryScore
+
+If full database migration is risky, keep obsolete fields temporarily but do not show or require them in UI. Mark them deprecated in comments.
+
+====================
+MATCHING / SCORING CHANGES
+====================
+
+Revised matching model:
+
+Hard filters:
+- same gender
+- same city
+
+Strong preference:
+- same preferred meetup type
+
+Compatibility signals:
+- interests overlap
+- lifeStage alignment
+- social energy balance
+- conversation style compatibility
+- personality traits as supporting signal
+
+Remove scoring logic for:
+- planning
+- atmosphere
+- interaction
+- openness
+- boundary
+
+Admin compatibility helper should calculate:
+1. Gender compatibility
+- mixed woman/man group is invalid
+
+2. City compatibility
+- different city group should show warning or be invalid
+
+3. Meetup type alignment
+- show whether selected users prefer same meetup type
+
+4. Interest overlap
+- show shared interests
+- calculate overlap percentage
+
+5. Life stage alignment
+- show if users are same/similar life stage or mixed
+
+6. Social energy balance
+- calculate average socialEnergyScore
+- ideal range: -1 to +1
+- above +1: group may be too high-energy
+- below -1: group may be too quiet/reserved
+- within range: balanced social energy
+
+7. Conversation compatibility
+- calculate spread of conversationDepthScore
+- if spread is high, show note
+- otherwise show reasonably aligned
+
+8. Personality support
+- show shared or complementary personality chips
+
+Overall compatibility score suggestion:
+- 30% hard filters: gender + city
+- 20% interests overlap
+- 15% meetup type alignment
+- 15% social energy balance
+- 10% conversation compatibility
+- 5% life stage alignment
+- 5% personality traits support
+
+Labels:
+- Excellent fit: 85–100
+- Good fit: 70–84
+- Moderate fit: 55–69
+- Weak fit: below 55
+
+====================
+ADMIN DASHBOARD CHANGES
+====================
+
+Update admin dashboard to show:
+- nickname
+- gender internally as woman/man
+- user-facing Tal’ah type label
+- city
+- lifeStage
+- interests
+- meetupType
+- socialEnergy
+- socialEnergyScore
+- conversationStyle
+- conversationDepthScore
+- personalityTraits
+- profile completion
+- id verification status
+- flagged status
+
+Remove from admin table:
+- ageRange
+- lifestyle
+- enjoyedTopics
+- socialIntent
+- planningScore
+- atmosphereScore
+- interactionScore
+- opennessScore
+- boundaryScore
+
+Update user detail modal accordingly.
+
+Update compatibility helper to use revised scoring.
+
+Ensure group creation still blocks mixed-gender groups.
+
+====================
+COMPLETION SCREEN
+====================
+
+After onboarding completion, show a warm completion screen.
+
+Arabic:
+خلصنا ✨
+الحين تقدر تطلب أول طلعة لك.
+
+Supporting Arabic:
+اختار نوع اللقاء والوقت المناسب، وخلّي طلعة ترتب لك المجموعة.
+
+English:
+You’re all set ✨
+You can now request your first Tal’ah.
+
+Supporting English:
+Choose the meetup type and time, and Tal’ah will arrange the group.
+
+CTA:
+طلب أول طلعة
+Request first Tal’ah
+
+====================
+VALIDATION RULES
+====================
+
+Required:
+- nickname
+- gender/Tal’ah type
+- city
+- lifeStage
+- interests minimum 3 and maximum 5
+- meetupType
+- socialEnergy
+- conversationStyle
+- personalityTraits minimum 1 and maximum 2
+
+====================
+IMPLEMENTATION REQUIREMENTS
+====================
+
+1. Update onboarding UI.
+2. Update bilingual Arabic/English wording.
+3. Make gender-based Arabic adjectives dynamic.
+4. Update validation.
+5. Update database/user model.
+6. Update scoring logic.
+7. Update seed/sample users.
+8. Update admin dashboard.
+9. Update compatibility helper.
+10. Remove obsolete onboarding fields from UI.
+11. Do not remove Request Tal’ah scheduling; scheduling stays there.
+12. Preserve existing safety rules.
+13. Preserve no public browsing / no chat / no swiping.
+14. Do not add dating features.
+15. Do not add open user-hosted events.
+
+Before making changes, briefly summarize your implementation plan and highlight any schema migration risks. Then proceed carefully.

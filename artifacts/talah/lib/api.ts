@@ -91,35 +91,18 @@ export interface ApiUser {
   nickname: string;
   gender: "woman" | "man";
   city: string;
-  ageRange: string;
-  lifestyle: string;
+  lifeStage: string | null;
   interests: string[];
-  personality: string;
   preferredMeetup: string;
-  preferredDays: string[];
-  preferredTimes: string[];
-  funFact: string | null;
   verified: boolean;
   flagged: boolean;
   onboarded: boolean;
   isAdmin: boolean;
   socialEnergy: string | null;
   conversationStyle: string | null;
-  enjoyedTopics: string[] | null;
-  socialIntent: string | null;
-  planningPreference: string | null;
-  meetupAtmosphere: string | null;
-  interactionPreference: string | null;
   personalityTraits: string[] | null;
-  opennessLevel: string | null;
-  socialBoundary: string | null;
   socialEnergyScore: number | null;
   conversationDepthScore: number | null;
-  planningScore: number | null;
-  atmosphereScore: number | null;
-  interactionScore: number | null;
-  opennessScore: number | null;
-  boundaryScore: number | null;
   blockedUserIds: string[];
   // Contact info — private; only returned to the user themselves or mutual connects
   contactPhone: string | null;
@@ -128,6 +111,25 @@ export interface ApiUser {
   twitter: string | null;
   tiktok: string | null;
   createdAt: string;
+  // @deprecated — kept for backward compat with legacy data
+  ageRange: string | null;
+  lifestyle: string | null;
+  personality: string | null;
+  preferredDays: string[];
+  preferredTimes: string[];
+  funFact: string | null;
+  enjoyedTopics: string[] | null;
+  socialIntent: string | null;
+  planningPreference: string | null;
+  meetupAtmosphere: string | null;
+  interactionPreference: string | null;
+  opennessLevel: string | null;
+  socialBoundary: string | null;
+  planningScore: number | null;
+  atmosphereScore: number | null;
+  interactionScore: number | null;
+  opennessScore: number | null;
+  boundaryScore: number | null;
 }
 
 export interface ApiRequest {
@@ -147,12 +149,13 @@ export type ApiGroupMember = Pick<
   | "id"
   | "nickname"
   | "gender"
+  | "verified"
+  | "personalityTraits"
+  // @deprecated — may be null for new users
   | "ageRange"
   | "lifestyle"
   | "personality"
-  | "verified"
   | "funFact"
-  | "personalityTraits"
 >;
 
 export interface ApiMutualConnect {
@@ -201,22 +204,21 @@ export function toUser(u: ApiUser | ApiGroupMember): User {
     gender: ((u.gender as string | null | undefined) ??
       "woman") as User["gender"],
     city: (a.city as string | null | undefined) ?? "",
-    ageRange: ((u.ageRange as string | null | undefined) ??
-      "25-29") as User["ageRange"],
-    lifestyle: ((u.lifestyle as string | null | undefined) ??
-      "other") as User["lifestyle"],
+    lifeStage: nullToUndefined(a.lifeStage) as User["lifeStage"],
     interests: ((a.interests as string[] | null | undefined) ??
       []) as User["interests"],
-    personality: ((u.personality as string | null | undefined) ??
-      "calm") as User["personality"],
     preferredMeetup: ((a.preferredMeetup as string | null | undefined) ??
       "coffee") as User["preferredMeetup"],
+    verified: (a.verified as boolean | null | undefined) ?? false,
+    // @deprecated fields
+    ageRange: nullToUndefined(u.ageRange as string | null | undefined) as User["ageRange"],
+    lifestyle: nullToUndefined(u.lifestyle as string | null | undefined) as User["lifestyle"],
+    personality: nullToUndefined(u.personality as string | null | undefined) as User["personality"],
     preferredDays: ((a.preferredDays as string[] | null | undefined) ??
       []) as User["preferredDays"],
     preferredTimes: ((a.preferredTimes as string[] | null | undefined) ??
       []) as User["preferredTimes"],
     funFact: nullToUndefined(u.funFact as string | null | undefined),
-    verified: (a.verified as boolean | null | undefined) ?? false,
     flagged: (a.flagged as boolean | null | undefined) ?? false,
     onboarded: (a.onboarded as boolean | null | undefined) ?? false,
     createdAt: a.createdAt ? ts(a.createdAt) : 0,
