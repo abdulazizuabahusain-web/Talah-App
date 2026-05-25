@@ -1,3 +1,4 @@
+import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   Modal,
@@ -17,6 +18,7 @@ import { api } from "@/lib/api";
 interface ExitSurveyModalProps {
   visible: boolean;
   onComplete: () => void;
+  onCancel: () => void;
 }
 
 const REASON_OPTIONS = [
@@ -27,7 +29,7 @@ const REASON_OPTIONS = [
   { key: "other", ar: "أخرى", en: "Other" },
 ];
 
-export function ExitSurveyModal({ visible, onComplete }: ExitSurveyModalProps) {
+export function ExitSurveyModal({ visible, onComplete, onCancel }: ExitSurveyModalProps) {
   const colors = useColors();
   const t = useT();
   const [reason, setReason] = useState<string | null>(null);
@@ -47,12 +49,8 @@ export function ExitSurveyModal({ visible, onComplete }: ExitSurveyModalProps) {
     }
   };
 
-  const handleSkip = () => {
-    onComplete();
-  };
-
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleSkip}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
       <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" }}>
         <View
           style={{
@@ -70,14 +68,22 @@ export function ExitSurveyModal({ visible, onComplete }: ExitSurveyModalProps) {
               borderTopRightRadius: 24,
               paddingVertical: 16,
               paddingHorizontal: 20,
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: 12,
             }}
           >
-            <AppText variant="title" weight="bold" color={colors.primaryForeground}>
-              {t("exit_survey_title")}
-            </AppText>
-            <AppText variant="bodySmall" color={colors.primaryForeground} style={{ marginTop: 4, opacity: 0.85 }}>
-              {t("exit_survey_subtitle")}
-            </AppText>
+            <View style={{ flex: 1 }}>
+              <AppText variant="title" weight="bold" color={colors.primaryForeground}>
+                {t("exit_survey_title")}
+              </AppText>
+              <AppText variant="bodySmall" color={colors.primaryForeground} style={{ marginTop: 4, opacity: 0.85 }}>
+                {t("exit_survey_subtitle")}
+              </AppText>
+            </View>
+            <Pressable onPress={onCancel} hitSlop={12} style={{ paddingTop: 2 }}>
+              <Feather name="x" size={22} color={colors.primaryForeground} />
+            </Pressable>
           </View>
 
           <ScrollView
@@ -119,9 +125,9 @@ export function ExitSurveyModal({ visible, onComplete }: ExitSurveyModalProps) {
               disabled={!reason || submitting}
             />
 
-            <Pressable onPress={handleSkip} hitSlop={10} style={{ alignItems: "center" }}>
+            <Pressable onPress={onCancel} hitSlop={10} style={{ alignItems: "center" }}>
               <AppText variant="label" color={colors.mutedForeground}>
-                {t("exit_skip")}
+                {t("cancel")}
               </AppText>
             </Pressable>
           </ScrollView>

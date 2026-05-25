@@ -262,24 +262,6 @@ export default function ProfileScreen() {
           </View>
         </Card>
 
-        {/* Settings */}
-        <Card padded={false}>
-          <Row
-            icon="shield"
-            label={t("privacy_settings")}
-            onPress={() => router.push("/privacy")}
-          />
-          <Divider />
-          <Row
-            icon="check-circle"
-            label={t("id_verification")}
-            sub={t("id_verification_sub")}
-            onPress={() => {
-              Alert.alert(t("id_verification"), t("id_verification_sub"));
-            }}
-          />
-        </Card>
-
         <Card padded={false}>
           <Row
             icon="book-open"
@@ -302,12 +284,6 @@ export default function ProfileScreen() {
 
         <Card padded={false}>
           <Row
-            icon="sliders"
-            label={t("admin_panel")}
-            onPress={() => router.push("/admin")}
-          />
-          <Divider />
-          <Row
             icon="log-out"
             label={t("logout")}
             onPress={async () => {
@@ -325,7 +301,11 @@ export default function ProfileScreen() {
         </Card>
       </ScrollView>
 
-      <ExitSurveyModal visible={showExitSurvey} onComplete={handleExitComplete} />
+      <ExitSurveyModal
+        visible={showExitSurvey}
+        onComplete={handleExitComplete}
+        onCancel={() => setShowExitSurvey(false)}
+      />
     </>
   );
 }
