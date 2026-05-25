@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { execSync } from "child_process";
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
@@ -16,6 +16,7 @@ import {
   usersTable,
   adminAuditLogsTable,
   surveysTable,
+  talahTypeChangeRequestsTable,
 } from "@workspace/db";
 import { createAdminToken, isAdminToken } from "../lib/adminSessions";
 import { sendPushToMany } from "../lib/push";
@@ -827,5 +828,109 @@ function computeGroupCompatibility(users: AnyUser[]) {
     boundaryNote: "",
   };
 }
+
+// ── Tal'ah Type Change Requests ───────────────────────────────────────────────
+
+// GET /api/admin/talah-type-change-requests
+router.get("/talah-type-change-requests", requireAdmin, async (req, res) => {
+  const requests = await db
+    .select()
+    .from(talahTypeChangeRequestsTable)
+    .orderBy(desc(talahTypeChangeRequestsTable.requestedAt));
+
+  if (requests.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const userIds = [...new Set(requests.map((r) => r.userId))];
+  const usersData = await db
+    .select({ id: usersTable.id, nickname: usersTable.nickname })
+    .from(usersTable)
+    .where(inArray(usersTable.id, userIds));
+
+  const nicknameMap = Object.fromEntries(usersData.map((u) => [u.id, u.nickname]));
+  res.json(requests.map((r) => ({ ...r, nickname: nicknameMap[r.userId] ?? null })));
+});
+
+// POST /api/admin/talah-type-change-requests/:id/approve
+router.post("/talah-type-change-requests/:id/approve", requireAdmin, async (req, res) => {
+  const id = req.params["id"] as string;
+  const { adminNotes } = (req.body ?? {}) as { adminNotes?: string };
+
+  const [changeReq] = await db
+    .select()
+    .from(talahTypeChangeRequestsTable)
+    .where(eq(talahTypeChangeRequestsTable.id, id));
+
+  if (!changeReq) {
+    res.status(404).json({ error: "Request not found" });
+    return;
+  }
+  if (changeReq.status !== "pending") {
+    res.status(400).json({ error: "Request is not pending" });
+    return;
+  }
+
+  const [userBefore] = await db
+    .select({ gender: usersTable.gender })
+    .from(usersTable)
+    .where(eq(usersTable.id, changeReq.userId));
+
+  await db
+    .update(usersTable)
+    .set({ gender: changeReq.requestedGender })
+    .where(eq(usersTable.id, changeReq.userId));
+
+  const [updated] = await db
+    .update(talahTypeChangeRequestsTable)
+    .set({
+      status: "approved",
+      reviewedAt: new Date(),
+      reviewedBy: "admin",
+      adminNotes: adminNotes ?? null,
+    })
+    .where(eq(talahTypeChangeRequestsTable.id, id))
+    .returning();
+
+  await writeAdminAuditLog(req, { action: "approve_talah_type_change", targetTable: "talah_type_change_requests", targetId: id, before: changeReq, after: updated });
+  await writeAdminAuditLog(req, { action: "update_user_gender", targetTable: "users", targetId: changeReq.userId, before: { gender: userBefore?.gender }, after: { gender: changeReq.requestedGender } });
+
+  res.json(updated);
+});
+
+// POST /api/admin/talah-type-change-requests/:id/reject
+router.post("/talah-type-change-requests/:id/reject", requireAdmin, async (req, res) => {
+  const id = req.params["id"] as string;
+  const { adminNotes } = (req.body ?? {}) as { adminNotes?: string };
+
+  const [changeReq] = await db
+    .select()
+    .from(talahTypeChangeRequestsTable)
+    .where(eq(talahTypeChangeRequestsTable.id, id));
+
+  if (!changeReq) {
+    res.status(404).json({ error: "Request not found" });
+    return;
+  }
+  if (changeReq.status !== "pending") {
+    res.status(400).json({ error: "Request is not pending" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(talahTypeChangeRequestsTable)
+    .set({
+      status: "rejected",
+      reviewedAt: new Date(),
+      reviewedBy: "admin",
+      adminNotes: adminNotes ?? null,
+    })
+    .where(eq(talahTypeChangeRequestsTable.id, id))
+    .returning();
+
+  await writeAdminAuditLog(req, { action: "reject_talah_type_change", targetTable: "talah_type_change_requests", targetId: id, before: changeReq, after: updated });
+  res.json(updated);
+});
 
 export default router;

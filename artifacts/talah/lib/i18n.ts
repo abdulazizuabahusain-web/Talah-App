@@ -615,6 +615,29 @@ export const STRINGS: Dict = {
     en: "Add your info so your connects can reach you",
   },
 
+  // Edit Preferences screen
+  edit_preferences: { ar: "تعديل التفضيلات", en: "Edit Preferences" },
+  save_changes: { ar: "حفظ التغييرات", en: "Save Changes" },
+  my_basics: { ar: "أساسياتي", en: "My Basics" },
+  talah_type_label: { ar: "نوع الطلعة", en: "Tal'ah Type" },
+  talah_type_women: { ar: "طلعات نساء", en: "Women-only Tal'ahs" },
+  talah_type_men: { ar: "طلعات رجال", en: "Men-only Tal'ahs" },
+  request_type_change: { ar: "طلب تغيير نوع الطلعة", en: "Request Tal'ah Type Change" },
+  type_change_modal_title: { ar: "تغيير نوع الطلعة", en: "Change Tal'ah Type" },
+  type_change_modal_body: {
+    ar: "نوع الطلعة يؤثر على الأمان وطريقة ترتيب المجموعات. أي تغيير يحتاج مراجعة من الإدارة قبل تطبيقه على الطلعات القادمة.",
+    en: "Tal'ah Type affects safety and group matching. Any change requires admin review before it applies to future Tal'ahs.",
+  },
+  type_change_pending_badge: { ar: "طلب التغيير قيد المراجعة", en: "Change request under review" },
+  type_change_rejected_badge: { ar: "طلب التغيير مرفوض — تواصل معنا", en: "Change request rejected — contact us" },
+  type_change_approved_badge: { ar: "تم تغيير نوع الطلعة ✓", en: "Tal'ah Type changed ✓" },
+  type_change_reason_placeholder: { ar: "سبب الطلب (اختياري)", en: "Reason for request (optional)" },
+  my_vibe_section: { ar: "انطباعاتي وطاقتي", en: "My Vibe" },
+  meetup_pref_section: { ar: "تفضيل الطلعة", en: "Meetup Preference" },
+  pref_saved: { ar: "تم حفظ التغييرات ✓", en: "Changes saved ✓" },
+  type_change_submitted: { ar: "تم إرسال طلبك للمراجعة", en: "Your request has been submitted for review" },
+  already_pending_request: { ar: "لديك طلب قيد المراجعة بالفعل", en: "You already have a pending request" },
+
   // Misc / placeholders
   no_data: { ar: "لا يوجد بيانات بعد", en: "Nothing here yet" },
 };

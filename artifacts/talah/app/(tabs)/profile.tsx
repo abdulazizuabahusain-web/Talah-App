@@ -91,7 +91,10 @@ export default function ProfileScreen() {
             {currentUser.nickname}
           </AppText>
           <AppText variant="bodySmall" color={colors.mutedForeground}>
-            {currentUser.city} · {currentUser.ageRange}
+            {currentUser.city}
+            {currentUser.gender
+              ? ` · ${t(currentUser.gender === "woman" ? "talah_type_women" : "talah_type_men")}`
+              : ""}
           </AppText>
           <View
             style={{
@@ -133,11 +136,11 @@ export default function ProfileScreen() {
                   size="sm"
                   selected
                   tone="accent"
-                  onPress={() => router.push("/onboarding?step=5")}
+                  onPress={() => router.push("/edit-preferences")}
                 />
               ))}
             </View>
-            <Pressable onPress={() => router.push("/onboarding?step=5")} hitSlop={8}>
+            <Pressable onPress={() => router.push("/edit-preferences")} hitSlop={8}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
                 <Feather name="edit-2" size={14} color={colors.accent} />
                 <AppText variant="label" weight="semibold" color={colors.accent}>
@@ -147,7 +150,7 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
           <View style={{ height: 1, marginHorizontal: 18, backgroundColor: colors.border }} />
-          <Pressable onPress={() => router.push("/onboarding?step=10")} hitSlop={8}>
+          <Pressable onPress={() => router.push("/edit-preferences")} hitSlop={8}>
             <View style={{ padding: 18, flexDirection: "row", alignItems: "center", gap: 14 }}>
               <View
                 style={{

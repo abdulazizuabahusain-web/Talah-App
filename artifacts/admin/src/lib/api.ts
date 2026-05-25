@@ -124,6 +124,19 @@ export const api = {
 
   getAnalyticsOverview: () => request<AnalyticsOverview>("/admin/analytics/overview"),
   getAnalyticsFunnel: () => request<AnalyticsFunnel>("/admin/analytics/funnel"),
+
+  getTalahTypeChangeRequests: () =>
+    request<TalahTypeChangeRequest[]>("/admin/talah-type-change-requests"),
+  approveTypeChangeRequest: (id: string, adminNotes?: string) =>
+    request<TalahTypeChangeRequest>(`/admin/talah-type-change-requests/${id}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ adminNotes }),
+    }),
+  rejectTypeChangeRequest: (id: string, adminNotes?: string) =>
+    request<TalahTypeChangeRequest>(`/admin/talah-type-change-requests/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ adminNotes }),
+    }),
 };
 
 // ── Types (mirror the DB schema) ─────────────────────────────────────────────
@@ -324,4 +337,18 @@ export interface AdminAuditLog {
   before: unknown;
   after: unknown;
   createdAt: string;
+}
+
+export interface TalahTypeChangeRequest {
+  id: string;
+  userId: string;
+  currentGender: string;
+  requestedGender: string;
+  reason: string | null;
+  status: "pending" | "approved" | "rejected";
+  requestedAt: string;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  adminNotes: string | null;
+  nickname?: string | null;
 }

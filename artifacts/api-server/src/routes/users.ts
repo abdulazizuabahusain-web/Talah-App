@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { Router } from "express";
 import { z } from "zod";
-import { db, usersTable, sessionsTable } from "@workspace/db";
+import { db, usersTable, sessionsTable, talahTypeChangeRequestsTable } from "@workspace/db";
 import { track } from "../lib/analytics";
 import { requireAuth } from "../middlewares/requireAuth";
 import { sanitizeFields } from "../lib/sanitize";
@@ -14,6 +14,8 @@ router.get("/me", requireAuth, (req, res) => {
 
 const PatchProfileBody = z.object({
   nickname: z.string().min(2).max(40).optional(),
+  // gender is only respected during initial onboarding (onboarded === false).
+  // After onboarding, gender changes require admin approval via /me/talah-type-change-request.
   gender: z.enum(["woman", "man"]).optional(),
   city: z.string().optional(),
   lifeStage: z.string().optional(),
@@ -60,7 +62,14 @@ router.patch("/me", requireAuth, async (req, res) => {
     return;
   }
 
-  const sanitized = sanitizeFields(parsed.data);
+  const sanitized = sanitizeFields(parsed.data) as Record<string, unknown>;
+
+  // Safety enforcement: gender is a protected field post-onboarding.
+  // Strip it silently so existing clients don't break with an error.
+  if (req.user!.onboarded && "gender" in sanitized) {
+    delete sanitized["gender"];
+  }
+
   const [updated] = await db
     .update(usersTable)
     .set(sanitized)
@@ -83,9 +92,77 @@ router.delete("/me", requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Tal'ah Type Change Request ─────────────────────────────────────────────
+
+const TypeChangeRequestBody = z.object({
+  requestedGender: z.enum(["woman", "man"]),
+  reason: z.string().max(500).optional(),
+});
+
+// GET /api/users/me/talah-type-change-request
+// Returns the most recent type change request for the current user (or null).
+router.get("/me/talah-type-change-request", requireAuth, async (req, res) => {
+  const rows = await db
+    .select()
+    .from(talahTypeChangeRequestsTable)
+    .where(eq(talahTypeChangeRequestsTable.userId, req.user!.id))
+    .orderBy(desc(talahTypeChangeRequestsTable.requestedAt))
+    .limit(1);
+  res.json(rows[0] ?? null);
+});
+
+// POST /api/users/me/talah-type-change-request
+// Submit a Tal'ah Type change request. Only one pending request allowed at a time.
+router.post("/me/talah-type-change-request", requireAuth, async (req, res) => {
+  const user = req.user!;
+
+  const parsed = TypeChangeRequestBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+
+  if (parsed.data.requestedGender === user.gender) {
+    res.status(400).json({ error: "Requested Tal'ah Type must be different from current" });
+    return;
+  }
+
+  if (!user.gender) {
+    res.status(400).json({ error: "Current Tal'ah Type is not set" });
+    return;
+  }
+
+  // Enforce one pending request at a time
+  const existing = await db
+    .select({ id: talahTypeChangeRequestsTable.id })
+    .from(talahTypeChangeRequestsTable)
+    .where(
+      and(
+        eq(talahTypeChangeRequestsTable.userId, user.id),
+        eq(talahTypeChangeRequestsTable.status, "pending"),
+      ),
+    );
+
+  if (existing.length > 0) {
+    res.status(409).json({ error: "You already have a pending Tal'ah Type change request" });
+    return;
+  }
+
+  const [created] = await db
+    .insert(talahTypeChangeRequestsTable)
+    .values({
+      userId: user.id,
+      currentGender: user.gender,
+      requestedGender: parsed.data.requestedGender,
+      reason: parsed.data.reason ?? null,
+      status: "pending",
+    })
+    .returning();
+
+  res.status(201).json(created);
+});
+
 // POST /api/users/block/:targetId
-// Adds targetId to the caller's blockedUserIds list. Idempotent — safe to call multiple times.
-// Blocked users are excluded from future group matching on both sides.
 router.post("/block/:targetId", requireAuth, async (req, res) => {
   const targetId = req.params["targetId"] as string;
   if (!targetId) {
@@ -115,7 +192,6 @@ router.post("/block/:targetId", requireAuth, async (req, res) => {
 });
 
 // GET /api/users/blocked
-// Returns the caller's list of blocked user IDs.
 router.get("/blocked", requireAuth, (req, res) => {
   res.json({ blockedUserIds: req.user!.blockedUserIds ?? [] });
 });

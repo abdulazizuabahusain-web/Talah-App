@@ -7,3 +7,4 @@ export * from "./reports";
 export * from "./audit";
 export * from "./surveys";
 export * from "./contactExchanges";
+export * from "./genderChangeRequests";

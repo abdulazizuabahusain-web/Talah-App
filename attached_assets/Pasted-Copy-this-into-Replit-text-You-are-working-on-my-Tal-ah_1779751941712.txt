@@ -1,0 +1,302 @@
+Copy this into Replit:
+
+```text
+You are working on my Tal’ah / طلعة MVP.
+
+Current issue:
+Users can currently re-answer or change all onboarding questions freely. This is not acceptable for all fields because some answers affect safety, group validation, matching integrity, and admin moderation.
+
+I want you to implement a controlled “Edit Profile Preferences” model.
+
+Before implementing:
+1. Review the current onboarding/profile edit flow.
+2. Identify where users can currently re-answer onboarding questions.
+3. Summarize what changes you will make.
+4. Highlight any risks.
+5. Then implement carefully.
+
+====================
+PRODUCT CONTEXT
+====================
+
+Tal’ah is a Saudi-native, privacy-first curated social meetup app.
+
+It supports:
+- Women-only Tal’ahs
+- Men-only Tal’ahs
+- No mixed groups at launch
+- No public profile browsing
+- No swiping
+- No pre-meetup chat
+- Admin-controlled matching
+- Small groups of 3–5 users
+
+Tal’ah Type / gender is a safety-critical field because it controls whether a user can be placed in women-only or men-only groups.
+
+====================
+EDIT PROFILE RULES
+====================
+
+Users should be allowed to edit most preference fields later, but not all fields should be freely editable.
+
+Create or update a “Profile Preferences” screen/page.
+
+Allow users to edit these fields freely:
+- nickname
+- city
+- lifeStage
+- interests
+- meetupType
+- socialEnergy
+- conversationStyle
+- personalityTraits
+
+When these fields are edited:
+- recalculate matching scores immediately
+- update profile updatedAt timestamp
+- apply changes only to future Tal’ahs
+- do not alter existing confirmed or completed groups
+
+Do NOT allow users to freely edit:
+- gender / Tal’ah Type
+
+====================
+GENDER / TAL’AH TYPE CHANGE RULE
+====================
+
+The gender/Tal’ah Type field should not be directly editable like other fields.
+
+Instead, show it in profile as read-only:
+
+Arabic label:
+نوع الطلعة
+
+English label:
+Tal’ah Type
+
+Display:
+- طلعات نساء / Women-only Tal’ahs
+or
+- طلعات رجال / Men-only Tal’ahs
+
+Add a button:
+Arabic:
+طلب تغيير نوع الطلعة
+
+English:
+Request Tal’ah Type Change
+
+When user clicks it:
+- open a confirmation modal
+- explain that this field affects safety and group validation
+- user can submit a change request
+- do NOT immediately change the active gender/Tal’ah Type
+
+Modal copy:
+
+Arabic:
+نوع الطلعة يؤثر على الأمان وطريقة ترتيب المجموعات. لذلك، أي تغيير يحتاج مراجعة قبل تطبيقه على الطلعات القادمة.
+
+English:
+Tal’ah Type affects safety and group matching. Any change requires review before it applies to future Tal’ahs.
+
+Options:
+- requested new type: Women-only / Men-only
+- optional reason text
+- submit request
+
+Store this as a pending request.
+
+====================
+DATABASE / SCHEMA REQUIREMENTS
+====================
+
+Add support for gender/Tal’ah Type change requests.
+
+Create a table or collection:
+talah_type_change_requests
+
+Fields:
+- id
+- userId
+- currentGender
+- requestedGender
+- reason
+- status: pending / approved / rejected
+- requestedAt
+- reviewedAt
+- reviewedBy
+- adminNotes
+
+If using SQLite:
+create this table if it does not exist.
+
+Also add/update user fields if needed:
+- updatedAt
+- genderChangePending boolean or derive from pending request
+- previousGender optional for audit trail
+
+====================
+ADMIN DASHBOARD REQUIREMENTS
+====================
+
+Admin dashboard should show:
+1. Pending Tal’ah Type change requests
+2. User nickname
+3. Current Tal’ah Type/gender
+4. Requested Tal’ah Type/gender
+5. Reason
+6. Requested date
+7. Buttons:
+   - Approve
+   - Reject
+
+If admin approves:
+- update user.gender to requestedGender
+- mark request as approved
+- set reviewedAt
+- add adminNotes if provided
+- ensure this only affects future groups
+- do not modify existing groups
+
+If admin rejects:
+- keep current gender unchanged
+- mark request as rejected
+- set reviewedAt
+- add adminNotes if provided
+
+Admin should also see a warning:
+“Changing Tal’ah Type affects future matching and safety validation. Existing groups are not modified.”
+
+====================
+MATCHING / GROUP VALIDATION REQUIREMENTS
+====================
+
+Group creation must continue to block mixed-gender groups.
+
+Use the active user.gender field only.
+
+Do not use pending requestedGender for matching.
+
+If a user has a pending gender change request:
+- show badge in admin user list: “Pending Tal’ah Type Change”
+- optionally prevent creating new groups for that user until reviewed OR show a warning before including them
+
+Recommended MVP behavior:
+- show warning if selected user has pending Tal’ah Type change
+- allow admin decision manually
+
+====================
+USER PROFILE UI REQUIREMENTS
+====================
+
+Create/update “Profile Preferences” page with sections:
+
+1. My Basics
+- nickname editable
+- city editable
+- lifeStage editable
+- Tal’ah Type read-only with request change button
+
+2. My Interests
+- interests editable
+- min 3, max 5
+
+3. My Vibe
+- socialEnergy editable
+- conversationStyle editable
+- personalityTraits editable, min 1, max 2
+
+4. Meetup Preference
+- meetupType editable
+
+5. Safety & Verification
+- ID verification placeholder
+- Tal’ah Type change request status if pending
+
+Show:
+- Last updated date
+
+====================
+VALIDATION REQUIREMENTS
+====================
+
+When editing profile:
+- nickname required
+- city required
+- lifeStage required
+- interests min 3 max 5
+- meetupType required
+- socialEnergy required
+- conversationStyle required
+- personalityTraits min 1 max 2
+
+When submitting Tal’ah Type change request:
+- requestedGender must be different from current gender
+- user cannot have more than one pending request at a time
+- reason is optional
+- active gender does not change until approved by admin
+
+====================
+API REQUIREMENTS
+====================
+
+Add/update endpoints as needed:
+
+User profile:
+- GET /api/users/:id
+- PUT /api/users/:id/preferences
+
+Tal’ah Type change:
+- POST /api/users/:id/talah-type-change-request
+- GET /api/admin/talah-type-change-requests
+- POST /api/admin/talah-type-change-requests/:id/approve
+- POST /api/admin/talah-type-change-requests/:id/reject
+
+If endpoint names differ in the current app, adapt cleanly.
+
+====================
+IMPORTANT UX RULE
+====================
+
+Do not send users back to full onboarding to edit preferences.
+
+Use a dedicated profile preferences screen.
+
+Onboarding should be for initial setup only.
+
+Profile editing should feel like preference management, not re-onboarding.
+
+====================
+SECURITY / SAFETY RULE
+====================
+
+Do not allow frontend-only logic to control Tal’ah Type changes.
+
+The backend must enforce:
+- active gender cannot be changed directly through normal preference edit endpoint
+- gender changes require admin approval endpoint
+
+====================
+IMPLEMENTATION OUTPUT
+====================
+
+After implementation, confirm:
+1. Users can edit normal preference fields.
+2. Scores recalculate after edit.
+3. Gender/Tal’ah Type is read-only in user profile.
+4. Users can request gender/Tal’ah Type change.
+5. Admin can approve/reject change requests.
+6. Pending requests appear in admin dashboard.
+7. Matching uses only active approved gender.
+8. Existing groups are not modified by profile edits.
+9. Mixed-gender groups remain blocked.
+10. No full onboarding re-answer flow is used for profile edits.
+
+Do not add:
+- chat
+- swiping
+- public profile browsing
+- dating features
+- open user-hosted events
+```

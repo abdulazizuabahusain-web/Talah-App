@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import logoUrl from "@assets/talah-app-icon-primary_1778799977421.svg";
 import { GitCommitHorizontal, X } from "lucide-react";
-import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type User } from "@/lib/api";
+import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type TalahTypeChangeRequest, type User } from "@/lib/api";
 import UsersTab from "@/components/UsersTab";
 import RequestsTab from "@/components/RequestsTab";
 import GroupsTab from "@/components/GroupsTab";
@@ -11,12 +11,14 @@ import CompatibilityTab from "@/components/CompatibilityTab";
 import AuditTab from "@/components/AuditTab";
 import SurveysTab from "@/components/SurveysTab";
 import AnalyticsTab from "@/components/AnalyticsTab";
+import TalahTypeRequestsTab from "@/components/TalahTypeRequestsTab";
 
-type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports" | "audit" | "surveys" | "analytics";
+type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports" | "audit" | "surveys" | "analytics" | "type-requests";
 
 const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "analytics", label: "Analytics", emoji: "📈" },
   { id: "users", label: "Users", emoji: "👤" },
+  { id: "type-requests", label: "Type Requests", emoji: "🔄" },
   { id: "requests", label: "Requests", emoji: "📋" },
   { id: "groups", label: "Groups", emoji: "🫂" },
   { id: "compatibility", label: "Compatibility", emoji: "⚡" },
@@ -35,6 +37,7 @@ interface Data {
   groups: Group[];
   feedback: Feedback[];
   reports: Report[];
+  typeChangeRequests: TalahTypeChangeRequest[];
 }
 
 interface HasMore {
@@ -67,7 +70,7 @@ function formatHHMM(date: Date): string {
 export default function DashboardPage({ onLogout }: Props) {
   const [tab, setTab] = useState<Tab>("users");
   const [data, setData] = useState<Data>({
-    users: [], requests: [], groups: [], feedback: [], reports: [],
+    users: [], requests: [], groups: [], feedback: [], reports: [], typeChangeRequests: [],
   });
   const [hasMore, setHasMore] = useState<HasMore>({ users: false, requests: false, groups: false });
   const [loadingMore, setLoadingMore] = useState<Partial<Record<keyof HasMore, boolean>>>({});
@@ -116,14 +119,15 @@ export default function DashboardPage({ onLogout }: Props) {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [usersPage, requestsPage, groupsPage, feedback, reports] = await Promise.all([
+      const [usersPage, requestsPage, groupsPage, feedback, reports, typeChangeRequests] = await Promise.all([
         api.getUsers({ limit: PAGE_SIZE, offset: 0 }),
         api.getRequests({ limit: PAGE_SIZE, offset: 0 }),
         api.getGroups({ limit: PAGE_SIZE, offset: 0 }),
         api.getFeedback(),
         api.getReports(),
+        api.getTalahTypeChangeRequests(),
       ]);
-      setData({ users: usersPage.data, requests: requestsPage.data, groups: groupsPage.data, feedback, reports });
+      setData({ users: usersPage.data, requests: requestsPage.data, groups: groupsPage.data, feedback, reports, typeChangeRequests });
       setHasMore({ users: usersPage.hasMore, requests: requestsPage.hasMore, groups: groupsPage.hasMore });
       setLastUpdated(new Date());
       nextRefreshAtRef.current = Date.now() + DATA_INTERVAL_MS;
@@ -318,6 +322,7 @@ export default function DashboardPage({ onLogout }: Props) {
 
   const pendingRequests = data.requests.filter((r) => r.status === "pending").length;
   const flaggedUsers = data.users.filter((u) => u.flagged).length;
+  const pendingTypeChanges = data.typeChangeRequests.filter((r) => r.status === "pending").length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -344,6 +349,14 @@ export default function DashboardPage({ onLogout }: Props) {
               <span className="text-xs bg-destructive/15 text-destructive px-2.5 py-1 rounded-full font-semibold">
                 {flaggedUsers} flagged
               </span>
+            )}
+            {pendingTypeChanges > 0 && (
+              <button
+                onClick={() => setTab("type-requests")}
+                className="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-semibold hover:bg-amber-200 transition-colors"
+              >
+                🔄 {pendingTypeChanges} type change{pendingTypeChanges !== 1 ? "s" : ""}
+              </button>
             )}
 
             {/* GitHub Sync + PAT — mobile: collapsed icon button; desktop: full badges */}
@@ -634,6 +647,12 @@ export default function DashboardPage({ onLogout }: Props) {
             {tab === "analytics" && <AnalyticsTab />}
             {tab === "audit" && <AuditTab />}
             {tab === "surveys" && <SurveysTab />}
+            {tab === "type-requests" && (
+              <TalahTypeRequestsTab
+                requests={data.typeChangeRequests}
+                onRefresh={() => load(true)}
+              />
+            )}
           </>
         )}
       </div>

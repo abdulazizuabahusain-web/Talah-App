@@ -132,6 +132,19 @@ export interface ApiUser {
   boundaryScore: number | null;
 }
 
+export interface ApiTypeChangeRequest {
+  id: string;
+  userId: string;
+  currentGender: string;
+  requestedGender: string;
+  reason: string | null;
+  status: "pending" | "approved" | "rejected";
+  requestedAt: string;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  adminNotes: string | null;
+}
+
 export interface ApiRequest {
   id: string;
   userId: string;
@@ -376,4 +389,10 @@ export const api = {
   // Feedback pending
   getFeedbackPending: (groupId: string) =>
     req<{ pending: boolean }>(`/groups/${groupId}/feedback-pending`),
+
+  // Tal'ah Type Change Request
+  getTypeChangeRequest: () =>
+    req<ApiTypeChangeRequest | null>("/users/me/talah-type-change-request"),
+  submitTypeChangeRequest: (body: { requestedGender: "woman" | "man"; reason?: string }) =>
+    req<ApiTypeChangeRequest>("/users/me/talah-type-change-request", { method: "POST", body }),
 };
