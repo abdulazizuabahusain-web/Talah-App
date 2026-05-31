@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 import { usersTable } from "./users";
+import { venuesTable } from "./venues";
 
 export const requestsTable = pgTable(
   "requests",
@@ -15,6 +16,9 @@ export const requestsTable = pgTable(
     preferredDate: text("preferred_date").notNull(),
     preferredTime: text("preferred_time").notNull(), // 'morning' | 'afternoon' | 'evening'
     area: text("area").notNull(),
+    venueId: uuid("venue_id").references(() => venuesTable.id, {
+      onDelete: "set null",
+    }),
     status: text("status").notNull().default("pending"),
     // 'pending' | 'matched' | 'cancelled'
     createdAt: timestamp("created_at", { withTimezone: true })

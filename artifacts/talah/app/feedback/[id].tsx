@@ -26,6 +26,14 @@ import { useT } from "@/lib/i18n";
 type GroupFit = "very_suitable" | "somewhat" | "not_suitable";
 type YMN = "yes" | "maybe" | "no";
 
+const REPORT_CATEGORIES = [
+  { key: "uncomfortable", i18nKey: "report_cat_uncomfortable" },
+  { key: "noshow", i18nKey: "report_cat_noshow" },
+  { key: "not_suitable", i18nKey: "report_cat_not_suitable" },
+  { key: "inappropriate", i18nKey: "report_cat_inappropriate" },
+  { key: "other", i18nKey: "report_cat_other" },
+] as const;
+
 function StarRow({
   value,
   onChange,
@@ -138,7 +146,8 @@ export default function FeedbackScreen() {
   const [verdicts, setVerdicts] = useState<Record<string, "connect" | "pass">>({});
   const [comment, setComment] = useState("");
   const [reportTarget, setReportTarget] = useState<string | null>(null);
-  const [reportReason, setReportReason] = useState("");
+  const [reportCategory, setReportCategory] = useState<string | null>(null);
+  const [reportDetails, setReportDetails] = useState("");
   const [blockAlso, setBlockAlso] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -200,6 +209,20 @@ export default function FeedbackScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <ScreenHeader title={t("feedback_title")} />
+      </View>
+    );
+  }
+
+  if (group.status !== "completed") {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <ScreenHeader title={t("feedback_title")} />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 16 }}>
+          <Feather name="clock" size={48} color={colors.mutedForeground} />
+          <AppText variant="title" weight="semibold" align="center" color={colors.mutedForeground}>
+            {t("feedback_available_after")}
+          </AppText>
+        </View>
       </View>
     );
   }
@@ -270,19 +293,22 @@ export default function FeedbackScreen() {
   };
 
   const handleReport = async () => {
-    if (!currentUser || !reportTarget || !reportReason.trim()) return;
+    if (!currentUser || !reportTarget || !reportCategory) return;
     try {
       await submitReport({
         reporterId: currentUser.id,
         targetUserId: reportTarget,
         groupId: group.id,
-        reason: reportReason.trim(),
+        reportCategory,
+        reason: reportCategory,
+        details: reportDetails.trim() || undefined,
       });
       if (blockAlso) {
         await api.blockUser(reportTarget).catch(() => {});
       }
       setReportTarget(null);
-      setReportReason("");
+      setReportCategory(null);
+      setReportDetails("");
       setBlockAlso(false);
       Alert.alert(t("report_submitted"));
     } catch (e) {
@@ -552,13 +578,7 @@ export default function FeedbackScreen() {
           {reportTarget ? (
             <Card style={{ borderColor: colors.destructive }}>
               <View style={{ gap: 12 }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <AppText variant="title" weight="semibold" color={colors.destructive}>
                     {t("report_title")}
                   </AppText>
@@ -566,22 +586,50 @@ export default function FeedbackScreen() {
                     <Feather name="x" size={18} color={colors.mutedForeground} />
                   </Pressable>
                 </View>
+
+                <AppText variant="bodySmall" weight="semibold" color={colors.mutedForeground}>
+                  {t("report_cat_label")}
+                </AppText>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                  {REPORT_CATEGORIES.map((cat) => {
+                    const active = reportCategory === cat.key;
+                    return (
+                      <Pressable
+                        key={cat.key}
+                        onPress={() => setReportCategory(active ? null : cat.key)}
+                        style={{
+                          paddingVertical: 8,
+                          paddingHorizontal: 14,
+                          borderRadius: 999,
+                          borderWidth: 1.5,
+                          borderColor: active ? colors.destructive : colors.border,
+                          backgroundColor: active ? colors.destructive + "18" : "transparent",
+                        }}
+                      >
+                        <AppText
+                          variant="bodySmall"
+                          weight="semibold"
+                          color={active ? colors.destructive : colors.mutedForeground}
+                        >
+                          {t(cat.i18nKey)}
+                        </AppText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
                 <Input
-                  label={t("report_reason")}
-                  placeholder={t("report_placeholder")}
-                  value={reportReason}
-                  onChangeText={setReportReason}
+                  label={t("report_details_label")}
+                  placeholder={t("report_details_placeholder")}
+                  value={reportDetails}
+                  onChangeText={setReportDetails}
                   multiline
-                  style={{ minHeight: 90, textAlignVertical: "top" }}
+                  style={{ minHeight: 80, textAlignVertical: "top" }}
                 />
+
                 <Pressable
                   onPress={() => setBlockAlso(!blockAlso)}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 10,
-                    paddingVertical: 4,
-                  }}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 }}
                   hitSlop={8}
                 >
                   <View
@@ -596,23 +644,18 @@ export default function FeedbackScreen() {
                       justifyContent: "center",
                     }}
                   >
-                    {blockAlso ? (
-                      <Feather name="check" size={13} color={colors.destructive} />
-                    ) : null}
+                    {blockAlso ? <Feather name="check" size={13} color={colors.destructive} /> : null}
                   </View>
-                  <AppText
-                    variant="bodySmall"
-                    color={colors.mutedForeground}
-                    style={{ flex: 1 }}
-                  >
+                  <AppText variant="bodySmall" color={colors.mutedForeground} style={{ flex: 1 }}>
                     {t("block_also")}
                   </AppText>
                 </Pressable>
+
                 <Button
                   label={t("report_submit")}
                   variant="destructive"
                   onPress={handleReport}
-                  disabled={!reportReason.trim()}
+                  disabled={!reportCategory}
                 />
               </View>
             </Card>

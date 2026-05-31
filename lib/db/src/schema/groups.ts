@@ -21,6 +21,7 @@ export const groupsTable = pgTable(
     city: text("city").notNull(),
     area: text("area").notNull(),
     venue: text("venue"),
+    googleMapsUrl: text("google_maps_url"),
     meetupAt: bigint("meetup_at", { mode: "number" }), // Unix ms timestamp
     memberIds: text("member_ids").array().notNull().default([]),
     requestIds: text("request_ids").array().notNull().default([]),

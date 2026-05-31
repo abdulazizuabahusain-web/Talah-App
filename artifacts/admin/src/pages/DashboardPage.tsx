@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import logoUrl from "@assets/talah-app-icon-primary_1778799977421.svg";
 import { GitCommitHorizontal, X } from "lucide-react";
-import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type TalahTypeChangeRequest, type User } from "@/lib/api";
+import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type TalahTypeChangeRequest, type User, type Venue } from "@/lib/api";
 import UsersTab from "@/components/UsersTab";
 import RequestsTab from "@/components/RequestsTab";
 import GroupsTab from "@/components/GroupsTab";
@@ -12,8 +12,9 @@ import AuditTab from "@/components/AuditTab";
 import SurveysTab from "@/components/SurveysTab";
 import AnalyticsTab from "@/components/AnalyticsTab";
 import TalahTypeRequestsTab from "@/components/TalahTypeRequestsTab";
+import VenuesTab from "@/components/VenuesTab";
 
-type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports" | "audit" | "surveys" | "analytics" | "type-requests";
+type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports" | "venues" | "audit" | "surveys" | "analytics" | "type-requests";
 
 const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "analytics", label: "Analytics", emoji: "📈" },
@@ -24,6 +25,7 @@ const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "compatibility", label: "Compatibility", emoji: "⚡" },
   { id: "feedback", label: "Feedback", emoji: "⭐" },
   { id: "reports", label: "Reports", emoji: "🚩" },
+  { id: "venues", label: "Venues", emoji: "📍" },
   { id: "audit", label: "Audit", emoji: "🧾" },
   { id: "surveys", label: "Surveys", emoji: "📊" },
 ];
@@ -37,6 +39,7 @@ interface Data {
   groups: Group[];
   feedback: Feedback[];
   reports: Report[];
+  venues: Venue[];
   typeChangeRequests: TalahTypeChangeRequest[];
 }
 
@@ -70,7 +73,7 @@ function formatHHMM(date: Date): string {
 export default function DashboardPage({ onLogout }: Props) {
   const [tab, setTab] = useState<Tab>("users");
   const [data, setData] = useState<Data>({
-    users: [], requests: [], groups: [], feedback: [], reports: [], typeChangeRequests: [],
+    users: [], requests: [], groups: [], feedback: [], reports: [], venues: [], typeChangeRequests: [],
   });
   const [hasMore, setHasMore] = useState<HasMore>({ users: false, requests: false, groups: false });
   const [loadingMore, setLoadingMore] = useState<Partial<Record<keyof HasMore, boolean>>>({});
@@ -119,15 +122,16 @@ export default function DashboardPage({ onLogout }: Props) {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [usersPage, requestsPage, groupsPage, feedback, reports, typeChangeRequests] = await Promise.all([
+      const [usersPage, requestsPage, groupsPage, feedback, reports, venues, typeChangeRequests] = await Promise.all([
         api.getUsers({ limit: PAGE_SIZE, offset: 0 }),
         api.getRequests({ limit: PAGE_SIZE, offset: 0 }),
         api.getGroups({ limit: PAGE_SIZE, offset: 0 }),
         api.getFeedback(),
         api.getReports(),
+        api.getVenues(),
         api.getTalahTypeChangeRequests(),
       ]);
-      setData({ users: usersPage.data, requests: requestsPage.data, groups: groupsPage.data, feedback, reports, typeChangeRequests });
+      setData({ users: usersPage.data, requests: requestsPage.data, groups: groupsPage.data, feedback, reports, venues, typeChangeRequests });
       setHasMore({ users: usersPage.hasMore, requests: requestsPage.hasMore, groups: groupsPage.hasMore });
       setLastUpdated(new Date());
       nextRefreshAtRef.current = Date.now() + DATA_INTERVAL_MS;
@@ -645,7 +649,8 @@ export default function DashboardPage({ onLogout }: Props) {
             {tab === "groups" && <GroupsTab groups={data.groups} users={data.users} onRefresh={load} hasMore={hasMore.groups} loadingMore={!!loadingMore.groups} onLoadMore={() => loadMore("groups")} />}
             {tab === "compatibility" && <CompatibilityTab users={data.users} requests={data.requests} onRefresh={load} />}
             {tab === "feedback" && <FeedbackTab feedback={data.feedback} users={data.users} />}
-            {tab === "reports" && <ReportsTab reports={data.reports} users={data.users} />}
+            {tab === "reports" && <ReportsTab reports={data.reports} users={data.users} onReportsChange={(r) => setData((d) => ({ ...d, reports: r }))} />}
+            {tab === "venues" && <VenuesTab venues={data.venues} onVenuesChange={(v) => setData((d) => ({ ...d, venues: v }))} />}
             {tab === "analytics" && <AnalyticsTab />}
             {tab === "audit" && <AuditTab />}
             {tab === "surveys" && <SurveysTab />}

@@ -12,6 +12,7 @@ const CreateRequestBody = z.object({
   preferredDate: z.string(),
   preferredTime: z.enum(["morning", "afternoon", "evening"]),
   area: z.string().min(1),
+  venueId: z.string().uuid().optional(),
 });
 
 router.get("/", requireAuth, async (req, res) => {

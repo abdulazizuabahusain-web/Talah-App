@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { api, type Group, type User } from "@/lib/api";
-import { getVenuesForCity } from "@/lib/venues";
+import { useEffect, useState } from "react";
+import { api, type Group, type User, type Venue } from "@/lib/api";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-muted text-muted-foreground",
@@ -61,6 +60,11 @@ export default function GroupsTab({ groups, users, onRefresh, hasMore, loadingMo
             </div>
 
             {g.venue && <p className="text-sm">📍 {g.venue}</p>}
+            {g.googleMapsUrl && (
+              <a href={g.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                🗺 Maps link
+              </a>
+            )}
             {g.meetupAt && <p className="text-sm">⏰ {new Date(g.meetupAt).toLocaleString()}</p>}
 
             <div className="flex flex-wrap gap-2">
@@ -81,10 +85,15 @@ export default function GroupsTab({ groups, users, onRefresh, hasMore, loadingMo
                 city={g.city}
                 initialVenue={g.venue ?? ""}
                 initialDate={g.meetupAt ? new Date(g.meetupAt).toISOString().slice(0, 16).replace("T", " ") : ""}
-                onSave={async (v, d) => {
+                initialGoogleMapsUrl={g.googleMapsUrl ?? ""}
+                onSave={async (v, d, mapsUrl) => {
                   setLoading(g.id);
                   const ts = d ? new Date(d.replace(" ", "T")).getTime() : undefined;
-                  await api.patchGroup(g.id, { venue: v || undefined, meetupAt: isNaN(ts ?? NaN) ? undefined : ts });
+                  await api.patchGroup(g.id, {
+                    venue: v || undefined,
+                    meetupAt: isNaN(ts ?? NaN) ? undefined : ts,
+                    googleMapsUrl: mapsUrl || null,
+                  });
                   setEditing(null);
                   onRefresh();
                   setLoading(null);
@@ -123,38 +132,52 @@ function VenueEditor({
   city,
   initialVenue,
   initialDate,
+  initialGoogleMapsUrl,
   onSave,
   onCancel,
 }: {
   city: string;
   initialVenue: string;
   initialDate: string;
-  onSave: (venue: string, date: string) => Promise<void>;
+  initialGoogleMapsUrl: string;
+  onSave: (venue: string, date: string, googleMapsUrl: string) => Promise<void>;
   onCancel: () => void;
 }) {
-  const suggestions = getVenuesForCity(city);
+  const [suggestions, setSuggestions] = useState<Venue[]>([]);
   const [venue, setVenue] = useState(initialVenue);
   const [dateStr, setDateStr] = useState(initialDate);
+  const [googleMapsUrl, setGoogleMapsUrl] = useState(initialGoogleMapsUrl);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api.getVenues().then(setSuggestions).catch(() => {});
+  }, []);
+
+  const citySuggestions = suggestions.filter((v) => v.city === city.toLowerCase() && v.active);
+
+  const handleVenueSelect = (v: Venue) => {
+    setVenue(v.name);
+    if (v.googleMapsUrl) setGoogleMapsUrl(v.googleMapsUrl);
+  };
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(venue, dateStr);
+    await onSave(venue, dateStr, googleMapsUrl);
     setSaving(false);
   };
 
   return (
     <div className="space-y-3 pt-2 border-t border-border">
-      {suggestions.length > 0 && (
+      {citySuggestions.length > 0 && (
         <div>
           <p className="text-xs font-semibold text-muted-foreground mb-1.5">
             Suggested venues in {city}
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {suggestions.map((s) => (
+            {citySuggestions.map((s) => (
               <button
-                key={s.name}
-                onClick={() => setVenue(s.name)}
+                key={s.id}
+                onClick={() => handleVenueSelect(s)}
                 className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                   venue === s.name
                     ? "border-primary bg-primary/10 text-primary font-semibold"
@@ -162,7 +185,7 @@ function VenueEditor({
                 }`}
               >
                 {s.name}
-                <span className="text-muted-foreground ml-1">· {s.area}</span>
+                {s.area && <span className="text-muted-foreground ml-1">· {s.area}</span>}
               </button>
             ))}
           </div>
@@ -171,9 +194,16 @@ function VenueEditor({
 
       <input
         className="w-full px-3 py-2 text-sm rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-        placeholder="Or type a custom venue…"
+        placeholder="Venue name"
         value={venue}
         onChange={(e) => setVenue(e.target.value)}
+      />
+
+      <input
+        className="w-full px-3 py-2 text-sm rounded-xl border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+        placeholder="Google Maps URL (optional)"
+        value={googleMapsUrl}
+        onChange={(e) => setGoogleMapsUrl(e.target.value)}
       />
 
       <input

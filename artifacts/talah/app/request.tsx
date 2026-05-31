@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -20,8 +21,9 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { useApp } from "@/contexts/AppContext";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
+import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
-import type { MeetupType, TimeOfDay } from "@/lib/types";
+import type { ApiVenue, MeetupType, TimeOfDay } from "@/lib/types";
 
 function nextDays(count: number): { iso: string; label: string }[] {
   const out: { iso: string; label: string }[] = [];
@@ -46,11 +48,36 @@ export default function RequestScreen() {
   const [date, setDate] = useState<string>(nextDays(1)[0].iso);
   const [time, setTime] = useState<TimeOfDay>("morning");
   const [area, setArea] = useState("");
+  const [venues, setVenues] = useState<ApiVenue[]>([]);
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+  const [loadingVenues, setLoadingVenues] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!currentUser?.city) return;
+    setLoadingVenues(true);
+    setSelectedVenueId(null);
+    api
+      .getVenues(currentUser.city, meetup)
+      .then((v) => setVenues(v))
+      .catch(() => setVenues([]))
+      .finally(() => setLoadingVenues(false));
+  }, [meetup, currentUser?.city]);
+
+  const handleVenueSelect = (v: ApiVenue) => {
+    const toggled = selectedVenueId === v.id ? null : v.id;
+    setSelectedVenueId(toggled);
+    if (toggled) setArea(v.area ?? "");
+  };
+
+  const canSubmit = area.trim().length > 0 || !!selectedVenueId;
+
   const handleSubmit = async () => {
-    if (!currentUser || !area.trim()) return;
+    if (!currentUser || !canSubmit) return;
+    const selectedVenue = venues.find((v) => v.id === selectedVenueId);
+    const finalArea = area.trim() || selectedVenue?.area || "";
+    if (!finalArea) return;
     setSubmitting(true);
     try {
       await createRequest({
@@ -58,7 +85,8 @@ export default function RequestScreen() {
         meetupType: meetup,
         preferredDate: date,
         preferredTime: time,
-        area: area.trim(),
+        area: finalArea,
+        venueId: selectedVenueId ?? undefined,
       });
       setSubmitted(true);
     } catch (e) {
@@ -180,10 +208,45 @@ export default function RequestScreen() {
             </View>
           </Card>
 
+          {/* ── Venue picker ── */}
           <Card>
             <View style={{ gap: 12 }}>
               <AppText variant="title" weight="semibold">
-                {t("request_area")}
+                {t("request_venue")}
+              </AppText>
+              {loadingVenues ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : venues.length === 0 ? (
+                <AppText variant="bodySmall" color={colors.mutedForeground}>
+                  {t("venue_none")}
+                </AppText>
+              ) : (
+                <>
+                  <AppText variant="bodySmall" color={colors.mutedForeground}>
+                    {t("venue_select_hint")}
+                  </AppText>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      {venues.map((v) => (
+                        <Chip
+                          key={v.id}
+                          label={v.name}
+                          selected={selectedVenueId === v.id}
+                          onPress={() => handleVenueSelect(v)}
+                        />
+                      ))}
+                    </View>
+                  </ScrollView>
+                </>
+              )}
+            </View>
+          </Card>
+
+          {/* ── Area text input ── */}
+          <Card>
+            <View style={{ gap: 12 }}>
+              <AppText variant="title" weight="semibold">
+                {venues.length > 0 ? t("venue_or_area") : t("request_area")}
               </AppText>
               <Input
                 placeholder={t("area_placeholder")}
@@ -207,7 +270,7 @@ export default function RequestScreen() {
           <Button
             label={t("submit_request")}
             onPress={handleSubmit}
-            disabled={!area.trim()}
+            disabled={!canSubmit}
             loading={submitting}
             size="lg"
           />

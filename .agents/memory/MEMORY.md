@@ -1,1 +1,4 @@
-- [Groups table schema](groups-schema.md) — groups has no `title` column; use city/area/meetupType for display.
+- [Zod import rule](zod-import.md) — use `"zod"` in api-server/esbuild bundles; `"zod/v4"` only in lib/db schema files
+- [DB SQL execution](db-sql.md) — run raw SQL via `node -e` in lib/db dir with `require('./node_modules/pg')`; never `pnpm run push` (interactive)
+- [Gregorian date fix](gregorian-date.md) — use `"ar-SA-u-ca-gregory"` not `"ar-SA"` for Arabic locale to avoid Hijri calendar
+- [pick() readonly arrays](seed-pick.md) — `pick<T>(arr: readonly T[])` required in seed.ts for as-const arrays

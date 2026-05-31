@@ -687,6 +687,34 @@ export const STRINGS: Dict = {
 
   // Misc / placeholders
   no_data: { ar: "لا يوجد بيانات بعد", en: "Nothing here yet" },
+
+  // Venues
+  request_venue: { ar: "المكان المفضل", en: "Preferred Venue" },
+  venue_select_hint: { ar: "اختر مكاناً من المتاح في مدينتك", en: "Choose from available venues in your city" },
+  venue_none: { ar: "لا توجد أماكن مرتبة بعد، اكتبي المنطقة", en: "No venues listed yet — enter your area below" },
+  venue_or_area: { ar: "أو اكتبي المنطقة يدوياً", en: "Or enter area manually" },
+
+  // Reveal screen
+  open_in_maps: { ar: "افتح في خرائط قوقل", en: "Open in Maps" },
+  arrive_on_time: { ar: "يرجى الحضور في الوقت المحدد ⏰", en: "Please arrive on time ⏰" },
+  talah_confirmed_banner: {
+    ar: "طلعتك مؤكدة ✨ — تفاصيل اللقاء أدناه",
+    en: "Your Tal'ah is confirmed ✨ — meetup details below",
+  },
+  feedback_available_after: {
+    ar: "التقييم والتقرير سيكونان متاحَين بعد انتهاء الطلعة",
+    en: "Feedback & report will be available once the Tal'ah ends",
+  },
+
+  // Report categories
+  report_cat_uncomfortable: { ar: "تصرف غير مريح", en: "Uncomfortable behavior" },
+  report_cat_noshow: { ar: "لم تحضر", en: "No-show" },
+  report_cat_not_suitable: { ar: "غير مناسبة للمجموعة", en: "Not suitable for group" },
+  report_cat_inappropriate: { ar: "كلام أو تصرف غير لائق", en: "Inappropriate behavior" },
+  report_cat_other: { ar: "أخرى", en: "Other" },
+  report_details_label: { ar: "تفاصيل إضافية (اختياري)", en: "Additional details (optional)" },
+  report_details_placeholder: { ar: "اشرحي ما حصل باختصار…", en: "Briefly describe what happened…" },
+  report_cat_label: { ar: "سبب البلاغ", en: "Report reason" },
 };
 
 export function useT() {

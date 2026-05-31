@@ -106,6 +106,19 @@ export const api = {
 
   getFeedback: () => request<Feedback[]>("/admin/feedback"),
   getReports: () => request<Report[]>("/admin/reports"),
+  patchReport: (id: string, status: string) =>
+    request<Report>(`/admin/reports/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+
+  getVenues: () => request<Venue[]>("/admin/venues"),
+  createVenue: (data: Partial<Venue>) =>
+    request<Venue>("/admin/venues", { method: "POST", body: JSON.stringify(data) }),
+  patchVenue: (id: string, data: Partial<Venue>) =>
+    request<Venue>(`/admin/venues/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteVenue: (id: string) =>
+    request<{ ok: boolean }>(`/admin/venues/${id}`, { method: "DELETE" }),
 
   checkCompatibility: (userIds: string[]) =>
     request<CompatibilityReport>("/admin/compatibility", {
@@ -201,6 +214,7 @@ export interface Group {
   city: string;
   area: string;
   venue: string | null;
+  googleMapsUrl: string | null;
   meetupAt: number | null;
   memberIds: string[];
   requestIds: string[];
@@ -251,8 +265,25 @@ export interface Report {
   id: string;
   reporterId: string;
   targetUserId: string;
+  groupId?: string | null;
+  reportCategory?: string | null;
   reason: string;
+  details?: string | null;
+  status: string;
   createdAt: string;
+}
+
+export interface Venue {
+  id: string;
+  name: string;
+  city: string;
+  area: string | null;
+  type: string;
+  googleMapsUrl: string | null;
+  active: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
 export interface Candidate {

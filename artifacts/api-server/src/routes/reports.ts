@@ -12,7 +12,9 @@ const AUTO_FLAG_THRESHOLD = 3;
 const CreateReportBody = z.object({
   targetUserId: z.string().uuid(),
   groupId: z.string().uuid().optional(),
-  reason: z.string().min(5).max(500),
+  reportCategory: z.string().max(100).optional(),
+  reason: z.string().min(1).max(500),
+  details: z.string().max(1000).optional(),
 });
 
 router.post("/", requireAuth, async (req, res) => {

@@ -333,6 +333,7 @@ export const api = {
     preferredDate: string;
     preferredTime: "morning" | "afternoon" | "evening";
     area: string;
+    venueId?: string | null;
   }) => req<ApiRequest>("/requests", { method: "POST", body }),
   cancelRequest: (id: string) =>
     req<{ ok: boolean }>(`/requests/${id}`, { method: "DELETE" }),
@@ -375,11 +376,19 @@ export const api = {
       `/feedback/status?groupId=${groupId}`,
     ),
 
+  // Venues
+  getVenues: (city?: string | null, meetupType?: string) =>
+    req<import("./types").ApiVenue[]>(
+      `/venues?city=${encodeURIComponent(city ?? "")}&type=${meetupType ?? ""}`,
+    ),
+
   // Reports
   submitReport: (body: {
     targetUserId: string;
     groupId?: string;
+    reportCategory?: string;
     reason: string;
+    details?: string;
   }) => req<void>("/reports", { method: "POST", body }),
 
   // Safety — Block

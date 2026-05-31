@@ -42,7 +42,22 @@ async function embedMutualConnects(memberIds: string[]) {
     .where(inArray(usersTable.id, memberIds));
 }
 
+// Auto-complete groups whose meetup time passed more than 2 hours ago
+async function autoCompleteGroups(): Promise<void> {
+  const cutoffMs = Date.now() - 2 * 60 * 60 * 1000;
+  await db
+    .update(groupsTable)
+    .set({ status: "completed", updatedAt: new Date() })
+    .where(
+      and(
+        inArray(groupsTable.status, ["matched", "revealed"]),
+        sql`${groupsTable.meetupAt} IS NOT NULL AND ${groupsTable.meetupAt}::bigint < ${cutoffMs}`,
+      ),
+    );
+}
+
 router.get("/", requireAuth, async (req, res) => {
+  await autoCompleteGroups();
   const userId = req.user!.id;
   const rows = await db
     .select()

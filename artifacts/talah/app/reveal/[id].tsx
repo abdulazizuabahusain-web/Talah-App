@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
@@ -90,7 +90,7 @@ export default function RevealScreen() {
                 icon="clock"
                 label={t("reveal_meetup_at")}
                 value={new Date(group.meetupAt).toLocaleString(
-                  language === "ar" ? "ar-SA" : "en-US",
+                  language === "ar" ? "ar-SA-u-ca-gregory" : "en-US",
                   { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" },
                 )}
               />
@@ -98,9 +98,32 @@ export default function RevealScreen() {
             {group.venue ? (
               <DetailRow icon="map-pin" label={t("reveal_venue")} value={group.venue} />
             ) : null}
+            {group.googleMapsUrl ? (
+              <Pressable
+                onPress={() => Linking.openURL(group.googleMapsUrl!)}
+                style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 26 }}
+              >
+                <Feather name="external-link" size={14} color={colors.primary} />
+                <AppText variant="bodySmall" color={colors.primary} weight="semibold">
+                  {t("open_in_maps")}
+                </AppText>
+              </Pressable>
+            ) : null}
             <DetailRow icon="users" label={t("members_count")} value={String(members.length)} />
           </View>
         </Card>
+
+        {/* ── Confirmed banner (status = revealed, upcoming meetup) ── */}
+        {group.status === "revealed" ? (
+          <View style={{ padding: 16, borderRadius: 16, backgroundColor: colors.primary + "14", gap: 4, alignItems: "center" }}>
+            <AppText variant="body" weight="bold" color={colors.primary} align="center">
+              {t("talah_confirmed_banner")}
+            </AppText>
+            <AppText variant="bodySmall" color={colors.primary} align="center">
+              {t("arrive_on_time")}
+            </AppText>
+          </View>
+        ) : null}
 
         {/* ── Privacy note ── */}
         <View style={{ flexDirection: "row", gap: 10, padding: 14, borderRadius: 14, backgroundColor: colors.muted }}>
@@ -189,8 +212,8 @@ export default function RevealScreen() {
           <MutualConnectsSection groupId={group.id} currentUserId={currentUser.id} />
         ) : null}
 
-        {/* ── Feedback / report actions ── */}
-        {isRevealable ? (
+        {/* ── Feedback / report actions (completed only) ── */}
+        {group.status === "completed" ? (
           <View style={{ gap: 10 }}>
             <Button
               label={t("give_feedback")}
@@ -205,6 +228,12 @@ export default function RevealScreen() {
                 {t("report_member")}
               </AppText>
             </Pressable>
+          </View>
+        ) : group.status === "revealed" ? (
+          <View style={{ padding: 14, borderRadius: 14, backgroundColor: colors.muted, alignItems: "center" }}>
+            <AppText variant="bodySmall" color={colors.mutedForeground} align="center">
+              {t("feedback_available_after")}
+            </AppText>
           </View>
         ) : null}
       </ScrollView>

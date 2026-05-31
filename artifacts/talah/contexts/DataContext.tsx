@@ -155,6 +155,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         preferredDate: input.preferredDate,
         preferredTime: input.preferredTime,
         area: input.area,
+        venueId: input.venueId ?? undefined,
       });
       const r = toRequest(created);
       setRequests((prev) => [...prev, r]);
@@ -208,7 +209,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       await api.submitReport({
         targetUserId: input.targetUserId,
         groupId: input.groupId,
+        reportCategory: input.reportCategory,
         reason: input.reason,
+        details: input.details,
       });
       setError(null);
     },

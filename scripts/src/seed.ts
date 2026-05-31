@@ -23,11 +23,11 @@ const opennessOptions = ["selective", "open", "very_open"];
 const boundaryOptions = ["reserved", "moderate", "expressive"];
 const traitPool = ["empathetic", "humorous", "ambitious", "creative", "analytical", "adventurous", "caring", "independent"];
 
-function pick<T>(arr: T[]): T {
+function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function pickMany<T>(arr: T[], min: number, max: number): T[] {
+function pickMany<T>(arr: readonly T[], min: number, max: number): T[] {
   const count = min + Math.floor(Math.random() * (max - min + 1));
   const shuffled = [...arr].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);

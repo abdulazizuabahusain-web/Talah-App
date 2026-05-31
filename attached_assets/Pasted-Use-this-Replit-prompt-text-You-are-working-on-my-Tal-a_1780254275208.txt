@@ -1,0 +1,426 @@
+Use this Replit prompt:
+
+```text
+You are working on my Tal’ah / طلعة MVP.
+
+I tested the Tal’ah Request and Post-Tal’ah flow and found several issues/improvements. Do NOT rewrite the whole app. Build on the current implementation.
+
+Before making changes:
+1. Review the current Tal’ah request flow.
+2. Review current group/match/status logic.
+3. Review current venue handling.
+4. Review current feedback/report flow.
+5. Summarize current behavior and gaps.
+6. Then implement the changes carefully.
+
+====================
+PRODUCT CONTEXT
+====================
+
+Tal’ah is a Saudi-native, privacy-first curated social meetup app.
+
+It supports:
+- Women-only Tal’ahs
+- Men-only Tal’ahs
+- Admin-controlled matching
+- Small curated groups of 3–5 users
+- No swiping
+- No public profile browsing
+- No pre-meetup chat
+
+The app should feel simple, safe, and clear to users.
+
+====================
+ISSUES / CHANGES REQUIRED
+====================
+
+1. Venue selection during Tal’ah request
+Currently users may not have clear venue options.
+
+New requirement:
+When user requests a Tal’ah, allow them to select from pre-determined approved venues.
+
+Do NOT make users manually type venue names.
+
+Request flow should include:
+- preferred meetup type: Coffee / Dinner
+- preferred date
+- preferred time
+- preferred area if still available
+- preferred venue from approved venue list
+
+Venue list should be filtered by:
+- city
+- meetup type if possible
+- optionally area
+
+Each venue should include:
+- venueName
+- city
+- area
+- type: coffee / dinner / both
+- googleMapsUrl
+- active boolean
+- notes optional
+
+If venue management table does not exist, create one.
+
+Suggested table:
+venues:
+- id
+- name
+- city
+- area
+- type
+- googleMapsUrl
+- active
+- notes
+- createdAt
+- updatedAt
+
+Admin should be able to:
+- view venues
+- add venue
+- edit venue
+- deactivate venue
+- see venue selected in Tal’ah requests and groups
+
+MVP is enough. Do not overbuild.
+
+====================
+2. Google Maps location link
+====================
+
+Venue location should be linked to Google Maps.
+
+User-facing:
+When a Tal’ah is confirmed, show:
+- venue name
+- area
+- date
+- time
+- button/link: افتح الموقع في خرائط قوقل / Open in Google Maps
+
+Admin-facing:
+Venue table should show Google Maps URL and link.
+
+Validation:
+- googleMapsUrl should be optional for admin while creating venue, but if present it must render as clickable link.
+- User confirmed Tal’ah screen should show Google Maps link only if available.
+
+====================
+3. Gregorian date format issue
+====================
+
+Observed issue:
+Dates are showing as Hijri in some locations of the Tal’ah request/status flow.
+
+Requirement:
+All dates in the app should display in Gregorian format.
+
+Use Gregorian date format consistently across:
+- Tal’ah request form
+- Tal’ah request summary
+- admin dashboard
+- group creation
+- confirmed Tal’ah screen
+- Tal’ah status screen
+- feedback screen
+- created groups list
+
+Recommended display:
+Arabic UI:
+- Gregorian date using Arabic labels if needed, but calendar must be Gregorian.
+Example:
+الأربعاء، 12 يونيو 2026
+or
+12/06/2026
+
+English UI:
+Wednesday, 12 June 2026
+or
+12/06/2026
+
+Important:
+Do not use Hijri calendar display.
+Check any date formatting code using locale such as ar-SA that may default to Hijri.
+If using Intl.DateTimeFormat, force Gregorian calendar:
+- calendar: "gregory"
+or use locale:
+- ar-SA-u-ca-gregory
+
+====================
+4. Matched / confirmed Tal’ah date and time clarity
+====================
+
+Observed issue:
+After match, the date and time are not clear to users.
+
+Requirement:
+On Tal’ah status / confirmed screen, make date and time highly visible and unambiguous.
+
+Confirmed Tal’ah screen should show:
+
+Arabic:
+طلعتك مؤكدة ✨
+
+Fields:
+- التاريخ / Date
+- الوقت / Time
+- المكان / Venue
+- المنطقة / Area
+- نوع اللقاء / Coffee or Dinner
+- حالة الطلعة / Status
+- رابط الموقع / Google Maps link
+
+Use large clear card layout.
+
+Example Arabic:
+التاريخ: الأربعاء، 12 يونيو 2026
+الوقت: 7:30 مساءً
+المكان: [Venue Name]
+المنطقة: [Area]
+افتح الموقع في خرائط قوقل
+
+Also show:
+- “يرجى الحضور في الوقت المحدد”
+- “التقييم وبلاغ الأعضاء يظهر بعد انتهاء الطلعة”
+
+====================
+5. Flag/report member visibility after Tal’ah
+====================
+
+Observed issue:
+Flagging a member is not always visible after Tal’ah.
+
+Requirement:
+Flag/report member should be visible after Tal’ah completion and should be part of Post-Tal’ah feedback.
+
+Post-Tal’ah feedback should include:
+- overall comfort rating
+- group fit
+- would join again
+- venue rating
+- venue suitability
+- optional comment
+- safety concern yes/no
+- ability to flag/report a specific member
+
+Report member flow:
+After Tal’ah completion, show group members in feedback screen.
+
+For each member, allow:
+- no issue
+- report member
+
+If report member selected:
+ask reason:
+- تصرف غير مريح / Uncomfortable behavior
+- لم يحضر / No-show
+- غير مناسب للمجموعة / Not suitable for group
+- كلام أو تصرف غير لائق / Inappropriate behavior
+- أخرى / Other
+
+Optional text details.
+
+Database:
+If report table already exists, extend if needed.
+
+Reports should include:
+- reporterUserId
+- reportedUserId
+- groupId
+- reason
+- details
+- createdAt
+- status: open / reviewed / dismissed / actioned
+
+Admin dashboard:
+Reports must be clearly visible.
+Highlight open reports.
+Admin should see:
+- reporter nickname
+- reported user nickname
+- group
+- venue
+- date/time
+- reason
+- details
+- status
+
+Admin should be able to mark report as:
+- reviewed
+- dismissed
+- actioned
+
+====================
+6. Tal’ah status should auto-complete 2 hours after start time
+====================
+
+Requirement:
+A Tal’ah/group status should automatically become completed two hours after its start time.
+
+Logic:
+If group status is confirmed/matched/revealed and current time >= meetupTime + 2 hours:
+- update status to completed
+or
+- treat it as completed in UI and API response
+
+Implementation options:
+A. Simple MVP option:
+On every relevant API call that fetches groups/status, run a helper function:
+autoCompleteExpiredGroups()
+This checks groups where meetupTime + 2 hours has passed and updates status to completed.
+
+B. If current app supports scheduled jobs, use a scheduled job.
+But MVP option A is acceptable.
+
+Important:
+- Do not complete cancelled groups.
+- Do not complete already completed groups.
+- Completion should unlock post-Tal’ah feedback and report member feature.
+- Before completion, feedback should not be available.
+
+User-facing status:
+Before start:
+- Confirmed
+
+During first two hours after start:
+- In progress / الطلعة جارية
+
+After two hours:
+- Completed / انتهت الطلعة
+- Show feedback CTA
+
+====================
+7. Feedback availability rules
+====================
+
+Feedback should only be available when:
+- group status is completed
+- user is a member of that group
+- user has not already submitted feedback for that group
+
+If feedback already submitted:
+show:
+تم إرسال تقييمك لهذه الطلعة، شكراً لك ✨
+
+If group is not completed yet:
+show:
+التقييم بيكون متاح بعد انتهاء الطلعة
+
+====================
+ADMIN DASHBOARD VISIBILITY
+====================
+
+Admin dashboard must clearly show:
+
+For Tal’ah requests:
+- requesting user
+- selected venue preference
+- preferred date/time
+- city
+- area
+- meetup type
+- status
+
+For groups:
+- group members
+- venue
+- Google Maps link
+- meetup date/time
+- status
+- whether auto-completed
+- feedback count
+- report count
+
+For feedback:
+- all feedback entries
+- average comfort rating
+- venue rating
+- would join again
+- safety concerns
+- reported members
+
+For reports:
+- open reports
+- report status
+- ability to review/action
+
+====================
+VALIDATION REQUIREMENTS
+====================
+
+Tal’ah Request:
+- userId required
+- meetupType required
+- preferredDate required
+- preferredTime required if separate
+- selected venueId required OR preferredArea required depending on implementation
+- venue must be active
+- venue city should match user city if possible
+
+Group:
+- venueId or venueName required when confirming group
+- meetupTime required
+- status required
+- date display must be Gregorian
+
+Feedback:
+- only after completed
+- one feedback per user per group
+- only group members can submit
+
+Reports:
+- only group members can report another group member
+- user cannot report themselves
+- report must be tied to groupId
+
+====================
+DO NOT ADD
+====================
+
+Do not add:
+- chat
+- public profile browsing
+- swiping
+- public venue marketplace
+- user-hosted events
+- complex reservation system
+- payment
+- gamification
+
+Keep this MVP lean.
+
+====================
+EXPECTED OUTPUT BEFORE IMPLEMENTATION
+====================
+
+Before modifying code, provide:
+1. Summary of current Tal’ah request/status/feedback behavior.
+2. Gap list based on the issues above.
+3. Database/schema changes needed.
+4. API changes needed.
+5. Frontend changes needed.
+6. Admin dashboard changes needed.
+7. Risks/migration considerations.
+8. Step-by-step implementation plan.
+
+Then implement carefully.
+
+====================
+EXPECTED OUTPUT AFTER IMPLEMENTATION
+====================
+
+Confirm:
+1. Users can select from approved venues when requesting Tal’ah.
+2. Venue Google Maps link appears in confirmed Tal’ah details.
+3. Dates display in Gregorian format everywhere.
+4. Confirmed Tal’ah date/time is clear to users.
+5. Feedback is only available after Tal’ah completion.
+6. Group status auto-completes two hours after meetup start.
+7. Users can report/flag members after completion.
+8. Reports are part of post-Tal’ah feedback flow.
+9. Admin dashboard shows venues, feedback, reports, and status clearly.
+10. Existing core safety rules remain intact.
+```

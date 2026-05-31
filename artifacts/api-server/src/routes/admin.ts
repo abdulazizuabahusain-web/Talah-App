@@ -17,6 +17,7 @@ import {
   adminAuditLogsTable,
   surveysTable,
   talahTypeChangeRequestsTable,
+  venuesTable,
 } from "@workspace/db";
 import { createAdminToken, isAdminToken } from "../lib/adminSessions";
 import { sendPushToMany } from "../lib/push";
@@ -113,6 +114,7 @@ const AdminPatchGroupBody = z
     city: z.string().min(1).optional(),
     area: z.string().min(1).optional(),
     venue: z.string().nullable().optional(),
+    googleMapsUrl: z.string().nullable().optional(),
     meetupAt: z.number().nullable().optional(),
     memberIds: z.array(z.string().uuid()).optional(),
     requestIds: z.array(z.string().uuid()).optional(),
@@ -654,8 +656,76 @@ router.get("/reports", requireAdmin, async (_req, res) => {
   const rows = await db
     .select()
     .from(reportsTable)
-    .orderBy(reportsTable.createdAt);
+    .orderBy(desc(reportsTable.createdAt));
   res.json(rows);
+});
+
+router.patch("/reports/:id", requireAdmin, async (req, res) => {
+  const id = req.params["id"] as string;
+  const { status } = req.body ?? {};
+  const allowed = ["open", "reviewed", "dismissed", "actioned"];
+  if (!status || !allowed.includes(status as string)) {
+    res.status(400).json({ error: `status must be one of: ${allowed.join(", ")}` });
+    return;
+  }
+  const [before] = await db.select().from(reportsTable).where(eq(reportsTable.id, id)).limit(1);
+  if (!before) { res.status(404).json({ error: "Not found" }); return; }
+  const [updated] = await db
+    .update(reportsTable)
+    .set({ status: status as string })
+    .where(eq(reportsTable.id, id))
+    .returning();
+  await writeAdminAuditLog(req, { action: "report.update_status", targetTable: "reports", targetId: id, before, after: updated });
+  res.json(updated);
+});
+
+// ── Venues (admin CRUD) ────────────────────────────────────────────────────────
+
+const VenueBody = z.object({
+  name: z.string().min(1),
+  city: z.string().min(1),
+  area: z.string().optional(),
+  type: z.enum(["coffee", "dinner", "both"]).default("both"),
+  googleMapsUrl: z.string().url().nullable().optional(),
+  active: z.boolean().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+router.get("/venues", requireAdmin, async (_req, res) => {
+  const rows = await db.select().from(venuesTable).orderBy(venuesTable.city, venuesTable.name);
+  res.json(rows);
+});
+
+router.post("/venues", requireAdmin, async (req, res) => {
+  const parsed = VenueBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid venue data", details: parsed.error.issues }); return; }
+  const [created] = await db.insert(venuesTable).values(parsed.data).returning();
+  await writeAdminAuditLog(req, { action: "venue.create", targetTable: "venues", targetId: created.id, before: null, after: created });
+  res.status(201).json(created);
+});
+
+router.patch("/venues/:id", requireAdmin, async (req, res) => {
+  const id = req.params["id"] as string;
+  const [before] = await db.select().from(venuesTable).where(eq(venuesTable.id, id)).limit(1);
+  if (!before) { res.status(404).json({ error: "Not found" }); return; }
+  const parsed = VenueBody.partial().safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid venue data", details: parsed.error.issues }); return; }
+  const [updated] = await db
+    .update(venuesTable)
+    .set({ ...parsed.data, updatedAt: new Date() })
+    .where(eq(venuesTable.id, id))
+    .returning();
+  await writeAdminAuditLog(req, { action: "venue.update", targetTable: "venues", targetId: id, before, after: updated });
+  res.json(updated);
+});
+
+router.delete("/venues/:id", requireAdmin, async (req, res) => {
+  const id = req.params["id"] as string;
+  const [before] = await db.select().from(venuesTable).where(eq(venuesTable.id, id)).limit(1);
+  if (!before) { res.status(404).json({ error: "Not found" }); return; }
+  await db.update(venuesTable).set({ active: false, updatedAt: new Date() }).where(eq(venuesTable.id, id));
+  await writeAdminAuditLog(req, { action: "venue.deactivate", targetTable: "venues", targetId: id, before, after: { ...before, active: false } });
+  res.json({ ok: true });
 });
 
 // ── GitHub Sync Status ────────────────────────────────────────────────────────

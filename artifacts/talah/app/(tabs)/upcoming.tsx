@@ -230,7 +230,7 @@ export default function UpcomingScreen() {
                   />
                   <AppText variant="bodySmall" color={colors.mutedForeground}>
                     {new Date(g.meetupAt).toLocaleString(
-                      language === "ar" ? "ar-SA" : "en-US",
+                      language === "ar" ? "ar-SA-u-ca-gregory" : "en-US",
                       {
                         weekday: "long",
                         day: "numeric",

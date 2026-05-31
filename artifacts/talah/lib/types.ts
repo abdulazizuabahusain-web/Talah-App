@@ -182,6 +182,7 @@ export interface TalahRequest {
   preferredDate: string;
   preferredTime: TimeOfDay;
   area: string;
+  venueId?: string | null;
   status: "pending" | "matched" | "cancelled";
   createdAt: number;
   groupId?: string;
@@ -195,10 +196,21 @@ export interface Group {
   city: string;
   area: string;
   venue?: string;
+  googleMapsUrl?: string | null;
   meetupAt?: number;
   memberIds: string[];
   requestIds: string[];
   createdAt: number;
+}
+
+export interface ApiVenue {
+  id: string;
+  name: string;
+  city: string;
+  area: string | null;
+  type: string;
+  googleMapsUrl: string | null;
+  notes: string | null;
 }
 
 export interface FeedbackEntry {
@@ -222,7 +234,9 @@ export interface ReportEntry {
   reporterId: string;
   targetUserId: string;
   groupId?: string;
+  reportCategory?: string;
   reason: string;
+  details?: string;
   createdAt: number;
 }
 
