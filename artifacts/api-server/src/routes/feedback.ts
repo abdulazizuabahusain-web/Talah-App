@@ -14,16 +14,21 @@ const ConnectionEntry = z.object({
 
 const CreateFeedbackBody = z.object({
   groupId: z.string().uuid(),
-  rating: z.number().int().min(1).max(5),
+  comfortRating: z.number().int().min(1).max(5),
+  groupFit: z.enum(["very_suitable", "somewhat", "not_suitable"]),
+  wouldJoinAgain: z.enum(["yes", "maybe", "no"]),
+  venueRating: z.number().int().min(1).max(5),
+  venueSuitable: z.enum(["yes", "maybe", "no"]),
+  safetyConcern: z.boolean(),
+  safetyConcernDetails: z.string().max(1000).optional(),
   comment: z.string().max(500).optional(),
-  wouldMeetAgain: z.enum(["yes", "maybe", "no"]).optional(),
   connections: z.array(ConnectionEntry).optional(),
 });
 
 router.post("/", requireAuth, async (req, res) => {
   const parsed = CreateFeedbackBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid feedback data" });
+    res.status(400).json({ error: "Invalid feedback data", details: parsed.error.issues });
     return;
   }
 
@@ -38,8 +43,8 @@ router.post("/", requireAuth, async (req, res) => {
     return;
   }
 
-  const existing = await db
-    .select()
+  const [existing] = await db
+    .select({ id: feedbackTable.id })
     .from(feedbackTable)
     .where(
       and(
@@ -49,8 +54,8 @@ router.post("/", requireAuth, async (req, res) => {
     )
     .limit(1);
 
-  if (existing.length > 0) {
-    res.status(409).json({ error: "Feedback already submitted" });
+  if (existing) {
+    res.status(409).json({ error: "Feedback already submitted for this Tal'ah." });
     return;
   }
 
@@ -58,19 +63,55 @@ router.post("/", requireAuth, async (req, res) => {
     .insert(feedbackTable)
     .values({
       groupId: parsed.data.groupId,
-      rating: parsed.data.rating,
-      comment: parsed.data.comment,
-      wouldMeetAgain: parsed.data.wouldMeetAgain,
+      comfortRating: parsed.data.comfortRating,
+      groupFit: parsed.data.groupFit,
+      wouldJoinAgain: parsed.data.wouldJoinAgain,
+      venueRating: parsed.data.venueRating,
+      venueSuitable: parsed.data.venueSuitable,
+      safetyConcern: parsed.data.safetyConcern,
+      safetyConcernDetails: parsed.data.safetyConcernDetails ?? null,
+      comment: parsed.data.comment ?? null,
       connections: parsed.data.connections ?? null,
       fromUserId: req.user!.id,
     })
     .returning();
 
   track("feedback_submitted", req.user!.id, {
-    rating: parsed.data.rating,
+    comfortRating: parsed.data.comfortRating,
     groupId: parsed.data.groupId,
+    safetyConcern: parsed.data.safetyConcern,
   });
   res.status(201).json(created);
+});
+
+// GET /api/feedback/status?groupId=<uuid>
+router.get("/status", requireAuth, async (req, res) => {
+  const groupId = req.query["groupId"] as string | undefined;
+  if (!groupId) {
+    res.status(400).json({ error: "groupId required" });
+    return;
+  }
+
+  const [existing] = await db
+    .select({ id: feedbackTable.id, createdAt: feedbackTable.createdAt })
+    .from(feedbackTable)
+    .where(
+      and(
+        eq(feedbackTable.groupId, groupId),
+        eq(feedbackTable.fromUserId, req.user!.id),
+      ),
+    )
+    .limit(1);
+
+  if (existing) {
+    res.json({
+      submitted: true,
+      feedbackId: existing.id,
+      submittedAt: existing.createdAt,
+    });
+  } else {
+    res.json({ submitted: false });
+  }
 });
 
 export default router;

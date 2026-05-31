@@ -227,11 +227,24 @@ export interface Feedback {
   id: string;
   groupId: string;
   fromUserId: string;
-  rating: number;
+  comfortRating: number;
+  groupFit: string | null;
+  wouldJoinAgain: string | null;
+  venueRating: number | null;
+  venueSuitable: string | null;
+  safetyConcern: boolean;
+  safetyConcernDetails: string | null;
   comment: string | null;
-  wouldMeetAgain: string | null;
   connections: FeedbackConnection[] | null;
   createdAt: string;
+  userNickname: string | null;
+  userGender: string | null;
+  userCity: string | null;
+  groupCity: string | null;
+  groupArea: string | null;
+  groupMeetupType: string | null;
+  groupVenue: string | null;
+  groupMeetupAt: number | null;
 }
 
 export interface Report {

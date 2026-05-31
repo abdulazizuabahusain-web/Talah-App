@@ -1,0 +1,1 @@
+- [Groups table schema](groups-schema.md) — groups has no `title` column; use city/area/meetupType for display.

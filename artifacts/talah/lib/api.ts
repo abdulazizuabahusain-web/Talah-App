@@ -360,11 +360,20 @@ export const api = {
   // Feedback
   submitFeedback: (body: {
     groupId: string;
-    rating: number;
-    connections?: { userId: string; verdict: "connect" | "pass" }[];
-    wouldMeetAgain?: "yes" | "maybe" | "no";
+    comfortRating: number;
+    groupFit: "very_suitable" | "somewhat" | "not_suitable";
+    wouldJoinAgain: "yes" | "maybe" | "no";
+    venueRating: number;
+    venueSuitable: "yes" | "maybe" | "no";
+    safetyConcern: boolean;
+    safetyConcernDetails?: string;
     comment?: string;
+    connections?: { userId: string; verdict: "connect" | "pass" }[];
   }) => req<void>("/feedback", { method: "POST", body }),
+  getFeedbackStatus: (groupId: string) =>
+    req<{ submitted: boolean; feedbackId?: string; submittedAt?: string }>(
+      `/feedback/status?groupId=${groupId}`,
+    ),
 
   // Reports
   submitReport: (body: {

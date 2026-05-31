@@ -638,6 +638,53 @@ export const STRINGS: Dict = {
   type_change_submitted: { ar: "تم إرسال طلبك للمراجعة", en: "Your request has been submitted for review" },
   already_pending_request: { ar: "لديك طلب قيد المراجعة بالفعل", en: "You already have a pending request" },
 
+  // Post-Tal'ah Feedback — structured questions
+  feedback_already_submitted: {
+    ar: "تم إرسال تقييمك لهذه الطلعة، شكراً لك ✨",
+    en: "Your feedback for this Tal'ah has already been submitted. Thank you ✨",
+  },
+  checking_feedback_status: { ar: "جارٍ التحقق...", en: "Checking..." },
+  comfort_rating_q: {
+    ar: "كيف كان شعورك بالراحة أثناء الطلعة؟",
+    en: "How comfortable did you feel during the Tal'ah?",
+  },
+  group_fit_q: {
+    ar: "هل حسيت أن المجموعة مناسبة لك؟",
+    en: "Did the group feel suitable for you?",
+  },
+  group_fit_very: { ar: "نعم، مناسبة جداً", en: "Yes, very suitable" },
+  group_fit_somewhat: { ar: "إلى حد ما", en: "Somewhat" },
+  group_fit_not: { ar: "لا، ما كانت مناسبة", en: "No, not suitable" },
+  would_join_again_q: {
+    ar: "هل تود تجربة طلعة ثانية؟",
+    en: "Would you join another Tal'ah?",
+  },
+  venue_rating_q: {
+    ar: "كيف كان المكان للطلعة؟",
+    en: "How was the venue for the Tal'ah?",
+  },
+  venue_suitable_q: {
+    ar: "هل المكان مناسب لطلعات مستقبلية؟",
+    en: "Is this venue suitable for future Tal'ahs?",
+  },
+  venue_suitable_yes: { ar: "نعم", en: "Yes" },
+  venue_suitable_maybe: { ar: "ربما", en: "Maybe" },
+  venue_suitable_no: { ar: "لا", en: "No" },
+  safety_concern_q: {
+    ar: "هل واجهت أي موقف غير مريح أو يحتاج مراجعة؟",
+    en: "Did anything uncomfortable happen that needs review?",
+  },
+  safety_concern_no: { ar: "لا، كل شيء كان بخير", en: "No, everything was fine" },
+  safety_concern_yes: { ar: "نعم، حدث شيء", en: "Yes, something happened" },
+  safety_concern_details_placeholder: {
+    ar: "اشرح لنا باختصار",
+    en: "Briefly explain what happened",
+  },
+  feedback_required_fields: {
+    ar: "يرجى الإجابة على جميع الأسئلة المطلوبة",
+    en: "Please answer all required questions",
+  },
+
   // Misc / placeholders
   no_data: { ar: "لا يوجد بيانات بعد", en: "Nothing here yet" },
 };

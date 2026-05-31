@@ -41,7 +41,7 @@ interface DataContextValue {
   removeUserFromGroup: (groupId: string, userId: string) => Promise<void>;
 
   submitFeedback: (
-    input: Omit<FeedbackEntry, "id" | "createdAt">,
+    input: Omit<FeedbackEntry, "id" | "createdAt" | "fromUserId">,
   ) => Promise<void>;
   feedbackForGroup: (groupId: string) => FeedbackEntry[];
 
@@ -183,9 +183,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     async (input) => {
       await api.submitFeedback({
         groupId: input.groupId,
-        rating: input.rating,
+        comfortRating: input.comfortRating,
+        groupFit: input.groupFit!,
+        wouldJoinAgain: input.wouldJoinAgain!,
+        venueRating: input.venueRating!,
+        venueSuitable: input.venueSuitable!,
+        safetyConcern: input.safetyConcern,
+        safetyConcernDetails: input.safetyConcernDetails,
         connections: input.connections,
-        wouldMeetAgain: input.wouldMeetAgain,
         comment: input.comment,
       });
       setError(null);

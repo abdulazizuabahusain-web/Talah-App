@@ -1,0 +1,432 @@
+You are working on my Tal’ah / طلعة MVP.
+
+I want you to improve the Post-Tal’ah Feedback system.
+
+Important:
+Do NOT replace the existing feedback feature blindly. Build on the current implementation. First review the current feedback code, database schema, API routes, and admin dashboard visibility. Then propose the exact changes before implementing.
+
+====================
+PRODUCT CONTEXT
+====================
+
+Tal’ah is a Saudi-native, privacy-first curated social meetup app.
+
+It supports:
+- Women-only Tal’ahs
+- Men-only Tal’ahs
+- No mixed groups at launch
+- No public profile browsing
+- No swiping
+- No pre-meetup chat
+- Admin-controlled matching
+- Small curated groups of 3–5 users
+
+Post-Tal’ah feedback is critical because it helps us:
+- improve matching quality
+- detect safety issues
+- measure user comfort
+- evaluate venue suitability
+- improve retention
+- understand whether users want another Tal’ah
+
+====================
+CURRENT ISSUE TO FIX
+====================
+
+Observed issue:
+Users can submit feedback multiple times for the same Tal’ah/group.
+
+This must be fixed.
+
+Feedback should be:
+- one submission per user per group/Tal’ah
+- editable only if we explicitly allow it later
+- clearly visible in admin dashboard
+- tied to groupId and userId
+- trackable over time
+
+For MVP:
+Do NOT allow multiple submissions.
+Do NOT allow editing feedback yet unless you recommend it and I confirm.
+
+====================
+BEFORE IMPLEMENTATION — REQUIRED REVIEW
+====================
+
+Before changing code, review the current implementation and report:
+
+1. Current feedback table/schema
+2. Current feedback API routes
+3. Current frontend feedback form
+4. Whether feedback is tied to groupId and userId
+5. Whether duplicate submission prevention exists
+6. Whether admin can currently see feedback
+7. What is missing compared to the requested design
+8. Risks of changing the schema
+9. Your implementation plan
+
+Then proceed only after summarizing the plan.
+
+====================
+NEW FEEDBACK FEATURE REQUIREMENTS
+====================
+
+The feedback flow should happen after a Tal’ah is completed.
+
+Feedback should collect the minimum high-value signals only.
+
+Recommended feedback questions:
+
+1. Overall Comfort
+Arabic:
+كيف كان شعورك بالراحة أثناء الطلعة؟
+
+English:
+How comfortable did you feel during the Tal’ah?
+
+Type:
+1–5 rating
+
+2. Group Fit
+Arabic:
+هل حسيت أن المجموعة مناسبة لك؟
+
+English:
+Did the group feel suitable for you?
+
+Type:
+Single choice:
+- نعم، مناسبة جداً / Yes, very suitable
+- إلى حد ما / Somewhat
+- لا، ما كانت مناسبة / No, not suitable
+
+3. Would Join Again
+Arabic:
+هل تود تجربة طلعة ثانية؟
+
+English:
+Would you join another Tal’ah?
+
+Type:
+Single choice:
+- نعم / Yes
+- ربما / Maybe
+- لا / No
+
+4. Venue Experience
+Arabic:
+كيف كان المكان للطلعة؟
+
+English:
+How was the venue for the Tal’ah?
+
+Type:
+1–5 rating
+
+5. Venue Suitability
+Arabic:
+هل المكان مناسب لطلعات مستقبلية؟
+
+English:
+Is this venue suitable for future Tal’ahs?
+
+Type:
+Single choice:
+- نعم / Yes
+- ربما / Maybe
+- لا / No
+
+6. Optional Comment
+Arabic:
+أي ملاحظة تحب تضيفها؟
+
+English:
+Any comment you’d like to add?
+
+Type:
+Optional text
+
+7. Safety Concern
+Arabic:
+هل واجهت أي موقف غير مريح أو يحتاج مراجعة؟
+
+English:
+Did anything uncomfortable happen that needs review?
+
+Type:
+Single choice:
+- لا / No
+- نعم / Yes
+
+If Yes:
+show optional text field:
+Arabic:
+اشرح لنا باختصار
+
+English:
+Briefly explain
+
+====================
+DATABASE REQUIREMENTS
+====================
+
+Update or create feedback table to include:
+
+feedback:
+- id
+- groupId
+- userId
+- comfortRating integer 1–5
+- groupFit text
+- wouldJoinAgain text
+- venueRating integer 1–5
+- venueSuitable text
+- comment text nullable
+- safetyConcern boolean
+- safetyConcernDetails text nullable
+- submittedAt datetime
+- updatedAt datetime nullable
+
+Critical:
+Add a unique constraint or backend validation to prevent duplicate feedback:
+- one feedback per userId + groupId
+
+If the current SQLite/database setup does not support adding a unique constraint easily, enforce it in the backend API first:
+Before inserting feedback:
+- check whether feedback already exists for that userId and groupId
+- if yes, return error:
+  “Feedback already submitted for this Tal’ah.”
+
+Recommended:
+Do both if possible:
+- database unique constraint
+- backend validation
+
+====================
+API REQUIREMENTS
+====================
+
+Review existing endpoints and update or create:
+
+1. Submit feedback
+POST /api/feedback
+
+Request body:
+- groupId
+- userId
+- comfortRating
+- groupFit
+- wouldJoinAgain
+- venueRating
+- venueSuitable
+- comment
+- safetyConcern
+- safetyConcernDetails
+
+Validation:
+- groupId required
+- userId required
+- comfortRating required, integer 1–5
+- groupFit required
+- wouldJoinAgain required
+- venueRating required, integer 1–5
+- venueSuitable required
+- safetyConcern required
+- if safetyConcern = true, safetyConcernDetails should be optional but recommended
+
+Duplicate prevention:
+- if feedback already exists for same groupId + userId, return 409 conflict with clear error message.
+
+2. Check feedback status
+GET /api/feedback/status?groupId=...&userId=...
+
+Return:
+- submitted: true/false
+- feedbackId if submitted
+- submittedAt if submitted
+
+3. Admin feedback list
+GET /api/admin/feedback
+
+Return all feedback with:
+- feedback fields
+- user nickname
+- user gender
+- user city
+- group title
+- group venue
+- group meetupTime
+
+4. Admin feedback by group
+GET /api/admin/groups/:groupId/feedback
+
+Return:
+- group details
+- all feedback for that group
+- average comfortRating
+- average venueRating
+- count of wouldJoinAgain yes/maybe/no
+- count of safety concerns
+
+====================
+FRONTEND USER REQUIREMENTS
+====================
+
+Update the Post-Tal’ah Feedback UI.
+
+Before showing form:
+- call feedback status endpoint
+- if feedback already submitted:
+  show submitted confirmation instead of the form
+
+Arabic message:
+تم إرسال تقييمك لهذه الطلعة، شكراً لك ✨
+
+English:
+Your feedback for this Tal’ah has already been submitted. Thank you ✨
+
+If not submitted:
+show feedback form.
+
+After successful submission:
+- show success confirmation
+- prevent resubmission
+- optionally redirect to home or Tal’ah status page
+
+Important:
+Do not allow repeated submission by refreshing the page.
+
+Frontend prevention alone is not enough.
+Backend must enforce duplicate prevention.
+
+====================
+ADMIN DASHBOARD REQUIREMENTS
+====================
+
+Add clear feedback visibility in admin dashboard.
+
+Admin should be able to see:
+
+1. Feedback Summary Section
+- total feedback submissions
+- average comfort rating
+- average venue rating
+- number of users who would join again
+- number of safety concerns
+
+2. Feedback Table
+Columns:
+- submittedAt
+- group title
+- venue
+- meetup time
+- user nickname
+- gender
+- city
+- comfort rating
+- group fit
+- would join again
+- venue rating
+- venue suitable
+- safety concern
+- comment
+
+3. Group-Level Feedback View
+When admin opens a group:
+show:
+- all feedback from that group
+- average comfort rating
+- average venue rating
+- count of safety concerns
+- qualitative comments
+
+4. Safety Concern Highlighting
+If safetyConcern = true:
+- highlight row
+- show badge: “Needs Review”
+- optionally flag the group or user for admin review
+
+5. Venue Intelligence
+Use feedback to show:
+- venue rating
+- venue suitable yes/maybe/no count
+- notes/comments
+
+This will help build Tal’ah’s venue quality intelligence over time.
+
+====================
+MATCHING / RETENTION USE OF FEEDBACK
+====================
+
+Do not overbuild AI.
+
+But make feedback data structured enough to support future learning.
+
+Admin should be able to use feedback to understand:
+- which groups worked well
+- which venues worked well
+- which users had poor fit
+- which users are likely to repeat
+- whether matching needs improvement
+
+Recommended simple admin indicators:
+- Comfort rating below 3 → review match quality
+- Venue rating below 3 → review venue
+- Would join again = No → retention risk
+- Safety concern = Yes → urgent review
+
+====================
+VALIDATION REQUIREMENTS
+====================
+
+Submit feedback validation:
+- groupId required
+- userId required
+- comfortRating must be 1–5
+- groupFit must be one of allowed values
+- wouldJoinAgain must be yes/maybe/no
+- venueRating must be 1–5
+- venueSuitable must be yes/maybe/no
+- safetyConcern must be boolean
+- comment optional
+- safetyConcernDetails optional
+
+Duplicate validation:
+- user cannot submit more than once per group
+- backend returns 409 if duplicate
+- UI shows already submitted message
+
+====================
+DO NOT ADD
+====================
+
+Do not add:
+- public reviews
+- public venue ratings
+- social feed
+- user-to-user comments
+- chat
+- AI summaries
+- complex analytics dashboards
+- gamification
+
+Keep this MVP simple but structured.
+
+====================
+EXPECTED OUTPUT AFTER IMPLEMENTATION
+====================
+
+After implementing, confirm:
+
+1. Feedback form collects the new structured questions.
+2. Feedback is stored with groupId and userId.
+3. User cannot submit feedback twice for same group.
+4. Backend prevents duplicate feedback.
+5. Frontend hides form after feedback submitted.
+6. Admin dashboard shows all feedback clearly.
+7. Admin can see group-level feedback.
+8. Safety concerns are highlighted.
+9. Venue ratings are visible for future venue decisions.
+10. Existing feedback functionality was extended, not blindly replaced.
+
+Start by reviewing the current implementation and summarizing the changes you recommend before modifying code.

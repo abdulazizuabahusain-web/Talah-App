@@ -559,10 +559,94 @@ router.get("/requests/:id/candidates", requireAdmin, async (req, res) => {
 // ── Feedback ──────────────────────────────────────────────────────────────────
 router.get("/feedback", requireAdmin, async (_req, res) => {
   const rows = await db
-    .select()
+    .select({
+      id: feedbackTable.id,
+      groupId: feedbackTable.groupId,
+      fromUserId: feedbackTable.fromUserId,
+      comfortRating: feedbackTable.comfortRating,
+      groupFit: feedbackTable.groupFit,
+      wouldJoinAgain: feedbackTable.wouldJoinAgain,
+      venueRating: feedbackTable.venueRating,
+      venueSuitable: feedbackTable.venueSuitable,
+      safetyConcern: feedbackTable.safetyConcern,
+      safetyConcernDetails: feedbackTable.safetyConcernDetails,
+      comment: feedbackTable.comment,
+      connections: feedbackTable.connections,
+      createdAt: feedbackTable.createdAt,
+      userNickname: usersTable.nickname,
+      userGender: usersTable.gender,
+      userCity: usersTable.city,
+      groupCity: groupsTable.city,
+      groupArea: groupsTable.area,
+      groupMeetupType: groupsTable.meetupType,
+      groupVenue: groupsTable.venue,
+      groupMeetupAt: groupsTable.meetupAt,
+    })
     .from(feedbackTable)
-    .orderBy(feedbackTable.createdAt);
+    .leftJoin(usersTable, eq(feedbackTable.fromUserId, usersTable.id))
+    .leftJoin(groupsTable, eq(feedbackTable.groupId, groupsTable.id))
+    .orderBy(desc(feedbackTable.createdAt));
   res.json(rows);
+});
+
+// GET /api/admin/groups/:groupId/feedback
+router.get("/groups/:groupId/feedback", requireAdmin, async (req, res) => {
+  const groupId = req.params["groupId"] as string;
+  const [group] = await db
+    .select()
+    .from(groupsTable)
+    .where(eq(groupsTable.id, groupId))
+    .limit(1);
+  if (!group) {
+    res.status(404).json({ error: "Group not found" });
+    return;
+  }
+
+  const rows = await db
+    .select({
+      id: feedbackTable.id,
+      fromUserId: feedbackTable.fromUserId,
+      comfortRating: feedbackTable.comfortRating,
+      groupFit: feedbackTable.groupFit,
+      wouldJoinAgain: feedbackTable.wouldJoinAgain,
+      venueRating: feedbackTable.venueRating,
+      venueSuitable: feedbackTable.venueSuitable,
+      safetyConcern: feedbackTable.safetyConcern,
+      safetyConcernDetails: feedbackTable.safetyConcernDetails,
+      comment: feedbackTable.comment,
+      createdAt: feedbackTable.createdAt,
+      userNickname: usersTable.nickname,
+      userGender: usersTable.gender,
+    })
+    .from(feedbackTable)
+    .leftJoin(usersTable, eq(feedbackTable.fromUserId, usersTable.id))
+    .where(eq(feedbackTable.groupId, groupId))
+    .orderBy(feedbackTable.createdAt);
+
+  const count = rows.length;
+  const comfortRatings = rows.map((r) => r.comfortRating);
+  const venueRatings = rows.map((r) => r.venueRating).filter((v): v is number => v !== null);
+  const avgComfortRating = count > 0 ? comfortRatings.reduce((s, v) => s + v, 0) / count : null;
+  const avgVenueRating =
+    venueRatings.length > 0
+      ? venueRatings.reduce((s, v) => s + v, 0) / venueRatings.length
+      : null;
+
+  res.json({
+    group,
+    feedback: rows,
+    stats: {
+      count,
+      avgComfortRating,
+      avgVenueRating,
+      safetyConcernCount: rows.filter((r) => r.safetyConcern).length,
+      wouldJoinAgainCounts: {
+        yes: rows.filter((r) => r.wouldJoinAgain === "yes").length,
+        maybe: rows.filter((r) => r.wouldJoinAgain === "maybe").length,
+        no: rows.filter((r) => r.wouldJoinAgain === "no").length,
+      },
+    },
+  });
 });
 
 // ── Reports ───────────────────────────────────────────────────────────────────

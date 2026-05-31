@@ -205,9 +205,14 @@ export interface FeedbackEntry {
   id: string;
   groupId: string;
   fromUserId: string;
-  rating: number;
+  comfortRating: number;
+  groupFit?: "very_suitable" | "somewhat" | "not_suitable";
+  wouldJoinAgain?: "yes" | "maybe" | "no";
+  venueRating?: number;
+  venueSuitable?: "yes" | "maybe" | "no";
+  safetyConcern: boolean;
+  safetyConcernDetails?: string;
   connections?: { userId: string; verdict: "connect" | "pass" }[];
-  wouldMeetAgain?: "yes" | "maybe" | "no";
   comment?: string;
   createdAt: number;
 }
