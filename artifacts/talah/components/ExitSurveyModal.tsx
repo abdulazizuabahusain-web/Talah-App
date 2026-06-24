@@ -11,6 +11,7 @@ import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Chip } from "@/components/Chip";
 import { Input } from "@/components/Input";
+import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useT } from "@/lib/i18n";
 import { api } from "@/lib/api";
@@ -32,6 +33,7 @@ const REASON_OPTIONS = [
 export function ExitSurveyModal({ visible, onComplete, onCancel }: ExitSurveyModalProps) {
   const colors = useColors();
   const t = useT();
+  const { language } = useApp();
   const [reason, setReason] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -97,7 +99,7 @@ export function ExitSurveyModal({ visible, onComplete, onCancel }: ExitSurveyMod
                 {REASON_OPTIONS.map((opt) => (
                   <Chip
                     key={opt.key}
-                    label={`${opt.ar} / ${opt.en}`}
+                    label={language === "ar" ? opt.ar : opt.en}
                     selected={reason === opt.key}
                     onPress={() => setReason(opt.key)}
                   />

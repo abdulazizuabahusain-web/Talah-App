@@ -11,6 +11,7 @@ import { AppText } from "@/components/AppText";
 import { Button } from "@/components/Button";
 import { Chip } from "@/components/Chip";
 import { Input } from "@/components/Input";
+import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useT } from "@/lib/i18n";
 import { api } from "@/lib/api";
@@ -39,6 +40,7 @@ const EXPECTATION_OPTIONS = [
 export function MicroSurveyModal({ visible, onDismiss, onSubmitted }: MicroSurveyModalProps) {
   const colors = useColors();
   const t = useT();
+  const { language } = useApp();
   const slideAnim = useRef(new Animated.Value(400)).current;
   const [source, setSource] = useState<string | null>(null);
   const [expectation, setExpectation] = useState<string | null>(null);
@@ -125,7 +127,7 @@ export function MicroSurveyModal({ visible, onDismiss, onSubmitted }: MicroSurve
                 {SOURCE_OPTIONS.map((opt) => (
                   <Chip
                     key={opt.key}
-                    label={`${opt.ar} / ${opt.en}`}
+                    label={language === "ar" ? opt.ar : opt.en}
                     selected={source === opt.key}
                     onPress={() => setSource(opt.key)}
                   />
@@ -140,7 +142,7 @@ export function MicroSurveyModal({ visible, onDismiss, onSubmitted }: MicroSurve
                 {EXPECTATION_OPTIONS.map((opt) => (
                   <Chip
                     key={opt.key}
-                    label={`${opt.ar} / ${opt.en}`}
+                    label={language === "ar" ? opt.ar : opt.en}
                     selected={expectation === opt.key}
                     onPress={() => setExpectation(opt.key)}
                   />
