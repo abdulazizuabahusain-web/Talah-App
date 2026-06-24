@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
+import { BrandIcon } from "@/components/BrandIcon";
 import { Card } from "@/components/Card";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -21,7 +22,9 @@ import { useT } from "@/lib/i18n";
 
 type ContactField = {
   key: "contactPhone" | "instagram" | "snapchat" | "twitter" | "tiktok";
-  icon: keyof typeof Feather.glyphMap;
+  iconType: "feather" | "brand";
+  featherIcon?: keyof typeof Feather.glyphMap;
+  brandIcon?: "instagram" | "snapchat" | "tiktok" | "whatsapp" | "twitter_x";
   color: string;
   labelKey: string;
   placeholderKey: string;
@@ -31,14 +34,16 @@ type ContactField = {
 const FIELDS: ContactField[] = [
   {
     key: "contactPhone",
-    icon: "phone",
-    color: "#2ECC71",
+    iconType: "brand",
+    brandIcon: "whatsapp",
+    color: "#25D366",
     labelKey: "contact_phone_label",
     placeholderKey: "contact_phone_placeholder",
   },
   {
     key: "instagram",
-    icon: "camera",
+    iconType: "brand",
+    brandIcon: "instagram",
     color: "#E1306C",
     labelKey: "contact_instagram_label",
     placeholderKey: "contact_instagram_placeholder",
@@ -46,25 +51,29 @@ const FIELDS: ContactField[] = [
   },
   {
     key: "snapchat",
-    icon: "message-circle",
-    color: "#FFFC00",
+    iconType: "brand",
+    brandIcon: "snapchat",
+    color: "#FFCA00",
     labelKey: "contact_snapchat_label",
     placeholderKey: "contact_snapchat_placeholder",
-  },
-  {
-    key: "twitter",
-    icon: "twitter",
-    color: "#1DA1F2",
-    labelKey: "contact_twitter_label",
-    placeholderKey: "contact_twitter_placeholder",
     prefix: "@",
   },
   {
     key: "tiktok",
-    icon: "music",
+    iconType: "brand",
+    brandIcon: "tiktok",
     color: "#010101",
     labelKey: "contact_tiktok_label",
     placeholderKey: "contact_tiktok_placeholder",
+    prefix: "@",
+  },
+  {
+    key: "twitter",
+    iconType: "brand",
+    brandIcon: "twitter_x",
+    color: "#000000",
+    labelKey: "contact_twitter_label",
+    placeholderKey: "contact_twitter_placeholder",
     prefix: "@",
   },
 ];
@@ -206,12 +215,16 @@ export default function EditContactScreen() {
                     width: 38,
                     height: 38,
                     borderRadius: 12,
-                    backgroundColor: field.color + "18",
+                    overflow: "hidden",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <Feather name={field.icon} size={18} color={field.color} />
+                  {field.brandIcon ? (
+                    <BrandIcon brand={field.brandIcon} size={38} />
+                  ) : (
+                    <Feather name={field.featherIcon!} size={18} color={field.color} />
+                  )}
                 </View>
                 <View style={{ flex: 1, gap: 4 }}>
                   <AppText variant="caption" weight="semibold" color={colors.mutedForeground}>

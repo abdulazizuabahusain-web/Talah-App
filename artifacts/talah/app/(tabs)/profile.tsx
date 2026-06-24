@@ -5,6 +5,8 @@ import { Alert, Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
+import { BrandIcon } from "@/components/BrandIcon";
+import type { BrandKey } from "@/components/BrandIcon";
 import { Card } from "@/components/Card";
 import { Chip } from "@/components/Chip";
 import { ExitSurveyModal } from "@/components/ExitSurveyModal";
@@ -13,12 +15,16 @@ import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 import { useT } from "@/lib/i18n";
 
-const CONTACT_PLATFORMS = [
-  { key: "contactPhone" as const, icon: "phone" as const, color: "#2ECC71", label: "WhatsApp / جوال" },
-  { key: "instagram" as const, icon: "camera" as const, color: "#E1306C", label: "Instagram" },
-  { key: "snapchat" as const, icon: "message-circle" as const, color: "#FFFC00", label: "Snapchat" },
-  { key: "twitter" as const, icon: "twitter" as const, color: "#1DA1F2", label: "X / Twitter" },
-  { key: "tiktok" as const, icon: "music" as const, color: "#010101", label: "TikTok" },
+const CONTACT_PLATFORMS: {
+  key: "contactPhone" | "instagram" | "snapchat" | "twitter" | "tiktok";
+  brand: BrandKey;
+  label: string;
+}[] = [
+  { key: "contactPhone", brand: "whatsapp", label: "WhatsApp / جوال" },
+  { key: "instagram", brand: "instagram", label: "Instagram" },
+  { key: "snapchat", brand: "snapchat", label: "Snapchat" },
+  { key: "tiktok", brand: "tiktok", label: "TikTok" },
+  { key: "twitter", brand: "twitter_x", label: "X / Twitter" },
 ];
 
 export default function ProfileScreen() {
@@ -225,13 +231,11 @@ export default function ProfileScreen() {
                         style={{
                           width: 32,
                           height: 32,
-                          borderRadius: 9,
-                          backgroundColor: p.color + "18",
-                          alignItems: "center",
-                          justifyContent: "center",
+                          borderRadius: 8,
+                          overflow: "hidden",
                         }}
                       >
-                        <Feather name={p.icon} size={15} color={p.color} />
+                        <BrandIcon brand={p.brand} size={32} />
                       </View>
                       <AppText variant="body" style={{ flex: 1 }} numberOfLines={1}>
                         {display}

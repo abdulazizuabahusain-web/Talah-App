@@ -68,9 +68,12 @@ export const STRINGS: Dict = {
   welcome_get_started: { ar: "ابدأ الآن", en: "Get started" },
   welcome_signin: { ar: "لدي حساب", en: "I have an account" },
   welcome_terms_note: {
-    ar: "بالاستمرار، فإنك توافق على الشروط وسياسة الخصوصية",
-    en: "By continuing, you agree to our Terms and Privacy",
+    ar: "بالاستمرار، فإنك توافق على",
+    en: "By continuing, you agree to our",
   },
+  welcome_terms_link: { ar: "الشروط والأحكام", en: "Terms" },
+  welcome_terms_and: { ar: "و", en: "and" },
+  welcome_privacy_link: { ar: "سياسة الخصوصية", en: "Privacy Policy" },
   language: { ar: "اللغة", en: "Language" },
 
   // Auth
@@ -122,21 +125,21 @@ export const STRINGS: Dict = {
 
   // Step 0 — Nickname
   q_nickname: {
-    ar: "وش نقدر نسميك؟ ✨",
-    en: "What should we call you? ✨",
+    ar: "وش نقدر نسميك؟",
+    en: "What should we call you?",
   },
   nickname_placeholder: { ar: "اكتب اسمك أو لقبك", en: "Your name or nickname" },
 
-  // Step 1 — Tal'ah Type (gender)
+  // Step 1 — Gender
   q_gender: {
-    ar: "نوع الطلعة المناسبة لك",
-    en: "Which Tal'ah experience fits you?",
+    ar: "الجنس",
+    en: "Gender",
   },
-  gender_woman: { ar: "طلعات نساء", en: "Women-only Tal'ahs" },
-  gender_man: { ar: "طلعات رجال", en: "Men-only Tal'ahs" },
+  gender_woman: { ar: "امرأة", en: "Female" },
+  gender_man: { ar: "رجل", en: "Male" },
   gender_note: {
-    ar: "طلعة توفر حالياً لقاءات منفصلة للنساء والرجال",
-    en: "Tal'ah currently offers separate gatherings for women and men",
+    ar: "نرتب الطلعات حالياً بشكل منفصل للرجال والنساء.",
+    en: "We currently organize separate Tal'ahs for men and women.",
   },
 
   // Step 2 — City
@@ -159,7 +162,7 @@ export const STRINGS: Dict = {
   life_stage_prefer_not: { ar: "أفضّل عدم التحديد", en: "Prefer not to say" },
 
   // Step 4 — Interests
-  q_interests: { ar: "شو اهتماماتك؟", en: "What are your interests?" },
+  q_interests: { ar: "ايش اهتماماتك؟", en: "What are your interests?" },
   q_interests_hint: { ar: "اختر بين ٣ و٥", en: "Pick 3 to 5" },
 
   // Interest category labels
@@ -169,6 +172,21 @@ export const STRINGS: Dict = {
   cat_life: { ar: "الحياة والتجارب", en: "Life & Experiences" },
   cat_entertainment: { ar: "الترفيه", en: "Entertainment" },
   cat_outdoor: { ar: "الأنشطة الخارجية", en: "Outdoor" },
+
+  // City dropdown
+  city_select_placeholder: { ar: "اختر مدينتك", en: "Select your city" },
+  city_dropdown_title: { ar: "اختر مدينتك", en: "Choose your city" },
+
+  // Step 9 — Fun fact
+  q_funfact_onboarding: { ar: "شاركنا حقيقة طريفة عنك (اختياري)", en: "Share a fun fact about yourself (optional)" },
+
+  // Step 10 — Contact info onboarding
+  q_contact_onboarding: { ar: "طريقة تواصلك (اختياري)", en: "Your contact info (optional)" },
+  contact_onboarding_hint: {
+    ar: "تُكشف فقط لمن تبادلتم الإعجاب المتبادل بعد الطلعة",
+    en: "Only revealed to mutual connects after a Tal'ah",
+  },
+  contact_step_skip: { ar: "تخطي الآن — يمكنك إضافتها لاحقاً", en: "Skip for now — you can add this later" },
 
   // Interest options
   int_coffee: { ar: "كوفي", en: "Coffee" },
@@ -194,6 +212,17 @@ export const STRINGS: Dict = {
   int_sea_outdoor: { ar: "بحر وأنشطة خارجية", en: "Sea & outdoor" },
   int_camping: { ar: "كشتات وتخييم", en: "Camping" },
 
+  // New interest items
+  int_reading: { ar: "قراءة وكتب", en: "Reading & books" },
+  int_podcasts: { ar: "بودكاست", en: "Podcasts" },
+  int_volunteering: { ar: "تطوع وعمل خيري", en: "Volunteering" },
+  int_tech: { ar: "تقنية وأجهزة", en: "Tech & gadgets" },
+  int_fashion: { ar: "موضة وستايل", en: "Fashion & style" },
+  int_sports_watching: { ar: "متابعة الرياضة", en: "Watching sports" },
+
+  // New interest category
+  cat_culture: { ar: "ثقافة ومجتمع", en: "Culture & Community" },
+
   // Legacy interest keys kept for backward compat
   int_books: { ar: "كتب", en: "Books" },
   int_food: { ar: "طعام", en: "Food" },
@@ -201,13 +230,13 @@ export const STRINGS: Dict = {
 
   // Step 5 — Meetup Type
   q_meetup: { ar: "تفضّل إيش في الطلعة؟", en: "What's your preferred meetup?" },
-  meet_coffee: { ar: "☕ قهوة", en: "☕ Coffee" },
-  meet_dinner: { ar: "🍽 عشاء", en: "🍽 Dinner" },
+  meet_coffee: { ar: "قهوة", en: "Coffee" },
+  meet_dinner: { ar: "عشاء", en: "Dinner" },
 
   // ── Section 2 banner (steps 6-8)
   vibe_section_banner: {
-    ar: "خلّنا نتعرف على جوّك أكثر ✨",
-    en: "Let's get to know your vibe a little better ✨",
+    ar: "خلّنا نتعرف على جوّك أكثر",
+    en: "Let's get to know your vibe a little better",
   },
 
   // Step 6 — Social Energy
@@ -215,19 +244,19 @@ export const STRINGS: Dict = {
     ar: "كيف تكون عادةً مع ناس جدد؟",
     en: "How are you usually with new people?",
   },
-  se_very_social: { ar: "أندمج بسرعة 🔥", en: "I open up quickly 🔥" },
-  se_friendly_balanced: { ar: "اجتماعي ومتوازن ✌️", en: "Social and balanced ✌️" },
-  se_quiet_open_later: { ar: "أحتاج وقت بالبداية 🌱", en: "I need some time at first 🌱" },
-  se_prefer_listening: { ar: "أفضّل أسمع أكثر 🎧", en: "I prefer listening more 🎧" },
+  se_very_social: { ar: "أندمج بسرعة", en: "I open up quickly" },
+  se_friendly_balanced: { ar: "اجتماعي ومتوازن", en: "Social and balanced" },
+  se_quiet_open_later: { ar: "أحتاج وقت بالبداية", en: "I need some time at first" },
+  se_prefer_listening: { ar: "أفضّل أسمع أكثر", en: "I prefer listening more" },
 
   // Step 7 — Conversation Style
   q_conversation_style: {
     ar: "تحب الأحاديث تكون كيف؟",
     en: "What kind of conversations do you enjoy?",
   },
-  cs_light_fun: { ar: "خفيفة ووناسة 😄", en: "Light and fun 😄" },
-  cs_balanced: { ar: "بين كذا وكذا 🙂", en: "A bit of both 🙂" },
-  cs_deep_meaningful: { ar: "عميقة شوي 🌊", en: "A bit deeper 🌊" },
+  cs_light_fun: { ar: "خفيفة ووناسة", en: "Light and fun" },
+  cs_balanced: { ar: "بين كذا وكذا", en: "A bit of both" },
+  cs_deep_meaningful: { ar: "عميقة شوي", en: "A bit deeper" },
 
   // Step 8 — Personality Traits
   q_personality_traits: {
@@ -247,7 +276,7 @@ export const STRINGS: Dict = {
   pt_organized: { ar: "منظّم/ة", en: "Organized" },
 
   // Completion screen
-  onboarding_complete_title: { ar: "خلصنا ✨", en: "You're all set ✨" },
+  onboarding_complete_title: { ar: "خلصنا", en: "You're all set" },
   onboarding_complete_sub: {
     ar: "الحين تقدر تطلب أول طلعة لك",
     en: "You can now request your first Tal'ah",
@@ -404,7 +433,7 @@ export const STRINGS: Dict = {
     en: "After you complete a Tal'ah and submit feedback, your mutual connects will appear here",
   },
   connections_from: { ar: "من طلعة", en: "From a Tal'ah" },
-  celebrate_title: { ar: "تهانينا! 🎉", en: "It's a match! 🎉" },
+  celebrate_title: { ar: "تهانينا!", en: "It's a match!" },
   celebrate_body: {
     ar: "تواصلتِ بشكل متبادل مع",
     en: "You mutually connected with",
@@ -555,7 +584,7 @@ export const STRINGS: Dict = {
   compat_no_overlap: { ar: "لا تقاطع", en: "No overlap" },
 
   // Micro-survey
-  micro_survey_title: { ar: "قبل أن نبدأ — سؤالان سريعان ✨", en: "Quick intro survey ✨" },
+  micro_survey_title: { ar: "قبل أن نبدأ — سؤالان سريعان", en: "Quick intro survey" },
   micro_q1: { ar: "كيف سمعتِ عن طلعة؟", en: "How did you hear about Tal'ah?" },
   micro_q2: { ar: "ما الذي تتطلعين إليه أكثر؟", en: "What are you most looking forward to?" },
   micro_q3: { ar: "صفي طلعة بكلمة واحدة (اختياري)", en: "Describe Tal'ah in one word (optional)" },
@@ -573,7 +602,7 @@ export const STRINGS: Dict = {
   exit_skip: { ar: "تخطي وحذف الحساب مباشرةً", en: "Skip and delete account" },
 
   // Feedback prompt card
-  feedback_prompt_title: { ar: "كيف كانت طلعتك؟ 🌟", en: "How was your meetup? 🌟" },
+  feedback_prompt_title: { ar: "كيف كانت طلعتك؟", en: "How was your meetup?" },
   feedback_prompt_body: { ar: "شاركينا تقييمك للمجموعة", en: "Share your rating for the group" },
   feedback_prompt_cta: { ar: "تقييم الآن", en: "Rate now" },
 

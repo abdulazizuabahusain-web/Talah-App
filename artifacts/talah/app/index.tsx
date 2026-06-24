@@ -225,7 +225,24 @@ export default function WelcomeScreen() {
             align="center"
             style={{ marginTop: 6 }}
           >
-            {t("welcome_terms_note")}
+            {t("welcome_terms_note")}{" "}
+            <AppText
+              variant="caption"
+              color={colors.primary}
+              onPress={() => router.push("/terms")}
+              style={{ textDecorationLine: "underline" }}
+            >
+              {t("welcome_terms_link")}
+            </AppText>
+            {" "}{t("welcome_terms_and")}{" "}
+            <AppText
+              variant="caption"
+              color={colors.primary}
+              onPress={() => router.push("/privacy")}
+              style={{ textDecorationLine: "underline" }}
+            >
+              {t("welcome_privacy_link")}
+            </AppText>
           </AppText>
         </View>
       </ScrollView>

@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -37,10 +38,17 @@ const SAUDI_CITIES = [
   "جدة",
   "الدمام",
   "الخبر",
+  "القطيف",
   "مكة المكرمة",
   "المدينة المنورة",
   "أبها",
   "الطائف",
+  "بريدة",
+  "تبوك",
+  "حائل",
+  "ينبع",
+  "جازان",
+  "نجران",
 ];
 
 const LIFE_STAGE_OPTIONS: { id: LifeStage; key: string }[] = [
@@ -82,6 +90,8 @@ const INTEREST_CATEGORIES: InterestCategory[] = [
       { id: "art", key: "int_art" },
       { id: "writing", key: "int_writing" },
       { id: "music", key: "int_music" },
+      { id: "reading", key: "int_reading" },
+      { id: "fashion", key: "int_fashion" },
     ],
   },
   {
@@ -91,6 +101,9 @@ const INTEREST_CATEGORIES: InterestCategory[] = [
       { id: "social_convos", key: "int_social_convos" },
       { id: "self_development", key: "int_self_development" },
       { id: "business", key: "int_business" },
+      { id: "tech", key: "int_tech" },
+      { id: "podcasts", key: "int_podcasts" },
+      { id: "volunteering", key: "int_volunteering" },
     ],
   },
   {
@@ -99,6 +112,7 @@ const INTEREST_CATEGORIES: InterestCategory[] = [
       { id: "movies", key: "int_movies" },
       { id: "games", key: "int_games" },
       { id: "anime", key: "int_anime" },
+      { id: "sports_watching", key: "int_sports_watching" },
     ],
   },
   {
@@ -140,7 +154,16 @@ const PERSONALITY_TRAIT_OPTIONS: TraitOption[] = [
   { id: "creative", ar_woman: "مبدعة", ar_man: "مبدع", en: "Creative" },
 ];
 
-const TOTAL_STEPS = 9;
+type ContactKey = "contactPhone" | "instagram" | "snapchat" | "twitter" | "tiktok";
+const CONTACT_FIELDS: { key: ContactKey; labelKey: string; prefix?: string; keyboardType?: "phone-pad" | "default" }[] = [
+  { key: "contactPhone", labelKey: "contact_phone_label", keyboardType: "phone-pad" },
+  { key: "instagram", labelKey: "contact_instagram_label", prefix: "@" },
+  { key: "snapchat", labelKey: "contact_snapchat_label", prefix: "@" },
+  { key: "tiktok", labelKey: "contact_tiktok_label", prefix: "@" },
+  { key: "twitter", labelKey: "contact_twitter_label", prefix: "@" },
+];
+
+const TOTAL_STEPS = 11;
 const VIBE_SECTION_START = 6;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -149,7 +172,7 @@ export default function OnboardingScreen() {
   const colors = useColors();
   const t = useT();
   const insets = useSafeAreaInsets();
-  const { currentUser, updateCurrentUser } = useApp();
+  const { currentUser, updateCurrentUser, language } = useApp();
   const webBottomPad = Platform.OS === "web" ? 34 : 0;
   const { step: stepParam } = useLocalSearchParams<{ step?: string }>();
 
@@ -172,6 +195,7 @@ export default function OnboardingScreen() {
   const [showOtherInput, setShowOtherInput] = useState(
     !!(currentUser?.city && !SAUDI_CITIES.includes(currentUser.city)),
   );
+  const [showCityModal, setShowCityModal] = useState(false);
   const [lifeStage, setLifeStage] = useState<LifeStage | null>(
     (currentUser?.lifeStage as LifeStage | undefined) ?? null,
   );
@@ -189,11 +213,16 @@ export default function OnboardingScreen() {
   const [personalityTraits, setPersonalityTraits] = useState<PersonalityTrait[]>(
     (currentUser?.personalityTraits ?? []) as PersonalityTrait[],
   );
+  const [funFact, setFunFact] = useState(currentUser?.funFact ?? "");
+  const [contactValues, setContactValues] = useState<Record<ContactKey, string>>({
+    contactPhone: currentUser?.contactPhone ?? "",
+    instagram: currentUser?.instagram ?? "",
+    snapchat: currentUser?.snapchat ?? "",
+    twitter: currentUser?.twitter ?? "",
+    tiktok: currentUser?.tiktok ?? "",
+  });
 
   // ── Helpers ────────────────────────────────────────────────────────────────
-  const toggleArr = <T,>(arr: T[], v: T): T[] =>
-    arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
-
   const toggleInterest = (v: Interest) => {
     if (interests.includes(v)) {
       setInterests(interests.filter((x) => x !== v));
@@ -214,11 +243,13 @@ export default function OnboardingScreen() {
     setCity(c);
     setShowOtherInput(false);
     setOtherCity("");
+    setShowCityModal(false);
   };
 
   const selectOtherCity = () => {
     setShowOtherInput(true);
     setCity(otherCity || "");
+    setShowCityModal(false);
   };
 
   const effectiveCity = showOtherInput ? otherCity.trim() : city;
@@ -235,6 +266,8 @@ export default function OnboardingScreen() {
       case 6: return !!socialEnergy;
       case 7: return !!conversationStyle;
       case 8: return personalityTraits.length >= 1;
+      case 9: return true;
+      case 10: return true;
       default: return false;
     }
   }, [step, nickname, gender, effectiveCity, lifeStage, interests, meetup, socialEnergy, conversationStyle, personalityTraits]);
@@ -256,6 +289,12 @@ export default function OnboardingScreen() {
       socialEnergy: socialEnergy!,
       conversationStyle: conversationStyle!,
       personalityTraits,
+      funFact: funFact.trim() || undefined,
+      contactPhone: contactValues.contactPhone.trim() || null,
+      instagram: contactValues.instagram.trim().replace(/^@/, "") || null,
+      snapchat: contactValues.snapchat.trim() || null,
+      tiktok: contactValues.tiktok.trim().replace(/^@/, "") || null,
+      twitter: contactValues.twitter.trim().replace(/^@/, "") || null,
       onboarded: true,
     };
     const scores = computeScores(patch);
@@ -306,21 +345,33 @@ export default function OnboardingScreen() {
       case 2:
         return (
           <StepFrame title={t("q_city")}>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {SAUDI_CITIES.map((c) => (
-                <Chip
-                  key={c}
-                  label={c}
-                  selected={!showOtherInput && city === c}
-                  onPress={() => selectCity(c)}
-                />
-              ))}
-              <Chip
-                label={t("city_other")}
-                selected={showOtherInput}
-                onPress={selectOtherCity}
+            <Pressable
+              onPress={() => setShowCityModal(true)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: 16,
+                borderRadius: 16,
+                borderWidth: effectiveCity ? 2 : 1,
+                borderColor: effectiveCity ? colors.primary : colors.border,
+                backgroundColor: effectiveCity ? colors.primary + "10" : colors.card,
+              }}
+            >
+              <AppText
+                variant="body"
+                weight={effectiveCity ? "semibold" : "regular"}
+                color={effectiveCity ? colors.primary : colors.mutedForeground}
+              >
+                {effectiveCity || t("city_select_placeholder")}
+              </AppText>
+              <Feather
+                name="chevron-down"
+                size={18}
+                color={effectiveCity ? colors.primary : colors.mutedForeground}
               />
-            </View>
+            </Pressable>
+
             {showOtherInput && (
               <View style={{ marginTop: 12 }}>
                 <TextInput
@@ -345,6 +396,102 @@ export default function OnboardingScreen() {
                 />
               </View>
             )}
+
+            <Modal
+              visible={showCityModal}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setShowCityModal(false)}
+            >
+              <Pressable
+                style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)" }}
+                onPress={() => setShowCityModal(false)}
+              />
+              <View
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: colors.background,
+                  borderTopLeftRadius: 24,
+                  borderTopRightRadius: 24,
+                  paddingTop: 16,
+                  paddingBottom: Math.max(insets.bottom, 24),
+                  maxHeight: "70%",
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingHorizontal: 20,
+                    paddingBottom: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.border,
+                  }}
+                >
+                  <AppText variant="title" weight="semibold">
+                    {t("city_dropdown_title")}
+                  </AppText>
+                  <Pressable onPress={() => setShowCityModal(false)} hitSlop={12}>
+                    <Feather name="x" size={20} color={colors.mutedForeground} />
+                  </Pressable>
+                </View>
+                <ScrollView contentContainerStyle={{ padding: 16, gap: 8 }}>
+                  {SAUDI_CITIES.map((c) => (
+                    <Pressable
+                      key={c}
+                      onPress={() => selectCity(c)}
+                      style={{
+                        padding: 15,
+                        borderRadius: 14,
+                        borderWidth: city === c && !showOtherInput ? 2 : 1,
+                        borderColor: city === c && !showOtherInput ? colors.primary : colors.border,
+                        backgroundColor: city === c && !showOtherInput ? colors.primary + "12" : colors.card,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <AppText
+                        variant="body"
+                        weight={city === c && !showOtherInput ? "semibold" : "regular"}
+                        color={city === c && !showOtherInput ? colors.primary : colors.foreground}
+                      >
+                        {c}
+                      </AppText>
+                      {city === c && !showOtherInput && (
+                        <Feather name="check" size={16} color={colors.primary} />
+                      )}
+                    </Pressable>
+                  ))}
+                  <Pressable
+                    onPress={selectOtherCity}
+                    style={{
+                      padding: 15,
+                      borderRadius: 14,
+                      borderWidth: showOtherInput ? 2 : 1,
+                      borderColor: showOtherInput ? colors.primary : colors.border,
+                      backgroundColor: showOtherInput ? colors.primary + "12" : colors.card,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <Feather name="edit-2" size={14} color={showOtherInput ? colors.primary : colors.mutedForeground} />
+                    <AppText
+                      variant="body"
+                      weight={showOtherInput ? "semibold" : "regular"}
+                      color={showOtherInput ? colors.primary : colors.foreground}
+                    >
+                      {t("city_other")}
+                    </AppText>
+                  </Pressable>
+                </ScrollView>
+              </View>
+            </Modal>
           </StepFrame>
         );
 
@@ -462,12 +609,13 @@ export default function OnboardingScreen() {
                 const maxed =
                   personalityTraits.length >= 2 && !personalityTraits.includes(o.id);
                 const label =
-                  isWoman ? o.ar_woman : o.ar_man;
+                  language === "ar"
+                    ? isWoman ? o.ar_woman : o.ar_man
+                    : o.en;
                 return (
                   <TraitChip
                     key={o.id}
-                    arLabel={label}
-                    enLabel={o.en}
+                    label={label}
                     selected={personalityTraits.includes(o.id)}
                     onPress={() => toggleTrait(o.id)}
                     colors={colors}
@@ -479,6 +627,80 @@ export default function OnboardingScreen() {
           </StepFrame>
         );
       }
+
+      case 9:
+        return (
+          <StepFrame title={t("q_funfact_onboarding")}>
+            <TextInput
+              placeholder={t("funfact_placeholder")}
+              placeholderTextColor={colors.mutedForeground}
+              value={funFact}
+              onChangeText={setFunFact}
+              multiline
+              numberOfLines={3}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                fontSize: 16,
+                color: colors.foreground,
+                backgroundColor: colors.card,
+                minHeight: 90,
+                textAlignVertical: "top",
+              }}
+            />
+          </StepFrame>
+        );
+
+      case 10:
+        return (
+          <StepFrame title={t("q_contact_onboarding")} hint={t("contact_onboarding_hint")}>
+            <View style={{ gap: 10 }}>
+              {CONTACT_FIELDS.map((field) => (
+                <View
+                  key={field.key}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 14,
+                    backgroundColor: colors.card,
+                    paddingHorizontal: 14,
+                    paddingVertical: 10,
+                    gap: 8,
+                  }}
+                >
+                  <AppText variant="caption" weight="semibold" color={colors.mutedForeground} style={{ width: 90 }}>
+                    {t(field.labelKey)}
+                  </AppText>
+                  {field.prefix && (
+                    <AppText variant="body" color={colors.mutedForeground}>{field.prefix}</AppText>
+                  )}
+                  <TextInput
+                    value={contactValues[field.key]}
+                    onChangeText={(v) =>
+                      setContactValues((prev) => ({ ...prev, [field.key]: v }))
+                    }
+                    placeholder={t(`contact_${field.key === "contactPhone" ? "phone" : field.key}_placeholder`)}
+                    placeholderTextColor={colors.mutedForeground}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType={field.keyboardType ?? "default"}
+                    style={{
+                      flex: 1,
+                      fontSize: 15,
+                      color: colors.foreground,
+                      paddingVertical: 2,
+                    }}
+                  />
+                </View>
+              ))}
+            </View>
+          </StepFrame>
+        );
 
       default:
         return null;
@@ -510,7 +732,7 @@ export default function OnboardingScreen() {
             marginBottom: 28,
           }}
         >
-          <AppText style={{ fontSize: 38 }}>✨</AppText>
+          <Feather name="check-circle" size={38} color={colors.primary} />
         </View>
 
         <AppText
@@ -577,9 +799,9 @@ export default function OnboardingScreen() {
             <AppText variant="label" color={colors.mutedForeground}>
               {step + 1} {t("step_of")} {TOTAL_STEPS}
             </AppText>
-            {step >= VIBE_SECTION_START && (
+            {step >= VIBE_SECTION_START && step <= 8 && (
               <AppText variant="caption" color={colors.accent} weight="medium">
-                ✨ Vibe
+                Vibe
               </AppText>
             )}
           </View>
@@ -601,7 +823,7 @@ export default function OnboardingScreen() {
               height: "100%",
               width: `${((step + 1) / TOTAL_STEPS) * 100}%`,
               backgroundColor:
-                step >= VIBE_SECTION_START ? colors.accent : colors.primary,
+                step >= VIBE_SECTION_START && step <= 8 ? colors.accent : colors.primary,
             }}
           />
         </View>
@@ -671,6 +893,13 @@ export default function OnboardingScreen() {
           onPress={handleNext}
           disabled={!canContinue || saving}
         />
+        {(step === 9 || step === 10) && (
+          <Pressable onPress={handleNext} hitSlop={8} style={{ marginTop: 10, alignItems: "center" }}>
+            <AppText variant="caption" color={colors.mutedForeground}>
+              {t("contact_step_skip")}
+            </AppText>
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -738,15 +967,13 @@ function BigOption({
 }
 
 function TraitChip({
-  arLabel,
-  enLabel,
+  label,
   selected,
   onPress,
   colors,
   dimmed,
 }: {
-  arLabel: string;
-  enLabel: string;
+  label: string;
   selected: boolean;
   onPress: () => void;
   colors: ReturnType<typeof useColors>;
@@ -763,8 +990,6 @@ function TraitChip({
         borderWidth: selected ? 2 : 1,
         borderColor: selected ? colors.accent : colors.border,
         backgroundColor: selected ? colors.accent + "15" : colors.card,
-        flexDirection: "row",
-        gap: 6,
         alignItems: "center",
       }}
     >
@@ -773,10 +998,7 @@ function TraitChip({
         weight={selected ? "semibold" : "regular"}
         color={selected ? colors.accent : colors.foreground}
       >
-        {arLabel}
-      </AppText>
-      <AppText variant="caption" color={colors.mutedForeground}>
-        {enLabel}
+        {label}
       </AppText>
     </Pressable>
   );

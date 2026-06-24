@@ -46,7 +46,17 @@ export type Interest =
   // Outdoor
   | "hiking"
   | "sea_outdoor"
-  | "camping";
+  | "camping"
+  // Culture & Community
+  | "reading"
+  | "podcasts"
+  | "volunteering"
+  // Tech
+  | "tech"
+  // Fashion
+  | "fashion"
+  // Entertainment extras
+  | "sports_watching";
 
 // @deprecated — kept for backward compat
 export type Personality = "calm" | "social" | "curious" | "active" | "creative";
