@@ -102,7 +102,7 @@ export default function WelcomeScreen() {
             }}
           >
             <AppText variant="label" weight="semibold">
-              {language === "ar" ? "EN" : "عربي"}
+              {language === "ar" ? "عربي" : "EN"}
             </AppText>
           </Pressable>
         </View>

@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
   FlatList,
+  Image,
   Pressable,
   useWindowDimensions,
   View,
@@ -12,12 +13,15 @@ import { SvgXml } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppText } from "@/components/AppText";
+import { useColors } from "@/hooks/useColors";
 
 const OLIVE_DARK = "#2D3820";
 const GOLD = "#B8924A";
 const OLIVE = "#6B7A4E";
-const SAND = "#F5EFE6";
 const INK = "#2A2A2A";
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const VENUE_IMG = require("../assets/images/interior-evening.png");
 
 const SVG_LOGO = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
   <rect x="28" y="108" width="140" height="58" rx="22" fill="none" stroke="#c8a84b" stroke-width="11" stroke-linejoin="round"/>
@@ -168,28 +172,36 @@ function VenueIllustration() {
   return (
     <View
       style={{
-        width: 260,
-        maxWidth: "90%",
+        width: 280,
+        maxWidth: "92%",
         backgroundColor: "#fff",
-        borderRadius: 16,
+        borderRadius: 18,
         overflow: "hidden",
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 5,
+        shadowColor: "#2D3820",
+        shadowOpacity: 0.18,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 6,
       }}
     >
-      <View style={{ height: 110, backgroundColor: "#C4B08A", alignItems: "flex-start", justifyContent: "flex-end", padding: 12 }}>
+      <View style={{ height: 150, position: "relative" }}>
+        <Image
+          source={VENUE_IMG}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
+          resizeMode="cover"
+        />
         <View
           style={{
+            position: "absolute",
+            top: 12,
+            left: 12,
             backgroundColor: GOLD,
             paddingHorizontal: 10,
             paddingVertical: 4,
             borderRadius: 99,
           }}
         >
-          <AppText style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: OLIVE_DARK, letterSpacing: 1.2, textTransform: "uppercase" }}>
+          <AppText style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: OLIVE_DARK, letterSpacing: 1.5, textTransform: "uppercase" }}>
             Curated
           </AppText>
         </View>
@@ -226,9 +238,10 @@ interface SlideContentProps {
 
 function SlideContent({ slide, width, onNext, onSkip, onLogin, onFinish, currentIndex, onBack }: SlideContentProps) {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
   const { id, dark } = slide;
-  const bg = dark ? OLIVE_DARK : SAND;
-  const fg = dark ? "#FAF9F8" : INK;
+  const bg = dark ? OLIVE_DARK : colors.background;
+  const fg = dark ? "#FAF9F8" : colors.foreground;
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === TOTAL - 1;
 
@@ -439,7 +452,16 @@ function SlideContent({ slide, width, onNext, onSkip, onLogin, onFinish, current
       <View style={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 24, gap: 14, alignItems: "center" }}>
         <View style={{ flexDirection: "row", justifyContent: "center" }}>
           {SLIDES.map((_, i) => (
-            <Dot key={i} active={i === currentIndex} />
+            <View
+              key={i}
+              style={{
+                width: i === currentIndex ? 20 : 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: i === currentIndex ? (dark ? GOLD : colors.primary) : (dark ? "rgba(200,168,75,0.3)" : colors.border),
+                marginHorizontal: 3,
+              }}
+            />
           ))}
         </View>
 
@@ -449,7 +471,7 @@ function SlideContent({ slide, width, onNext, onSkip, onLogin, onFinish, current
               onPress={onNext}
               style={{
                 width: "100%",
-                backgroundColor: GOLD,
+                backgroundColor: colors.accent,
                 borderRadius: 14,
                 paddingVertical: 16,
                 alignItems: "center",
@@ -460,7 +482,7 @@ function SlideContent({ slide, width, onNext, onSkip, onLogin, onFinish, current
             <Pressable onPress={onLogin}>
               <AppText style={{ fontSize: 14, color: "rgba(250,249,248,0.6)", fontFamily: "Inter_400Regular" }}>
                 عندك حساب؟{" "}
-                <AppText style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: "rgba(250,249,248,0.85)" }}>
+                <AppText style={{ fontSize: 14, fontFamily: "Inter_700Bold", color: "rgba(250,249,248,0.9)" }}>
                   تسجيل الدخول
                 </AppText>
               </AppText>
@@ -471,7 +493,7 @@ function SlideContent({ slide, width, onNext, onSkip, onLogin, onFinish, current
         {id === "why" && (
           <Pressable
             onPress={onNext}
-            style={{ width: "100%", backgroundColor: OLIVE, borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
+            style={{ width: "100%", backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
           >
             <AppText style={{ fontSize: 17, fontFamily: "Inter_700Bold", color: "#FAF9F8" }}>كيف نعمل؟</AppText>
           </Pressable>
@@ -480,7 +502,7 @@ function SlideContent({ slide, width, onNext, onSkip, onLogin, onFinish, current
         {(id === "step1" || id === "step2" || id === "step3") && (
           <Pressable
             onPress={onNext}
-            style={{ width: "100%", backgroundColor: OLIVE, borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
+            style={{ width: "100%", backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
           >
             <AppText style={{ fontSize: 17, fontFamily: "Inter_700Bold", color: "#FAF9F8" }}>التالي</AppText>
           </Pressable>
@@ -489,7 +511,7 @@ function SlideContent({ slide, width, onNext, onSkip, onLogin, onFinish, current
         {id === "privacy" && (
           <Pressable
             onPress={onNext}
-            style={{ width: "100%", backgroundColor: GOLD, borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
+            style={{ width: "100%", backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
           >
             <AppText style={{ fontSize: 17, fontFamily: "Inter_700Bold", color: OLIVE_DARK }}>التالي</AppText>
           </Pressable>
@@ -499,7 +521,7 @@ function SlideContent({ slide, width, onNext, onSkip, onLogin, onFinish, current
           <>
             <Pressable
               onPress={onFinish}
-              style={{ width: "100%", backgroundColor: OLIVE, borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
+              style={{ width: "100%", backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 16, alignItems: "center" }}
             >
               <AppText style={{ fontSize: 17, fontFamily: "Inter_700Bold", color: "#FAF9F8" }}>احجز مكانك</AppText>
             </Pressable>
