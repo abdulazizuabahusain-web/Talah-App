@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
@@ -33,6 +34,10 @@ export default function WelcomeScreen() {
       router.replace("/(tabs)");
     } else if (currentUser && !currentUser.onboarded) {
       router.replace("/onboarding");
+    } else {
+      AsyncStorage.getItem("talah:intro_seen").then((seen) => {
+        if (!seen) router.replace("/app-intro");
+      });
     }
   }, [ready, currentUser]);
 
