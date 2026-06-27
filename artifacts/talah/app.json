@@ -11,10 +11,12 @@
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F5EFE6"
     },
     "ios": {
       "supportsTablet": false,
+      "bundleIdentifier": "com.talah.app",
+      "buildNumber": "1",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"]
       }
@@ -47,6 +49,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "49e163d3-5a04-4188-9f4c-bc28ae8484db"
+      }
     }
   }
 }
