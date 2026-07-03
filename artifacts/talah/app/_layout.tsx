@@ -46,6 +46,7 @@ function RootLayoutNav() {
       <Stack.Screen name="code-of-conduct" />
       <Stack.Screen name="privacy" />
       <Stack.Screen name="terms" />
+      <Stack.Screen name="support" />
     </Stack>
   );
 }
