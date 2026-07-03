@@ -2,3 +2,4 @@
 - [DB SQL execution](db-sql.md) — run raw SQL via `node -e` in lib/db dir with `require('./node_modules/pg')`; never `pnpm run push` (interactive)
 - [Gregorian date fix](gregorian-date.md) — use `"ar-SA-u-ca-gregory"` not `"ar-SA"` for Arabic locale to avoid Hijri calendar
 - [pick() readonly arrays](seed-pick.md) — `pick<T>(arr: readonly T[])` required in seed.ts for as-const arrays
+- [artifact.toml production env placement](artifact-toml-production-env.md) — run-type services need PORT/env under `[services.<name>.production.run.env]`, not top-level `[services.env]`
