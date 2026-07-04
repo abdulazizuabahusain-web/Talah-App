@@ -15,7 +15,67 @@ const path = require("path");
 
 const STATIC_ROOT = path.resolve(__dirname, "..", "static-build");
 const TEMPLATE_PATH = path.resolve(__dirname, "templates", "landing-page.html");
+const STATIC_PAGE_TEMPLATE_PATH = path.resolve(
+  __dirname,
+  "templates",
+  "static-page.html",
+);
 const basePath = (process.env.BASE_PATH || "/").replace(/\/+$/, "");
+
+const PRIVACY_POLICY_TEXT_EN = `Tal'ah is built on one principle: your privacy comes first. No user can browse your profile, and direct contact between users is not permitted until both sides mutually reveal after a meetup.
+
+Information we collect:
+• Phone number and email, to create and secure your account.
+• Nickname, gender, city, and age range.
+• Interests, personality traits, and meetup preferences (days, times, meetup type).
+• Contact details (phone, Instagram, Snapchat, X/Twitter, TikTok) — stored privately and only shared after a mutual reveal you explicitly approve.
+• A push notification token, used to alert you about meetups.
+
+How we use your data:
+• To arrange small, safe meetups between compatible people.
+• To improve match quality over time.
+• To contact you about your account or scheduled meetups.
+
+What we never do:
+• We never sell your data to third parties.
+• We never show your photo or full profile to other users.
+• We never allow browsing or searching for users.
+• We never reveal your contact details without your explicit consent.
+
+Your safety:
+You can report or block any user at any time. Our team manually reviews every report.
+
+Your rights:
+You can update your information or permanently delete your account at any time from Settings. Deletion removes your personal data from our systems.
+
+Contact us:
+For any privacy questions, reach us at abdulazizu.abahusain@gmail.com.
+
+Last updated: July 2026`;
+
+const SUPPORT_TEXT_EN = `For any question or issue related to the Tal'ah app, we're happy to help. Reach out by email and we'll get back to you as soon as possible.
+
+abdulazizu.abahusain@gmail.com`;
+
+function serveStaticPage(res, { title, body, lang }) {
+  const template = fs.readFileSync(STATIC_PAGE_TEMPLATE_PATH, "utf-8");
+  const isAr = lang === "ar";
+  const html = template
+    .replace(/DIR_PLACEHOLDER/g, isAr ? "rtl" : "ltr")
+    .replace(/LANG_PLACEHOLDER/g, lang)
+    .replace(/TITLE_PLACEHOLDER/g, title)
+    .replace(
+      /BODY_PLACEHOLDER/g,
+      body.replace(
+        /abdulazizu\.abahusain@gmail\.com/g,
+        '<a href="mailto:abdulazizu.abahusain@gmail.com">abdulazizu.abahusain@gmail.com</a>',
+      ),
+    )
+    .replace(/APP_NAME_PLACEHOLDER/g, getAppName());
+
+  res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+  res.end(html);
+}
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -128,6 +188,22 @@ const server = http.createServer((req, res) => {
     if (pathname === "/") {
       return serveLandingPage(req, res, landingPageTemplate, appName);
     }
+  }
+
+  if (pathname === "/privacy") {
+    return serveStaticPage(res, {
+      title: "Privacy Policy",
+      body: PRIVACY_POLICY_TEXT_EN,
+      lang: "en",
+    });
+  }
+
+  if (pathname === "/support") {
+    return serveStaticPage(res, {
+      title: "Support",
+      body: SUPPORT_TEXT_EN,
+      lang: "en",
+    });
   }
 
   serveStaticFile(pathname, res);
