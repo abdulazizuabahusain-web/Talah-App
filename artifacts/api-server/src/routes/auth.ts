@@ -10,6 +10,7 @@ import {
   verifyEmailLoginCode,
 } from "../lib/auth";
 import { track } from "../lib/analytics";
+import { sendLoginCodeEmail } from "../lib/email";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -48,14 +49,22 @@ async function sendEmailCode(req: Request, res: Response) {
 
   if (process.env["NODE_ENV"] !== "production") {
     req.log.info({ email, code }, "Email login code created (dev mode)");
+  } else {
+    try {
+      await sendLoginCodeEmail(email, code);
+    } catch (err) {
+      req.log.error({ err, email }, "Failed to send login code email");
+      res.status(502).json({ error: "Failed to send login code email. Please try again." });
+      return;
+    }
   }
 
   // Anonymise the email into a one-way hash so no PII is sent to analytics
   const anonId = crypto.createHash("sha256").update(email).digest("hex").slice(0, 16);
   track("otp_requested", anonId, {});
 
-  // Production email delivery is intentionally deferred for this stage. In dev,
-  // return the code so Replit previews remain easy to test without an email vendor.
+  // In dev, return the code directly so Replit previews remain easy to test
+  // without needing to check a real inbox.
   res.json({
     ok: true,
     ...(process.env["NODE_ENV"] !== "production" ? { code } : {}),

@@ -25,6 +25,7 @@
     "mixpanel": "^0.22.0",
     "pino": "^9",
     "pino-http": "^10",
+    "resend": "^6.17.1",
     "zod": "catalog:"
   },
   "devDependencies": {
