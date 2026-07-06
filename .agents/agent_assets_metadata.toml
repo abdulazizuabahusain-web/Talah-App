@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "z_HAA8NDfL1g3c8tUMP_x"
@@ -18,3 +17,9 @@ id = "T9_aOv5U--_u1Y3SwQfPk"
 uri = "file://artifacts/talah/assets/images/dinner-meetup.png"
 type = "image"
 title = "dinner meetup"
+
+[[outputs]]
+id = "j5BLUSpZqUpxucNU3htrY"
+uri = "file://attached_assets/talah-dev-qr.png"
+type = "image"
+title = "Tal'ah Dev Preview QR Code"
