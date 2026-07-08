@@ -39,3 +39,7 @@ yarn-error.*
 .vercel
 
 .env
+
+# Local signing credentials (never commit)
+signing/
+credentials.json
