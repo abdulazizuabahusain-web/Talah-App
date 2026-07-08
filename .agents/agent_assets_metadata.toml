@@ -23,3 +23,9 @@ id = "j5BLUSpZqUpxucNU3htrY"
 uri = "file://attached_assets/talah-dev-qr.png"
 type = "image"
 title = "Tal'ah Dev Preview QR Code"
+
+[[outputs]]
+id = "zbF_znXnfHvUaugJr2SNc"
+uri = "file://.local/tmp-ios-signing/distribution_csr.zip"
+type = "unspecified"
+title = "iOS Distribution Certificate Signing Request (CSR)"
