@@ -41,3 +41,9 @@ id = "OOKjWKegdcCqFl2-UpIwn"
 uri = "file://.local/tmp-ios-signing/distribution_p12.zip"
 type = "unspecified"
 title = "distribution.p12 (unzip to get the .p12 file)"
+
+[[outputs]]
+id = "5l4PqzdzPVJGIZggL8iiU"
+uri = "file://.local/tmp-ios-signing/distribution_p12_base64.txt"
+type = "text"
+title = "distribution_p12_base64.txt"
