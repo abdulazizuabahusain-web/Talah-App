@@ -17,7 +17,7 @@ EAS CLI cannot be run interactively from Replit's bash tool (no TTY). The only f
 ## Key env vars for pty build run
 
 - `EAS_NO_VCS=1` — prevents `git add`/`git commit` which hits sandbox destructive-git block
-- `EAS_SKIP_AUTO_FINGERPRINT=1` — bypasses a `brace_expansion` bug in EAS CLI fingerprint step (client-side only; does NOT affect server fingerprinting)
+- `EAS_SKIP_AUTO_FINGERPRINT=1` — bypasses a `brace_expansion` bug in EAS CLI fingerprint step (client-side only)
 - `EAS_BUILD_NO_EXPO_GO_WARNING=true` — suppresses noisy warning
 
 ## credentials.json — use literal password, NOT env var reference
@@ -76,29 +76,48 @@ asc('POST', '/bundleIdCapabilities', {
 # Then create the profile — it will include aps-environment automatically
 ```
 
-Verify the profile has it before uploading:
-```python
-# aps-environment should be 'production' for App Store profiles
-ents = plist.get('Entitlements', {})
-assert ents.get('aps-environment') == 'production'
+Verify before uploading: `ents.get('aps-environment') == 'production'`
+
+## eas submit — free-tier queue warning
+
+**DO NOT** run `eas submit --wait` in a loop. On the free tier, the submission queue can take 30+ minutes. Each call to `eas submit` creates a NEW submission entry — running it multiple times while waiting stacks up duplicate queue entries, making things slower. The correct approach:
+
+1. Run `eas submit --non-interactive --no-wait` **once** to schedule the submission
+2. Note the submission ID and dashboard URL from the output
+3. Check status manually at https://expo.dev/accounts/abdulaziz-abahusain/projects/talah/submissions/
+4. Also check App Store Connect → TestFlight for the build appearing there
+
+`eas submission:view` does not exist in EAS CLI v16. Use `eas build:view <id> --json` to get the logFiles[] signed URL for debugging build failures.
+
+## Getting build error details from EAS
+
+`eas build:view <id> --json` returns `logFiles[]` — a signed GCS URL (valid 15 min) with newline-delimited JSON logs. Fetch with `curl --compressed`. Filter level ≥ 50 for errors. Key phases to watch: `PREPARE_CREDENTIALS` (signing setup) and `RUN_FASTLANE` (Xcode build).
+
+## eas.json submit profile — ASC API key configuration
+
+For non-interactive `eas submit`, configure the ASC API key directly in eas.json (no interactive credential setup needed):
+
+```json
+"submit": {
+  "production": {
+    "ios": {
+      "ascApiKeyPath": "./signing/AuthKey_<KEY_ID>.p8",
+      "ascApiKeyIssuerId": "<ISSUER_ID>",
+      "ascApiKeyId": "<KEY_ID>"
+    }
+  }
+}
 ```
 
-## ASC API key env var mapping (for submit or credential generation)
-
-- `EXPO_ASC_API_KEY_KEY_ID` ← `ASC_API_KEY_ID`
-- `EXPO_ASC_API_KEY_ISSUER_ID` ← `ASC_ISSUER_ID`
-- `EXPO_ASC_API_KEY_KEY` ← wrap `ASC_PRIVATE_KEY` in PEM headers (strip whitespace, `textwrap.wrap` at 64 chars, add `-----BEGIN/END PRIVATE KEY-----`)
+Save the key from `ASC_PRIVATE_KEY` env var to `signing/AuthKey_<KEY_ID>.p8` (gitignored). Wrap in PEM headers if not already present.
 
 ## Project-specific values (Tal'ah)
 
 - Bundle ID: `com.abdulaziz.talah` (ASC record ID: `97MCULYP7K`)
 - Distribution cert: `Apple Distribution: Abdulaziz Abahusain` (ASC cert ID: `J35XUM5X54`, fingerprint: `95ACCF1AD5C96AA57CC213084809EA5EE64B0D3F`, expires 2027-07-08)
-- Provisioning profile: `77VQCGVPYN` (includes Push Notifications)
-- p12: `artifacts/talah/signing/distribution.p12` (3DES format)
-- Both paths gitignored via `signing/` + `credentials.json` in `.gitignore`
-
-## Getting build error details from EAS
-
-`eas build:view <id> --json` returns `logFiles[]` — a signed GCS URL (valid 15 min) with newline-delimited JSON logs. Fetch with `curl --compressed`. Filter level ≥ 50 for errors, or grep `PREPARE_CREDENTIALS` / `RUN_FASTLANE` phases.
+- Provisioning profile: `77VQCGVPYN` (includes Push Notifications + aps-environment: production)
+- p12: `artifacts/talah/signing/distribution.p12` (3DES format, password in credentials.json)
+- ASC API key file: `artifacts/talah/signing/AuthKey_MW4922RJR6.p8`
+- All paths gitignored via `signing/` + `credentials.json` in `.gitignore`
 
 **How to apply:** Any time a new iOS production build is needed. Re-run provisioning profile generation script if cert changes or profile expires (annually).
