@@ -16,7 +16,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.talah.app",
+      "bundleIdentifier": "com.abdulaziz.talah",
       "buildNumber": "1",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
