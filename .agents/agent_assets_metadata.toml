@@ -29,3 +29,9 @@ id = "zbF_znXnfHvUaugJr2SNc"
 uri = "file://.local/tmp-ios-signing/distribution_csr.zip"
 type = "unspecified"
 title = "iOS Distribution Certificate Signing Request (CSR)"
+
+[[outputs]]
+id = "22ABK6E5xJKXXU70RraYi"
+uri = "file://.local/tmp-ios-signing/distribution.certSigningRequest.txt"
+type = "text"
+title = "Distribution CSR (rename to .certSigningRequest after download)"
