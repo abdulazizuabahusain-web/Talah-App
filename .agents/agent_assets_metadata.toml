@@ -35,3 +35,9 @@ id = "22ABK6E5xJKXXU70RraYi"
 uri = "file://.local/tmp-ios-signing/distribution.certSigningRequest.txt"
 type = "text"
 title = "Distribution CSR (rename to .certSigningRequest after download)"
+
+[[outputs]]
+id = "OOKjWKegdcCqFl2-UpIwn"
+uri = "file://.local/tmp-ios-signing/distribution_p12.zip"
+type = "unspecified"
+title = "distribution.p12 (unzip to get the .p12 file)"
