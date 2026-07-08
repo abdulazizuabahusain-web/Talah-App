@@ -27,7 +27,10 @@
       "ios": {
         "appleId": "abdulazizu.abahusain@gmail.com",
         "ascAppId": "6786908048",
-        "appleTeamId": "5YXF6Z9843"
+        "appleTeamId": "5YXF6Z9843",
+        "ascApiKeyPath": "./signing/AuthKey_MW4922RJR6.p8",
+        "ascApiKeyIssuerId": "16daf654-a579-4a6d-9050-ac8e93047d2b",
+        "ascApiKeyId": "MW4922RJR6"
       }
     }
   }

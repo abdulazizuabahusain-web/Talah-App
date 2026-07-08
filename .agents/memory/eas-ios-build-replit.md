@@ -3,7 +3,7 @@ name: EAS iOS build from Replit sandbox
 description: How to run eas build --platform ios non-interactively from the Replit sandbox environment
 ---
 
-## The working approach (confirmed July 2026)
+## The working approach (confirmed July 2026 — build 55e7fa2e succeeded)
 
 EAS CLI cannot be run interactively from Replit's bash tool (no TTY). The only fully automated path for iOS production builds is:
 
@@ -17,9 +17,71 @@ EAS CLI cannot be run interactively from Replit's bash tool (no TTY). The only f
 ## Key env vars for pty build run
 
 - `EAS_NO_VCS=1` — prevents `git add`/`git commit` which hits sandbox destructive-git block
-- `EAS_SKIP_AUTO_FINGERPRINT=1` — bypasses a `brace_expansion` bug in EAS CLI fingerprint step
+- `EAS_SKIP_AUTO_FINGERPRINT=1` — bypasses a `brace_expansion` bug in EAS CLI fingerprint step (client-side only; does NOT affect server fingerprinting)
 - `EAS_BUILD_NO_EXPO_GO_WARNING=true` — suppresses noisy warning
-- `IOS_P12_PASSWORD` — p12 passphrase referenced as `$IOS_P12_PASSWORD` in credentials.json
+
+## credentials.json — use literal password, NOT env var reference
+
+Put the actual p12 password directly in `credentials.json`. EAS CLI does NOT expand `$ENV_VAR` references from this file — the literal string gets sent to the build server and fails with "password probably invalid". The file is gitignored so it is safe.
+
+```json
+{
+  "ios": {
+    "provisioningProfilePath": "signing/Talah_App_Store.mobileprovision",
+    "distributionCertificate": {
+      "path": "signing/distribution.p12",
+      "password": "<actual-password-here>"
+    }
+  }
+}
+```
+
+## p12 must be generated with 3DES/SHA1 (macOS-compatible format)
+
+OpenSSL 3.x on Linux generates p12 files with AES-256-CBC by default. macOS's `security import` rejects these with "hasn't been imported successfully". Re-generate with:
+
+```bash
+# Extract (requires -provider legacy -provider default on this Debian OpenSSL build)
+openssl pkcs12 -in distribution.p12 -nocerts -nodes \
+  -provider legacy -provider default \
+  -passin pass:"$PASS" -out dist.key
+
+openssl pkcs12 -in distribution.p12 -nokeys \
+  -provider legacy -provider default \
+  -passin pass:"$PASS" -out dist.cer
+
+# Re-export with 3DES/SHA1 (macOS compatible)
+openssl pkcs12 -export \
+  -provider legacy -provider default \
+  -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg SHA1 \
+  -in dist.cer -inkey dist.key \
+  -out distribution.p12 \
+  -passout pass:"$PASS" \
+  -name "Apple Distribution: Abdulaziz Abahusain"
+```
+
+## Provisioning profile MUST include Push Notifications entitlement
+
+The app uses `expo-notifications`. Xcode requires `aps-environment: production` in the provisioning profile. When creating the profile via ASC API, first enable the capability on the bundle ID:
+
+```python
+# Enable capability (idempotent — 409 if already enabled)
+asc('POST', '/bundleIdCapabilities', {
+    'data': {
+        'type': 'bundleIdCapabilities',
+        'attributes': {'capabilityType': 'PUSH_NOTIFICATIONS'},
+        'relationships': {'bundleId': {'data': {'type': 'bundleIds', 'id': BUNDLE_ID}}}
+    }
+})
+# Then create the profile — it will include aps-environment automatically
+```
+
+Verify the profile has it before uploading:
+```python
+# aps-environment should be 'production' for App Store profiles
+ents = plist.get('Entitlements', {})
+assert ents.get('aps-environment') == 'production'
+```
 
 ## ASC API key env var mapping (for submit or credential generation)
 
@@ -27,22 +89,16 @@ EAS CLI cannot be run interactively from Replit's bash tool (no TTY). The only f
 - `EXPO_ASC_API_KEY_ISSUER_ID` ← `ASC_ISSUER_ID`
 - `EXPO_ASC_API_KEY_KEY` ← wrap `ASC_PRIVATE_KEY` in PEM headers (strip whitespace, `textwrap.wrap` at 64 chars, add `-----BEGIN/END PRIVATE KEY-----`)
 
-## ASC API provisioning profile generation
-
-Bypasses file transfer completely. Run with PyJWT + cryptography (pip install both).
-
-1. JWT: ES256, `aud="appstoreconnect-v1"`, `exp=now+1200`, `kid=ASC_API_KEY_ID`
-2. `GET /v1/bundleIds?filter[identifier]=com.abdulaziz.talah` → bundle ID record ID
-3. `GET /v1/certificates?filter[certificateType]=DISTRIBUTION` → cert ID
-4. `POST /v1/profiles` with `profileType=IOS_APP_STORE`, bundleId + certificates relationships
-5. `response.data.attributes.profileContent` is base64 .mobileprovision — decode and save to `signing/`
-
 ## Project-specific values (Tal'ah)
 
 - Bundle ID: `com.abdulaziz.talah` (ASC record ID: `97MCULYP7K`)
-- Distribution cert: `Apple Distribution: Abdulaziz Abahusain` (ASC cert ID: `J35XUM5X54`, expires 2027-07-08)
-- Provisioning profile saved to: `artifacts/talah/signing/Talah_App_Store.mobileprovision`
-- p12 saved to: `artifacts/talah/signing/distribution.p12`
-- Both paths gitignored via `signing/` and `credentials.json` entries in `.gitignore`
+- Distribution cert: `Apple Distribution: Abdulaziz Abahusain` (ASC cert ID: `J35XUM5X54`, fingerprint: `95ACCF1AD5C96AA57CC213084809EA5EE64B0D3F`, expires 2027-07-08)
+- Provisioning profile: `77VQCGVPYN` (includes Push Notifications)
+- p12: `artifacts/talah/signing/distribution.p12` (3DES format)
+- Both paths gitignored via `signing/` + `credentials.json` in `.gitignore`
 
-**How to apply:** Any time a new iOS production build is needed from Replit. Re-run the provisioning profile generation script if cert changes or profile expires.
+## Getting build error details from EAS
+
+`eas build:view <id> --json` returns `logFiles[]` — a signed GCS URL (valid 15 min) with newline-delimited JSON logs. Fetch with `curl --compressed`. Filter level ≥ 50 for errors, or grep `PREPARE_CREDENTIALS` / `RUN_FASTLANE` phases.
+
+**How to apply:** Any time a new iOS production build is needed. Re-run provisioning profile generation script if cert changes or profile expires (annually).
