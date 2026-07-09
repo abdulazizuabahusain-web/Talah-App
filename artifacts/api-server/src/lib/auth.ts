@@ -5,11 +5,16 @@ import { db, otpTable, sessionsTable, usersTable } from "@workspace/db";
 const LOGIN_CODE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+// Demo account for Apple App Review — fixed OTP bypasses Resend requirement.
+export const REVIEW_EMAIL = "apple-review@talah.app";
+export const REVIEW_CODE = "246810";
+
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-function createLoginCodeValue(): string {
+function createLoginCodeValue(email: string): string {
+  if (email === REVIEW_EMAIL) return REVIEW_CODE;
   return process.env["NODE_ENV"] === "production"
     ? String(Math.floor(100000 + Math.random() * 900000))
     : "0000";
@@ -17,7 +22,7 @@ function createLoginCodeValue(): string {
 
 export async function createEmailLoginCode(email: string): Promise<string> {
   const normalizedEmail = normalizeEmail(email);
-  const code = createLoginCodeValue();
+  const code = createLoginCodeValue(normalizedEmail);
 
   // The historical OTP table column is named `phone`; it now stores the login
   // identifier for code-based auth. Email is the active identifier for new users.

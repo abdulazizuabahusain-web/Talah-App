@@ -8,6 +8,7 @@ import {
   getUserFromToken,
   normalizeEmail,
   verifyEmailLoginCode,
+  REVIEW_EMAIL,
 } from "../lib/auth";
 import { track } from "../lib/analytics";
 import { sendLoginCodeEmail } from "../lib/email";
@@ -47,8 +48,10 @@ async function sendEmailCode(req: Request, res: Response) {
   const email = normalizeEmail(parsed.data.email);
   const code = await createEmailLoginCode(email);
 
-  if (process.env["NODE_ENV"] !== "production") {
-    req.log.info({ email, code }, "Email login code created (dev mode)");
+  const isReviewAccount = email === REVIEW_EMAIL;
+
+  if (process.env["NODE_ENV"] !== "production" || isReviewAccount) {
+    req.log.info({ email, code }, isReviewAccount ? "Review account login code" : "Email login code created (dev mode)");
   } else {
     try {
       await sendLoginCodeEmail(email, code);
@@ -63,11 +66,11 @@ async function sendEmailCode(req: Request, res: Response) {
   const anonId = crypto.createHash("sha256").update(email).digest("hex").slice(0, 16);
   track("otp_requested", anonId, {});
 
-  // In dev, return the code directly so Replit previews remain easy to test
-  // without needing to check a real inbox.
+  // Return code in dev, and always for the review account so Apple reviewers
+  // can sign in without a working email inbox.
   res.json({
     ok: true,
-    ...(process.env["NODE_ENV"] !== "production" ? { code } : {}),
+    ...(process.env["NODE_ENV"] !== "production" || isReviewAccount ? { code } : {}),
   });
 }
 
