@@ -42,7 +42,7 @@ export default function LoginScreen() {
       if (res.code) setDevCode(res.code);
       setStep("code");
     } catch {
-      setError(t("invalid_email"));
+      setError(t("error_generic"));
     } finally {
       setLoading(false);
     }

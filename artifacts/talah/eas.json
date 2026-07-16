@@ -19,6 +19,9 @@
       "credentialsSource": "local",
       "ios": {
         "resourceClass": "m-medium"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE": "https://a71e73b6-6a9e-4bd3-9849-20f55d8e8980-00-1m4zfjgu3aibq.riker.replit.dev/api"
       }
     }
   },
