@@ -8,7 +8,7 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 
-const SUPPORT_EMAIL = "abdulazizu.abahusain@gmail.com";
+const SUPPORT_EMAIL = "Info@talahapp.com";
 
 export default function SupportScreen() {
   const colors = useColors();
