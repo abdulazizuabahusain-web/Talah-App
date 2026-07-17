@@ -84,6 +84,48 @@ export async function verifyEmailLoginCode(
       .returning();
   }
 
+  // Auto-populate the Apple review account with a complete profile so the
+  // reviewer lands on the home screen instead of the onboarding flow.
+  if (normalizedEmail === REVIEW_EMAIL && !user.onboarded) {
+    [user] = await db
+      .update(usersTable)
+      .set({
+        nickname: "Sara",
+        gender: "female",
+        city: "Riyadh",
+        lifeStage: "professionally_established",
+        ageRange: "25-34",
+        lifestyle: "active",
+        interests: ["coffee", "art", "reading", "hiking"],
+        personality: "ambivert",
+        preferredMeetup: "coffee",
+        preferredDays: ["thursday", "friday"],
+        preferredTimes: ["evening"],
+        funFact: "I can name every coffee shop in Riyadh",
+        socialEnergy: "medium",
+        conversationStyle: "listener",
+        enjoyedTopics: ["travel", "food", "books"],
+        socialIntent: "friendship",
+        planningPreference: "flexible",
+        meetupAtmosphere: "cozy",
+        interactionPreference: "small_group",
+        personalityTraits: ["curious", "warm", "thoughtful"],
+        opennessLevel: "open",
+        socialBoundary: "relaxed",
+        socialEnergyScore: 60,
+        conversationDepthScore: 70,
+        planningScore: 55,
+        atmosphereScore: 65,
+        interactionScore: 60,
+        opennessScore: 75,
+        boundaryScore: 65,
+        onboarded: true,
+        verified: true,
+      })
+      .where(eq(usersTable.id, user.id))
+      .returning();
+  }
+
   const token = crypto.randomBytes(32).toString("hex");
 
   await db.insert(sessionsTable).values({
