@@ -11,6 +11,7 @@ import analyticsRouter from "./analytics";
 import adminRouter from "./admin";
 import connectionsRouter from "./connections";
 import venuesRouter from "./venues";
+import waitlistRouter from "./waitlist";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use("/connections", connectionsRouter);
 router.use("/venues", venuesRouter);
 router.use("/admin/analytics", analyticsRouter);
 router.use("/admin", adminRouter);
+router.use(waitlistRouter);
 
 export default router;

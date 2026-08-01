@@ -9,3 +9,4 @@ export * from "./surveys";
 export * from "./contactExchanges";
 export * from "./genderChangeRequests";
 export * from "./venues";
+export * from "./waitlist";
