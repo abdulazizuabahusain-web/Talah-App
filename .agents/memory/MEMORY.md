@@ -4,3 +4,4 @@
 - [pick() readonly arrays](seed-pick.md) — `pick<T>(arr: readonly T[])` required in seed.ts for as-const arrays
 - [artifact.toml production env placement](artifact-toml-production-env.md) — run-type services need PORT/env under `[services.<name>.production.run.env]`, not top-level `[services.env]`
 - [EAS iOS build from Replit](eas-ios-build-replit.md) — local credentials + ASC API provisioning profile is the only fully non-interactive path from Replit sandbox
+- [Post-merge script](post-merge-script.md) — uses `push-force` (non-interactive); PAT has no expiry, PAT_EXPIRES_AT set to 2099-12-31 as sentinel

@@ -53,4 +53,4 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-PAT_EXPIRES_AT = "2026-06-02"
+PAT_EXPIRES_AT = "2099-12-31"
