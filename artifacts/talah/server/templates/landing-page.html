@@ -396,19 +396,40 @@
     return v.trim().length >= 2;
   }
   function joinWaitlist() {
-    var nameInput = document.getElementById('name-input');
-    var phoneInput = document.getElementById('phone-input');
-    var name = nameInput.value.trim();
-    var phone = phoneInput.value.trim();
-    var err = document.getElementById('error-top');
-    if (!isValidName(name)) { err.style.display = 'block'; nameInput.focus(); return; }
-    if (!isValidPhone(phone)) { err.style.display = 'block'; phoneInput.focus(); return; }
-    err.style.display = 'none';
-    // TODO: replace with real API call to backend waitlist endpoint, e.g.
-    // fetch('/api/waitlist', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: name, phone: phone }) })
-    document.querySelector('.waitlist-form').style.display = 'none';
-    document.getElementById('success-top').style.display = 'block';
-  }
+  var nameInput = document.getElementById('name-input');
+  var phoneInput = document.getElementById('phone-input');
+  var name = nameInput.value.trim();
+  var phone = phoneInput.value.trim();
+  var err = document.getElementById('error-top');
+  var errDefaultText = err.textContent;
+  var btn = document.getElementById('btn-top');
+  if (!isValidName(name)) { err.textContent = errDefaultText; err.style.display = 'block'; nameInput.focus(); return; }
+  if (!isValidPhone(phone)) { err.textContent = errDefaultText; err.style.display = 'block'; phoneInput.focus(); return; }
+  err.style.display = 'none';
+  if (btn) { btn.disabled = true; }
+  fetch('/api/waitlist', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, phone: phone })
+  }).then(function (res) {
+    return res.json().catch(function () { return {}; }).then(function (data) {
+      return { ok: res.ok, data: data };
+    });
+  }).then(function (result) {
+    if (result.ok && result.data && result.data.ok) {
+      document.querySelector('.waitlist-form').style.display = 'none';
+      document.getElementById('success-top').style.display = 'block';
+    } else {
+      err.textContent = (result.data && result.data.error) || errDefaultText;
+      err.style.display = 'block';
+      if (btn) { btn.disabled = false; }
+    }
+  }).catch(function () {
+    err.textContent = errDefaultText;
+    err.style.display = 'block';
+    if (btn) { btn.disabled = false; }
+  });
+}
   document.getElementById('name-input').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') document.getElementById('phone-input').focus();
   });
