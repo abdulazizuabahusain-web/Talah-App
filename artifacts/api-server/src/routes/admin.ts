@@ -1088,6 +1088,32 @@ router.post("/talah-type-change-requests/:id/reject", requireAdmin, async (req, 
   res.json(updated);
 });
 
+// ── Analytics ─────────────────────────────────────────────────────────────────
+// GET /api/admin/analytics/waitlist-growth — signups per day for last N days
+router.get("/analytics/waitlist-growth", requireAdmin, async (req, res) => {
+  const days = Math.min(parseInt(req.query["days"] as string) || 30, 365);
+  const rows = await db.execute(sql`
+    SELECT
+      to_char(date_series.day, 'YYYY-MM-DD') AS date,
+      COALESCE(counts.count, 0)::int          AS count
+    FROM (
+      SELECT generate_series(
+        current_date - (${days} - 1) * interval '1 day',
+        current_date,
+        interval '1 day'
+      )::date AS day
+    ) AS date_series
+    LEFT JOIN (
+      SELECT created_at::date AS day, count(*)::int AS count
+      FROM waitlist_signups
+      WHERE created_at >= current_date - (${days} - 1) * interval '1 day'
+      GROUP BY created_at::date
+    ) AS counts ON counts.day = date_series.day
+    ORDER BY date_series.day
+  `);
+  res.json(rows.rows as { date: string; count: number }[]);
+});
+
 // ── Waitlist ──────────────────────────────────────────────────────────────────
 // GET /api/admin/waitlist — return all signups newest-first with total count
 router.get("/waitlist", requireAdmin, async (req, res) => {

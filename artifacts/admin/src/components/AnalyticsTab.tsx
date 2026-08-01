@@ -1,4 +1,13 @@
 import { useEffect, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { api } from "@/lib/api";
 
 interface OverviewData {
@@ -40,11 +49,17 @@ function maxCount(days: { date: string; count: number }[]) {
   return Math.max(1, ...days.map((d) => d.count));
 }
 
+type GrowthPeriod = 14 | 30;
+
 export default function AnalyticsTab() {
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [funnel, setFunnel] = useState<FunnelData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [growthPeriod, setGrowthPeriod] = useState<GrowthPeriod>(30);
+  const [growthData, setGrowthData] = useState<{ date: string; count: number }[]>([]);
+  const [growthLoading, setGrowthLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
@@ -56,6 +71,15 @@ export default function AnalyticsTab() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    setGrowthLoading(true);
+    api
+      .getWaitlistGrowth(growthPeriod)
+      .then((data) => setGrowthData(data))
+      .catch(() => setGrowthData([]))
+      .finally(() => setGrowthLoading(false));
+  }, [growthPeriod]);
 
   if (loading) {
     return (
@@ -150,6 +174,67 @@ export default function AnalyticsTab() {
               })}
             </div>
           </div>
+        )}
+      </section>
+
+      {/* Waitlist growth */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-foreground">Waitlist Signups Over Time</h2>
+          <div className="flex gap-1">
+            {([14, 30] as GrowthPeriod[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setGrowthPeriod(p)}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  growthPeriod === p
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {p}d
+              </button>
+            ))}
+          </div>
+        </div>
+        {growthLoading ? (
+          <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">
+            Loading…
+          </div>
+        ) : growthData.every((d) => d.count === 0) ? (
+          <p className="text-sm text-muted-foreground">No waitlist signups yet.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={growthData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" vertical={false} />
+              <XAxis
+                dataKey="date"
+                tickFormatter={(v: string) => v.slice(5)}
+                tick={{ fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                interval={growthPeriod === 14 ? 1 : 4}
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip
+                formatter={(v: number) => [v, "Signups"]}
+                labelFormatter={(l: string) => l}
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: "1px solid hsl(var(--border))",
+                  background: "hsl(var(--card))",
+                  color: "hsl(var(--foreground))",
+                }}
+              />
+              <Bar dataKey="count" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         )}
       </section>
 

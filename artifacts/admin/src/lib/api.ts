@@ -137,6 +137,10 @@ export const api = {
 
   getAnalyticsOverview: () => request<AnalyticsOverview>("/admin/analytics/overview"),
   getAnalyticsFunnel: () => request<AnalyticsFunnel>("/admin/analytics/funnel"),
+  getWaitlistGrowth: (days?: number) =>
+    request<{ date: string; count: number }[]>(
+      `/admin/analytics/waitlist-growth${days ? `?days=${days}` : ""}`,
+    ),
 
   getTalahTypeChangeRequests: () =>
     request<TalahTypeChangeRequest[]>("/admin/talah-type-change-requests"),
