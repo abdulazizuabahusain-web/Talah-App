@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 pnpm install --frozen-lockfile
-pnpm --filter db push
+pnpm --filter @workspace/db run push-force
 
 # ── GitHub sync ────────────────────────────────────────────────────────────────
 # GITHUB_PAT expiry is configured through PAT_EXPIRES_AT in Replit shared env.
