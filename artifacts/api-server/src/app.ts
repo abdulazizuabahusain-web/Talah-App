@@ -46,7 +46,16 @@ const replitCorsOrigins = [
     return [`https://${host}`, `http://${host}`];
   });
 
+// Hardcoded production origins that are always permitted regardless of
+// environment variables.
+const hardcodedCorsOrigins = [
+  "https://talahapp.com",
+  "https://www.talahapp.com",
+  "https://mobile-first-web--abdulazizuabahu.replit.app",
+];
+
 const allowedCorsOrigins = new Set([
+  ...hardcodedCorsOrigins,
   ...configuredCorsOrigins,
   ...replitCorsOrigins,
 ]);
@@ -58,18 +67,29 @@ app.use(
         callback(null, true);
         return;
       }
-
       // Server-to-server/mobile requests may omit Origin; allow those while
       // restricting browser origins in production.
-      if (!origin || allowedCorsOrigins.has(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error("Origin is not allowed by CORS"));
+      callback(null, !origin || allowedCorsOrigins.has(origin));
     },
   }),
 );
+
+// Return a clean 403 JSON response for disallowed browser origins.
+// This runs after the cors middleware (which sets no headers for rejected
+// origins) so the browser also sees the CORS block, but avoids the
+// unhandled-error path that previously produced a 500 HTML body.
+app.use((req, res, next) => {
+  const origin = req.headers["origin"];
+  if (
+    process.env["NODE_ENV"] === "production" &&
+    origin &&
+    !allowedCorsOrigins.has(origin)
+  ) {
+    res.status(403).json({ ok: false, error: "Origin not allowed" });
+    return;
+  }
+  next();
+});
 app.use(express.json({ limit: "256kb" }));
 app.use(express.urlencoded({ extended: true, limit: "256kb" }));
 
