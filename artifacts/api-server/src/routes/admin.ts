@@ -18,6 +18,7 @@ import {
   surveysTable,
   talahTypeChangeRequestsTable,
   venuesTable,
+  waitlistSignupsTable,
 } from "@workspace/db";
 import { createAdminToken, isAdminToken } from "../lib/adminSessions";
 import { sendPushToMany } from "../lib/push";
@@ -1085,6 +1086,19 @@ router.post("/talah-type-change-requests/:id/reject", requireAdmin, async (req, 
 
   await writeAdminAuditLog(req, { action: "reject_talah_type_change", targetTable: "talah_type_change_requests", targetId: id, before: changeReq, after: updated });
   res.json(updated);
+});
+
+// ── Waitlist ──────────────────────────────────────────────────────────────────
+// GET /api/admin/waitlist — return all signups newest-first with total count
+router.get("/waitlist", requireAdmin, async (req, res) => {
+  const [rows, [{ count }]] = await Promise.all([
+    db
+      .select()
+      .from(waitlistSignupsTable)
+      .orderBy(desc(waitlistSignupsTable.createdAt)),
+    db.select({ count: sql<number>`count(*)::int` }).from(waitlistSignupsTable),
+  ]);
+  res.json({ data: rows, total: count });
 });
 
 export default router;

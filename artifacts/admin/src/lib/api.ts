@@ -150,6 +150,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ adminNotes }),
     }),
+
+  getWaitlist: () =>
+    request<{ data: WaitlistSignup[]; total: number }>("/admin/waitlist"),
 };
 
 // ── Types (mirror the DB schema) ─────────────────────────────────────────────
@@ -380,6 +383,13 @@ export interface AdminAuditLog {
   targetId: string | null;
   before: unknown;
   after: unknown;
+  createdAt: string;
+}
+
+export interface WaitlistSignup {
+  id: string;
+  name: string;
+  phone: string;
   createdAt: string;
 }
 

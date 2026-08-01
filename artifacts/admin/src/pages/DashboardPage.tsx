@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import logoUrl from "@assets/talah-app-icon-primary_1778799977421.svg";
 import { GitCommitHorizontal, X } from "lucide-react";
-import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type TalahTypeChangeRequest, type User, type Venue } from "@/lib/api";
+import { api, clearToken, type Feedback, type Group, type MeetupRequest, type Report, type SyncStatus, type TalahTypeChangeRequest, type User, type Venue, type WaitlistSignup } from "@/lib/api";
 import UsersTab from "@/components/UsersTab";
 import RequestsTab from "@/components/RequestsTab";
 import GroupsTab from "@/components/GroupsTab";
@@ -13,8 +13,9 @@ import SurveysTab from "@/components/SurveysTab";
 import AnalyticsTab from "@/components/AnalyticsTab";
 import TalahTypeRequestsTab from "@/components/TalahTypeRequestsTab";
 import VenuesTab from "@/components/VenuesTab";
+import WaitlistTab from "@/components/WaitlistTab";
 
-type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports" | "venues" | "audit" | "surveys" | "analytics" | "type-requests";
+type Tab = "users" | "requests" | "groups" | "compatibility" | "feedback" | "reports" | "venues" | "audit" | "surveys" | "analytics" | "type-requests" | "waitlist";
 
 const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "analytics", label: "Analytics", emoji: "📈" },
@@ -28,6 +29,7 @@ const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "venues", label: "Venues", emoji: "📍" },
   { id: "audit", label: "Audit", emoji: "🧾" },
   { id: "surveys", label: "Surveys", emoji: "📊" },
+  { id: "waitlist", label: "Waitlist", emoji: "📝" },
 ];
 
 const PAGE_SIZE = 50;
@@ -41,6 +43,8 @@ interface Data {
   reports: Report[];
   venues: Venue[];
   typeChangeRequests: TalahTypeChangeRequest[];
+  waitlist: WaitlistSignup[];
+  waitlistTotal: number;
 }
 
 interface HasMore {
@@ -73,7 +77,7 @@ function formatHHMM(date: Date): string {
 export default function DashboardPage({ onLogout }: Props) {
   const [tab, setTab] = useState<Tab>("users");
   const [data, setData] = useState<Data>({
-    users: [], requests: [], groups: [], feedback: [], reports: [], venues: [], typeChangeRequests: [],
+    users: [], requests: [], groups: [], feedback: [], reports: [], venues: [], typeChangeRequests: [], waitlist: [], waitlistTotal: 0,
   });
   const [hasMore, setHasMore] = useState<HasMore>({ users: false, requests: false, groups: false });
   const [loadingMore, setLoadingMore] = useState<Partial<Record<keyof HasMore, boolean>>>({});
@@ -122,7 +126,7 @@ export default function DashboardPage({ onLogout }: Props) {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [usersPage, requestsPage, groupsPage, feedback, reports, venues, typeChangeRequests] = await Promise.all([
+      const [usersPage, requestsPage, groupsPage, feedback, reports, venues, typeChangeRequests, waitlistResult] = await Promise.all([
         api.getUsers({ limit: PAGE_SIZE, offset: 0 }),
         api.getRequests({ limit: PAGE_SIZE, offset: 0 }),
         api.getGroups({ limit: PAGE_SIZE, offset: 0 }),
@@ -130,8 +134,9 @@ export default function DashboardPage({ onLogout }: Props) {
         api.getReports(),
         api.getVenues(),
         api.getTalahTypeChangeRequests(),
+        api.getWaitlist(),
       ]);
-      setData({ users: usersPage.data, requests: requestsPage.data, groups: groupsPage.data, feedback, reports, venues, typeChangeRequests });
+      setData({ users: usersPage.data, requests: requestsPage.data, groups: groupsPage.data, feedback, reports, venues, typeChangeRequests, waitlist: waitlistResult.data, waitlistTotal: waitlistResult.total });
       setHasMore({ users: usersPage.hasMore, requests: requestsPage.hasMore, groups: groupsPage.hasMore });
       setLastUpdated(new Date());
       nextRefreshAtRef.current = Date.now() + DATA_INTERVAL_MS;
@@ -654,6 +659,7 @@ export default function DashboardPage({ onLogout }: Props) {
             {tab === "analytics" && <AnalyticsTab />}
             {tab === "audit" && <AuditTab />}
             {tab === "surveys" && <SurveysTab />}
+            {tab === "waitlist" && <WaitlistTab signups={data.waitlist} total={data.waitlistTotal} />}
             {/* type-requests tab hidden until flow is activated
             {tab === "type-requests" && (
               <TalahTypeRequestsTab
