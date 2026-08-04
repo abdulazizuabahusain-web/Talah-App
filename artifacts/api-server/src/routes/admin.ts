@@ -32,7 +32,28 @@ const router = Router();
 // computed at startup — no pre-computed hash is stored in source.
 function getAdminPinHash(): string {
   const hash = process.env["ADMIN_PIN_HASH"];
-  if (hash) return hash;
+  const BCRYPT_RE = /^\$2[ab]\$\d{2}\$[./A-Za-z0-9]{53}$/;
+
+  if (hash) {
+    if (!BCRYPT_RE.test(hash)) {
+      // The secret contains the raw PIN instead of its bcrypt hash.
+      // Fix: run  node -e "const b=require('bcryptjs');console.log(b.hashSync('YOUR_PIN',12))"
+      // and set ADMIN_PIN_HASH to the resulting $2a$12$… string.
+      const msg =
+        "ADMIN_PIN_HASH is not a valid bcrypt hash (length=" +
+        hash.length +
+        "). " +
+        "Generate one with: node -e \"const b=require('bcryptjs');console.log(b.hashSync('YOUR_PIN',12))\" " +
+        "and update the ADMIN_PIN_HASH secret.";
+      if (process.env["NODE_ENV"] === "production") {
+        throw new Error(msg);
+      }
+      logger.warn(msg);
+      // Fall through to dev default so the server still starts locally
+    } else {
+      return hash;
+    }
+  }
 
   if (process.env["NODE_ENV"] === "production") {
     throw new Error("ADMIN_PIN_HASH must be set in production.");
