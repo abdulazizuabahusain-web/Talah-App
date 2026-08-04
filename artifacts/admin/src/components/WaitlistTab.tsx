@@ -23,12 +23,13 @@ function sanitizeCsvValue(value: string): string {
 }
 
 function exportCsv(signups: WaitlistSignup[]) {
-  const header = "Name,Phone,Signed Up";
+  const header = "Name,Email,Phone,Signed Up";
   const rows = signups.map((s) => {
     const name = `"${sanitizeCsvValue(s.name).replace(/"/g, '""')}"`;
+    const email = `"${s.email ? sanitizeCsvValue(s.email).replace(/"/g, '""') : ""}"`;
     const phone = `"${sanitizeCsvValue(s.phone).replace(/"/g, '""')}"`;
     const date = `"${new Date(s.createdAt).toISOString()}"`;
-    return `${name},${phone},${date}`;
+    return `${name},${email},${phone},${date}`;
   });
   const csv = [header, ...rows].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -137,6 +138,9 @@ export default function WaitlistTab({ signups, total }: Props) {
                   Name
                 </th>
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground">
+                  Email
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">
                   Phone
                 </th>
                 <th className="text-left px-4 py-3 font-semibold text-muted-foreground whitespace-nowrap">
@@ -148,7 +152,7 @@ export default function WaitlistTab({ signups, total }: Props) {
               {filtered.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={3}
+                    colSpan={4}
                     className="px-4 py-8 text-center text-muted-foreground"
                   >
                     No results for &ldquo;{trimmed}&rdquo;
@@ -162,6 +166,13 @@ export default function WaitlistTab({ signups, total }: Props) {
                   >
                     <td className="px-4 py-3 font-medium text-foreground">
                       <Highlight text={s.name} query={trimmed} />
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      {s.email ? (
+                        <Highlight text={s.email} query={trimmed} />
+                      ) : (
+                        <span className="text-muted-foreground/40">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground font-mono text-xs">
                       <Highlight text={s.phone} query={trimmed} />

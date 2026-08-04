@@ -5,7 +5,8 @@ import { z } from "zod/v4";
 export const waitlistSignupsTable = pgTable("waitlist_signups", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  phone: text("phone").notNull(),
+  phone: text("phone").notNull().unique(),
+  email: text("email"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
