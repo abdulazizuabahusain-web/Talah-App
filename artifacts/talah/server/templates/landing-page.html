@@ -269,6 +269,59 @@
     .input-row button { border-radius: 12px; }
     .nav-links a.plain { display:none; }
   }
+  /* App Store primary CTA — hero */
+  .app-store-btn {
+    display: inline-flex; align-items: center; gap: 14px;
+    padding: 0.95rem 2.2rem;
+    background: var(--charcoal);
+    color: #fff;
+    border-radius: 18px;
+    text-decoration: none;
+    transition: transform 0.15s, opacity 0.2s;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.22);
+  }
+  .app-store-btn:hover { opacity: 0.87; transform: translateY(-1px); }
+  .app-store-btn:active { transform: scale(0.97); }
+  .app-store-btn small { display: block; font-size: 0.68rem; opacity: 0.75; font-family: 'Tajawal', sans-serif; }
+  .app-store-btn strong {
+    font-size: 1.2rem; font-weight: 600; letter-spacing: -0.01em;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  }
+  /* Waitlist as secondary / collapsible */
+  .waitlist-toggle-link {
+    margin-top: 1.1rem;
+    font-size: 0.82rem; color: var(--muted); cursor: pointer;
+    background: none; border: none; font-family: 'Tajawal', sans-serif;
+    text-decoration: underline; text-underline-offset: 3px;
+    display: block; text-align: center;
+  }
+  .waitlist-toggle-link:hover { color: var(--olive); }
+  /* Bottom CTA — App Store variant */
+  .bottom-cta-app-store {
+    display: inline-flex; align-items: center; gap: 14px;
+    padding: 0.85rem 2.2rem;
+    background: #fff;
+    color: var(--charcoal);
+    border-radius: 18px;
+    text-decoration: none;
+    transition: transform 0.15s, opacity 0.2s;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.15);
+  }
+  .bottom-cta-app-store:hover { opacity: 0.9; transform: translateY(-1px); }
+  .bottom-cta-app-store small { display: block; font-size: 0.68rem; color: #888; font-family: 'Tajawal', sans-serif; }
+  .bottom-cta-app-store strong {
+    font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    color: var(--charcoal);
+  }
+  .bottom-cta-secondary {
+    display: block; margin-top: 1rem; font-size: 0.82rem;
+    color: rgba(255,255,255,0.45); text-decoration: underline;
+    text-underline-offset: 3px; cursor: pointer;
+    background: none; border: none; font-family: 'Tajawal', sans-serif;
+    width: 100%;
+  }
+  .bottom-cta-secondary:hover { color: rgba(255,255,255,0.75); }
 </style>
 </head>
 <body>
@@ -279,7 +332,7 @@
   </div>
   <div class="nav-links">
     <a href="/support" class="plain">الدعم</a>
-    <a href="#waitlist" class="nav-cta">انضمي للقائمة</a>
+    <a href="https://apps.apple.com/app/id6786908048" class="nav-cta" target="_blank" rel="noopener">حمّلي التطبيق</a>
   </div>
 </nav>
 
@@ -294,7 +347,15 @@
     نُرتّب لكِ لقاء مع أشخاص يشاركونكِ الاهتمامات،<br>
     في مجموعة صغيرة، في مكان مريح، بدون أي إحراج.
   </p>
-  <div class="waitlist-form" id="waitlist">
+  <!-- Primary CTA: App Store -->
+  <a class="app-store-btn" href="https://apps.apple.com/app/id6786908048" target="_blank" rel="noopener">
+    <svg viewBox="0 0 384 512" width="26" height="26" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141 4 184.8 4 273.5q0 39.3 14.4 80.6c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.3zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+    <span><small>حمّليه من</small><strong>App Store</strong></span>
+  </a>
+
+  <!-- Secondary CTA: Waitlist (collapsed by default) -->
+  <button class="waitlist-toggle-link" id="waitlist-toggle" onclick="toggleWaitlist()">أو انضمي لقائمة الانتظار</button>
+  <div class="waitlist-form" id="waitlist" style="display:none; margin-top:1rem;">
     <input type="text" id="name-input" placeholder="الاسم الأول" maxlength="40" />
     <input type="email" id="email-input" placeholder="بريدك الإلكتروني" maxlength="254" autocomplete="email" />
     <div class="input-row">
@@ -305,12 +366,6 @@
     <p class="form-error" id="error-top">فضلاً أدخلي اسمكِ وبريدك ورقم جوال صحيح</p>
   </div>
   <div class="success-msg" id="success-top"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.5l2.8 2.8L16.5 9"/></svg>تم تسجيلك! تحققي من بريدك الإلكتروني</div>
-  <div class="store-badges">
-    <a class="store-badge" href="https://apps.apple.com/app/id6786908048" target="_blank" rel="noopener">
-      <svg viewBox="0 0 384 512" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141 4 184.8 4 273.5q0 39.3 14.4 80.6c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.3zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
-      <span><small>حمّليه من</small><strong>App Store</strong></span>
-    </a>
-  </div>
 </section>
 
 <section class="section">
@@ -359,9 +414,9 @@
   <div class="safety-strip">
     <span class="safety-item"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.5-3 7.7-7 9.5-4-1.8-7-5-7-9.5V6l7-3z"/></svg>مجموعات مفصولة حسب الجنس</span>
     <span class="safety-sep">·</span>
-    <span class="safety-item"><svg viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/></svg>��ڎT�لي على كل طلب</span>
+    <span class="safety-item"><svg viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/></svg>موافقتك على كل طلب</span>
     <span class="safety-sep">·</span>
-    <span class="safety-item"><svg viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4.5h11l-2.5 3.5L16 11.5H5"/></svg>典峰 فوري عند الحاجة</span>
+    <span class="safety-item"><svg viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4.5h11l-2.5 3.5L16 11.5H5"/></svg>دعم فوري عند الحاجة</span>
   </div>
 </section>
 
@@ -388,8 +443,12 @@
 
 <section class="bottom-cta">
   <h2>جاهزة تجربين طلعة؟</h2>
-  <p>سجّلي الآن وكوني من أوائل المستخدمات</p>
-  <a href="#waitlist" class="bottom-cta-btn" onclick="document.getElementById('name-input')?.focus()">انضمي للقائمة</a>
+  <p>حمّلي التطبيق وابدأي ملفك الشخصي الآن</p>
+  <a href="https://apps.apple.com/app/id6786908048" class="bottom-cta-app-store" target="_blank" rel="noopener">
+    <svg viewBox="0 0 384 512" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141 4 184.8 4 273.5q0 39.3 14.4 80.6c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.3zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+    <span><small>حمّليه من</small><strong>App Store</strong></span>
+  </a>
+  <button class="bottom-cta-secondary" onclick="toggleWaitlist(); document.getElementById('waitlist').scrollIntoView({behavior:'smooth', block:'center'})">أو انضمي لقائمة الانتظار</button>
 </section>
 
 <footer>
@@ -397,6 +456,18 @@
 </footer>
 
 <script>
+  var _waitlistOpen = false;
+  function toggleWaitlist() {
+    _waitlistOpen = !_waitlistOpen;
+    var form = document.getElementById('waitlist');
+    var toggle = document.getElementById('waitlist-toggle');
+    if (form) form.style.display = _waitlistOpen ? 'flex' : 'none';
+    if (toggle) toggle.textContent = _waitlistOpen ? 'إخفاء النموذج' : 'أو انضمي لقائمة الانتظار';
+    if (_waitlistOpen && form) {
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(function() { var n = document.getElementById('name-input'); if(n) n.focus(); }, 350);
+    }
+  }
   function isValidPhone(v) {
     var digits = v.replace(/\D/g, '');
     return digits.length >= 9;
