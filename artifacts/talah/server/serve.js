@@ -49,13 +49,13 @@ Your rights:
 You can update your information or permanently delete your account at any time from Settings. Deletion removes your personal data from our systems.
 
 Contact us:
-For any privacy questions, reach us at abdulazizu.abahusain@gmail.com.
+For any privacy questions, reach us at info@talahapp.com.
 
 Last updated: July 2026`;
 
 const SUPPORT_TEXT_EN = `For any question or issue related to the Tal'ah app, we're happy to help. Reach out by email and we'll get back to you as soon as possible.
 
-abdulazizu.abahusain@gmail.com`;
+info@talahapp.com`;
 
 function serveStaticPage(res, { title, body, lang }) {
   const template = fs.readFileSync(STATIC_PAGE_TEMPLATE_PATH, "utf-8");
@@ -67,8 +67,8 @@ function serveStaticPage(res, { title, body, lang }) {
     .replace(
       /BODY_PLACEHOLDER/g,
       body.replace(
-        /abdulazizu\.abahusain@gmail\.com/g,
-        '<a href="mailto:abdulazizu.abahusain@gmail.com">abdulazizu.abahusain@gmail.com</a>',
+        /info@talahapp\.com/g,
+        '<a href="mailto:info@talahapp.com">info@talahapp.com</a>',
       ),
     )
     .replace(/APP_NAME_PLACEHOLDER/g, getAppName());
