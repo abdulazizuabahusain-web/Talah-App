@@ -156,6 +156,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         preferredTime: input.preferredTime,
         area: input.area,
         venueId: input.venueId ?? undefined,
+        friendEmail: input.friendEmail?.trim().toLowerCase() || undefined,
       });
       const r = toRequest(created);
       setRequests((prev) => [...prev, r]);

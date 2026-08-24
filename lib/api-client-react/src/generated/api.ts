@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  ClaimInvitationBody,
   CreateRequest,
   GetAdminAuditLogsParams,
   Group,
@@ -24,6 +25,8 @@ import type {
   MeetupRequest,
   PaginatedAdminAuditLog,
   ReadinessStatus,
+  RequestInvitation,
+  RespondToInvitationBody,
   SendEmailLoginCode200,
   SendEmailLoginCodeBody,
   User,
@@ -972,6 +975,248 @@ export function useGetGroups<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List invitations for the current requester or recipient
+ */
+export const getGetInvitationsUrl = () => {
+  return `/api/invitations`;
+};
+
+export const getInvitations = async (
+  options?: RequestInit,
+): Promise<RequestInvitation[]> => {
+  return customFetch<RequestInvitation[]>(getGetInvitationsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetInvitationsQueryKey = () => {
+  return [`/api/invitations`] as const;
+};
+
+export const getGetInvitationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getInvitations>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getInvitations>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetInvitationsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getInvitations>>> = ({
+    signal,
+  }) => getInvitations({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getInvitations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetInvitationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getInvitations>>
+>;
+export type GetInvitationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List invitations for the current requester or recipient
+ */
+
+export function useGetInvitations<
+  TData = Awaited<ReturnType<typeof getInvitations>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getInvitations>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetInvitationsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Claim an invitation linked from email
+ */
+export const getClaimInvitationUrl = () => {
+  return `/api/invitations/claim`;
+};
+
+export const claimInvitation = async (
+  claimInvitationBody: ClaimInvitationBody,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getClaimInvitationUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(claimInvitationBody),
+  });
+};
+
+export const getClaimInvitationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof claimInvitation>>,
+    TError,
+    { data: BodyType<ClaimInvitationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof claimInvitation>>,
+  TError,
+  { data: BodyType<ClaimInvitationBody> },
+  TContext
+> => {
+  const mutationKey = ["claimInvitation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof claimInvitation>>,
+    { data: BodyType<ClaimInvitationBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return claimInvitation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ClaimInvitationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof claimInvitation>>
+>;
+export type ClaimInvitationMutationBody = BodyType<ClaimInvitationBody>;
+export type ClaimInvitationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Claim an invitation linked from email
+ */
+export const useClaimInvitation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof claimInvitation>>,
+    TError,
+    { data: BodyType<ClaimInvitationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof claimInvitation>>,
+  TError,
+  { data: BodyType<ClaimInvitationBody> },
+  TContext
+> => {
+  return useMutation(getClaimInvitationMutationOptions(options));
+};
+
+export const getRespondToInvitationUrl = (id: string) => {
+  return `/api/invitations/${id}/respond`;
+};
+
+export const respondToInvitation = async (
+  id: string,
+  respondToInvitationBody: RespondToInvitationBody,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getRespondToInvitationUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(respondToInvitationBody),
+  });
+};
+
+export const getRespondToInvitationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof respondToInvitation>>,
+    TError,
+    { id: string; data: BodyType<RespondToInvitationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof respondToInvitation>>,
+  TError,
+  { id: string; data: BodyType<RespondToInvitationBody> },
+  TContext
+> => {
+  const mutationKey = ["respondToInvitation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof respondToInvitation>>,
+    { id: string; data: BodyType<RespondToInvitationBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return respondToInvitation(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RespondToInvitationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof respondToInvitation>>
+>;
+export type RespondToInvitationMutationBody = BodyType<RespondToInvitationBody>;
+export type RespondToInvitationMutationError = ErrorType<unknown>;
+
+export const useRespondToInvitation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof respondToInvitation>>,
+    TError,
+    { id: string; data: BodyType<RespondToInvitationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof respondToInvitation>>,
+  TError,
+  { id: string; data: BodyType<RespondToInvitationBody> },
+  TContext
+> => {
+  return useMutation(getRespondToInvitationMutationOptions(options));
+};
 
 /**
  * @summary List admin audit logs

@@ -101,3 +101,22 @@ export async function sendWaitlistConfirmationEmail(
     // Do not throw — confirmation email failure must not block the signup response
   }
 }
+
+export async function sendFriendInvitationEmail(
+  toEmail: string,
+  requesterName: string,
+  token: string,
+): Promise<void> {
+  const client = getResendClient();
+  if (!client) return;
+  const appLink = `talah://invite?token=${encodeURIComponent(token)}`;
+  const appStoreLink = "https://apps.apple.com/app/id6786908048";
+  const { error } = await client.emails.send({
+    from: FROM_ADDRESS,
+    to: toEmail,
+    subject: `${requesterName} invited you to a Tal'ah`,
+    text: `مرحباً، دعتك ${requesterName} للانضمام إلى طلعة معها. افتحي التطبيق وسجّلي الدخول بهذا البريد لقبول الدعوة.\\n\\nافتحي الدعوة: ${appLink}\\n\\nإذا لم يكن التطبيق مثبتاً: ${appStoreLink}\\n\\nتنتهي الدعوة خلال 48 ساعة.`,
+    html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;background:#f7f4ef"><h1 style="color:#3d4a2e">طلعة</h1><h2>لديك دعوة من ${requesterName}</h2><p>سجّلي الدخول في تطبيق طلعة باستخدام هذا البريد لقبول الدعوة والانضمام إلى طلعتها.</p><p><a href="${appLink}" style="display:inline-block;background:#3d4a2e;color:white;padding:12px 20px;border-radius:10px;text-decoration:none">فتح الدعوة</a></p><p style="font-size:14px">ليس لديك التطبيق؟ <a href="${appStoreLink}">حمّليه من App Store</a> ثم سجّلي الدخول بالبريد نفسه — ستظهر دعوتك تلقائياً.</p><p style="color:#777">تنتهي الدعوة خلال 48 ساعة.</p></div>`,
+  });
+  if (error) logger.error({ err: error, email: toEmail }, "Failed to send friend invitation email");
+}

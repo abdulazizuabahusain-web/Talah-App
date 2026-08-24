@@ -185,6 +185,20 @@ export interface User {
   tiktok?: string | null;
 }
 
+export type InvitationStatus = "pending" | "accepted" | "declined" | "expired" | "finalized";
+
+export interface RequestInvitation {
+  id: string;
+  requestId: string;
+  requesterId: string;
+  invitedEmail: string;
+  inviteeUserId: string | null;
+  status: InvitationStatus;
+  expiresAt: string;
+  respondedAt: string | null;
+  createdAt: string;
+}
+
 export interface TalahRequest {
   id: string;
   userId: string;
@@ -193,9 +207,11 @@ export interface TalahRequest {
   preferredTime: TimeOfDay;
   area: string;
   venueId?: string | null;
+  friendEmail?: string;
   status: "pending" | "matched" | "cancelled";
   createdAt: number;
   groupId?: string;
+  invitation?: RequestInvitation | null;
 }
 
 export interface Group {

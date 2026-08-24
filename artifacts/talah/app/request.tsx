@@ -53,6 +53,7 @@ export default function RequestScreen() {
   const [loadingVenues, setLoadingVenues] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [friendEmail, setFriendEmail] = useState("");
 
   useEffect(() => {
     if (!currentUser?.city) return;
@@ -87,6 +88,7 @@ export default function RequestScreen() {
         preferredTime: time,
         area: finalArea,
         venueId: selectedVenueId ?? undefined,
+        friendEmail: friendEmail.trim() || undefined,
       });
       setSubmitted(true);
     } catch (e) {
@@ -253,6 +255,29 @@ export default function RequestScreen() {
                 value={area}
                 onChangeText={setArea}
               />
+            </View>
+          </Card>
+
+          <Card>
+            <View style={{ gap: 8 }}>
+              <AppText variant="title" weight="semibold">
+                ادعي صديقة تعرفينها
+              </AppText>
+              <AppText variant="bodySmall" color={colors.mutedForeground}>
+                اختياري — ستنضم صديقتك بعد موافقتها، ونكمل باقي المجموعة بمطابقة طلعة.
+              </AppText>
+              <Input
+                label="بريد صديقتك الإلكتروني"
+                placeholder="friend@example.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={friendEmail}
+                onChangeText={setFriendEmail}
+              />
+              <AppText variant="caption" color={colors.mutedForeground}>
+                دعوة واحدة فقط، وتنتهي خلال 48 ساعة.
+              </AppText>
             </View>
           </Card>
         </ScrollView>

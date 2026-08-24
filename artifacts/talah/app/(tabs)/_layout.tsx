@@ -76,6 +76,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="invitations"
+        options={{
+          title: "دعوات",
+          tabBarIcon: ({ color }) => (
+            <Feather name="mail" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",

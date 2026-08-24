@@ -86,6 +86,8 @@ export default function CompatibilityTab({ users, requests, onRefresh }: Props) 
   // The "locked" gender+city come from either the anchor or the manual filters
   const lockedGender = mode === "from-request" ? anchorUser?.gender ?? null : genderFilter;
   const lockedCity = mode === "from-request" ? anchorUser?.city ?? null : (cityFilter || null);
+  const hasAcceptedFriend = anchorRequest?.invitation?.status === "accepted";
+  const finalMemberCount = selected.length + (hasAcceptedFriend ? 1 : 0);
 
   // ── actions ──────────────────────────────────────────────────────────────
 
@@ -129,7 +131,7 @@ export default function CompatibilityTab({ users, requests, onRefresh }: Props) 
     if (selected.includes(id)) {
       setSelected(selected.filter((x) => x !== id));
       setReport(null);
-    } else if (selected.length < 5) {
+    } else if (selected.length < (hasAcceptedFriend ? 4 : 5)) {
       setSelected([...selected, id]);
       setReport(null);
     }
@@ -252,7 +254,7 @@ export default function CompatibilityTab({ users, requests, onRefresh }: Props) 
                 <p className="font-semibold text-sm text-foreground">
                   Step 2 — Add candidates{" "}
                   <span className="text-muted-foreground font-normal">
-                    ({selected.length}/5 selected · need {Math.max(0, 3 - selected.length)} more)
+                    ({finalMemberCount}/5 total{hasAcceptedFriend ? " · includes invited friend" : ""} · need {Math.max(0, 3 - selected.length)} matched)
                   </span>
                 </p>
                 {anchorUser && (
@@ -282,6 +284,16 @@ export default function CompatibilityTab({ users, requests, onRefresh }: Props) 
                     <p className="text-xs text-muted-foreground">{anchorUser.city ?? "—"} · {anchorUser.ageRange ?? "—"} · {anchorRequest.meetupType}</p>
                   </div>
                   <span className="text-xs font-semibold text-accent">anchor</span>
+                </div>
+              )}
+              {hasAcceptedFriend && (
+                <div className="flex items-center gap-3 p-3.5 rounded-2xl border border-primary/40 bg-primary/5">
+                  <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0 text-sm font-bold">+</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm">Accepted invited friend</p>
+                    <p className="text-xs text-muted-foreground">Added automatically at finalization; not compatibility-scored.</p>
+                  </div>
+                  <span className="text-xs font-semibold text-primary">reserved</span>
                 </div>
               )}
 
@@ -510,7 +522,7 @@ export default function CompatibilityTab({ users, requests, onRefresh }: Props) 
           >
             {creating
               ? "Creating group…"
-              : `Create ${lockedGender === "woman" ? "Women's" : "Men's"} Tal'ah Group (${selected.length} members)`}
+              : `Create ${lockedGender === "woman" ? "Women's" : "Men's"} Tal'ah Group (${finalMemberCount} members)`}
           </button>
         </div>
       )}

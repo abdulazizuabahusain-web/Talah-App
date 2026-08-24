@@ -7,6 +7,7 @@
  */
 
 export * from "./adminAuditLog";
+export * from "./claimInvitationBody";
 export * from "./createRequest";
 export * from "./createRequestMeetupType";
 export * from "./createRequestPreferredTime";
@@ -18,6 +19,10 @@ export * from "./meetupRequest";
 export * from "./offsetParameter";
 export * from "./paginatedAdminAuditLog";
 export * from "./readinessStatus";
+export * from "./requestInvitation";
+export * from "./requestInvitationStatus";
+export * from "./respondToInvitationBody";
+export * from "./respondToInvitationBodyResponse";
 export * from "./sendEmailLoginCode200";
 export * from "./sendEmailLoginCodeBody";
 export * from "./user";

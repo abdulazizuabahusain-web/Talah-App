@@ -12,6 +12,7 @@ import adminRouter from "./admin";
 import connectionsRouter from "./connections";
 import venuesRouter from "./venues";
 import waitlistRouter from "./waitlist";
+import invitationsRouter from "./invitations";
 
 const router: IRouter = Router();
 
@@ -19,6 +20,7 @@ router.use(healthRouter);
 router.use("/auth", authRouter);
 router.use("/users", usersRouter);
 router.use("/requests", requestsRouter);
+router.use("/invitations", invitationsRouter);
 router.use("/groups", groupsRouter);
 router.use("/feedback", feedbackRouter);
 router.use("/reports", reportsRouter);

@@ -11,6 +11,7 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useT } from "@/lib/i18n";
+import { api } from "@/lib/api";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -60,7 +61,9 @@ export default function LoginScreen() {
       if (user.onboarded) {
         router.replace("/(tabs)");
       } else {
-        router.replace("/onboarding");
+        const invitations = await api.getInvitations().catch(() => []);
+        const hasPendingInvite = invitations.some((invite) => invite.status === "pending");
+        router.replace(hasPendingInvite ? "/onboarding?invite=1" : "/onboarding");
       }
     } catch {
       setError(t("invalid_login_code"));

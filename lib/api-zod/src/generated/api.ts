@@ -120,6 +120,7 @@ export const CreateRequestBody = zod.object({
   preferredDate: zod.string(),
   preferredTime: zod.enum(["morning", "afternoon", "evening"]),
   area: zod.string(),
+  friendEmail: zod.string().email().optional(),
 });
 
 /**
@@ -130,6 +131,37 @@ export const GetGroupsResponseItem = zod.object({
   status: zod.string().optional(),
 });
 export const GetGroupsResponse = zod.array(GetGroupsResponseItem);
+
+/**
+ * @summary List invitations for the current requester or recipient
+ */
+export const GetInvitationsResponseItem = zod.object({
+  id: zod.string().uuid(),
+  requestId: zod.string().uuid(),
+  requesterId: zod.string().uuid(),
+  invitedEmail: zod.string().email(),
+  inviteeUserId: zod.string().uuid().nullish(),
+  status: zod.enum(["pending", "accepted", "declined", "expired", "finalized"]),
+  expiresAt: zod.coerce.date(),
+  respondedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const GetInvitationsResponse = zod.array(GetInvitationsResponseItem);
+
+/**
+ * @summary Claim an invitation linked from email
+ */
+export const ClaimInvitationBody = zod.object({
+  token: zod.string(),
+});
+
+export const RespondToInvitationParams = zod.object({
+  id: zod.coerce.string().uuid(),
+});
+
+export const RespondToInvitationBody = zod.object({
+  response: zod.enum(["accepted", "declined"]),
+});
 
 /**
  * @summary List admin audit logs

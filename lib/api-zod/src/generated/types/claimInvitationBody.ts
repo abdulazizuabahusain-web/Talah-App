@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface ReadinessStatus {
-  status: string;
-  database: string;
-}
+export type ClaimInvitationBody = {
+  token: string;
+};

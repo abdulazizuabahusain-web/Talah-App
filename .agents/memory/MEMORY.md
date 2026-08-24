@@ -5,3 +5,4 @@
 - [artifact.toml production env placement](artifact-toml-production-env.md) — run-type services need PORT/env under `[services.<name>.production.run.env]`, not top-level `[services.env]`
 - [EAS iOS build from Replit](eas-ios-build-replit.md) — local credentials + ASC API provisioning profile is the only fully non-interactive path from Replit sandbox
 - [Post-merge script](post-merge-script.md) — uses `push-force` (non-interactive); PAT has no expiry, PAT_EXPIRES_AT set to 2099-12-31 as sentinel
+- [Friend invitations](friend-invitations.md) — accepted friends skip scoring but require safety checks and transactional group finalization

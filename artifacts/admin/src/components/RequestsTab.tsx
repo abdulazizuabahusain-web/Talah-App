@@ -87,6 +87,16 @@ export default function RequestsTab({ requests, users, onRefresh, hasMore, loadi
                 <p className="font-medium">{r.area}</p>
               </div>
             </div>
+            {r.invitation && (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2">
+                <p className="text-xs font-semibold text-primary">Friend invitation</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {r.invitation.status === "accepted"
+                    ? "Accepted — this friend is automatically included when the group is created."
+                    : `${r.invitation.status} — no group seat is reserved.`}
+                </p>
+              </div>
+            )}
             <div className="flex gap-2 flex-wrap">
               {isPending && (
                 <>

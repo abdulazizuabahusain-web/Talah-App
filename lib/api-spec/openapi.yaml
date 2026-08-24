@@ -213,6 +213,61 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Group"
+  /invitations:
+    get:
+      operationId: getInvitations
+      tags: [invitations]
+      security: [{ bearerAuth: [] }]
+      summary: List invitations for the current requester or recipient
+      responses:
+        "200":
+          description: Invitations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RequestInvitation"
+  /invitations/claim:
+    post:
+      operationId: claimInvitation
+      tags: [invitations]
+      security: [{ bearerAuth: [] }]
+      summary: Claim an invitation linked from email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        "200":
+          description: Claimed invitation
+  /invitations/{id}/respond:
+    post:
+      operationId: respondToInvitation
+      tags: [invitations]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [response]
+              properties:
+                response: { type: string, enum: [accepted, declined] }
+      responses:
+        "200":
+          description: Updated invitation
   /admin/audit-logs:
     get:
       operationId: getAdminAuditLogs
@@ -293,6 +348,20 @@ components:
         preferredDate: { type: string }
         preferredTime: { type: string, enum: [morning, afternoon, evening] }
         area: { type: string }
+        friendEmail: { type: string, format: email }
+    RequestInvitation:
+      type: object
+      required: [id, requestId, requesterId, invitedEmail, status, expiresAt, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        requestId: { type: string, format: uuid }
+        requesterId: { type: string, format: uuid }
+        invitedEmail: { type: string, format: email }
+        inviteeUserId: { type: [string, "null"], format: uuid }
+        status: { type: string, enum: [pending, accepted, declined, expired, finalized] }
+        expiresAt: { type: string, format: date-time }
+        respondedAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
     Group:
       type: object
       additionalProperties: true

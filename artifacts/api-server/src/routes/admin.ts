@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { execSync } from "child_process";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
@@ -19,6 +19,7 @@ import {
   talahTypeChangeRequestsTable,
   venuesTable,
   waitlistSignupsTable,
+  requestInvitationsTable,
 } from "@workspace/db";
 import { createAdminToken, isAdminToken } from "../lib/adminSessions";
 import { sendPushToMany } from "../lib/push";
@@ -242,6 +243,15 @@ router.delete("/users/:id", requireAdmin, async (req, res) => {
 router.get("/requests", requireAdmin, async (req, res) => {
   const limit = Math.min(parseInt(req.query["limit"] as string) || 50, 200);
   const offset = parseInt(req.query["offset"] as string) || 0;
+  await db
+    .update(requestInvitationsTable)
+    .set({ status: "expired", updatedAt: new Date() })
+    .where(
+      and(
+        eq(requestInvitationsTable.status, "pending"),
+        lte(requestInvitationsTable.expiresAt, new Date()),
+      ),
+    );
   const [rows, [{ count }]] = await Promise.all([
     db
       .select()
@@ -251,7 +261,19 @@ router.get("/requests", requireAdmin, async (req, res) => {
       .offset(offset),
     db.select({ count: sql<number>`count(*)::int` }).from(requestsTable),
   ]);
-  res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
+  const enriched = await Promise.all(
+    rows.map(async (request) => {
+      const [invitation] = await db
+        .select()
+        .from(requestInvitationsTable)
+        .where(eq(requestInvitationsTable.requestId, request.id))
+        .limit(1);
+      if (!invitation) return { ...request, invitation: null };
+      const { tokenHash: _token, ...safeInvitation } = invitation;
+      return { ...request, invitation: safeInvitation };
+    }),
+  );
+  res.json({ data: enriched, total: count, hasMore: offset + rows.length < count });
 });
 
 router.patch("/requests/:id", requireAdmin, async (req, res) => {
@@ -318,6 +340,8 @@ const CreateGroupBody = z
   })
   .strict();
 
+class GroupValidationError extends Error {}
+
 router.post("/groups", requireAdmin, async (req, res) => {
   const parsed = CreateGroupBody.safeParse(req.body);
   if (!parsed.success) {
@@ -325,14 +349,99 @@ router.post("/groups", requireAdmin, async (req, res) => {
     return;
   }
 
-  const [group] = await db
-    .insert(groupsTable)
-    .values({
-      ...sanitizeFields(parsed.data),
-      status: "matched",
-      requestIds: parsed.data.requestIds ?? [],
-    })
-    .returning();
+  const requestIds = [...new Set(parsed.data.requestIds ?? [])];
+  let group;
+  try {
+    group = await db.transaction(async (tx) => {
+      if (requestIds.length > 0) {
+        const openRequests = await tx
+          .select({ id: requestsTable.id })
+          .from(requestsTable)
+          .where(and(inArray(requestsTable.id, requestIds), eq(requestsTable.status, "pending")));
+        if (openRequests.length !== requestIds.length) {
+          throw new GroupValidationError("Every selected request must still be pending");
+        }
+        await tx
+          .update(requestInvitationsTable)
+          .set({ status: "expired", updatedAt: new Date() })
+          .where(
+            and(
+              inArray(requestInvitationsTable.requestId, requestIds),
+              eq(requestInvitationsTable.status, "pending"),
+            ),
+          );
+      }
+
+      const acceptedInvites =
+        requestIds.length > 0
+          ? await tx
+              .select()
+              .from(requestInvitationsTable)
+              .where(
+                and(
+                  inArray(requestInvitationsTable.requestId, requestIds),
+                  eq(requestInvitationsTable.status, "accepted"),
+                ),
+              )
+          : [];
+      const acceptedInviteeIds = acceptedInvites
+        .map((invite) => invite.inviteeUserId)
+        .filter((id): id is string => !!id);
+      const memberIds = [...new Set([...parsed.data.memberIds, ...acceptedInviteeIds])];
+      if (acceptedInvites.length > 0) {
+        const invitedRequesters = await tx
+          .select({ id: requestsTable.id, userId: requestsTable.userId })
+          .from(requestsTable)
+          .where(inArray(requestsTable.id, acceptedInvites.map((invite) => invite.requestId)));
+        if (invitedRequesters.some((request) => !memberIds.includes(request.userId))) {
+          throw new GroupValidationError("The requester must be included with an accepted invited friend");
+        }
+      }
+      if (memberIds.length < 3 || memberIds.length > 5) {
+        throw new GroupValidationError("Groups must contain 3–5 members");
+      }
+      if (acceptedInviteeIds.length > 0 && memberIds.length < 4) {
+        throw new GroupValidationError("A group with an invited friend must contain 4–5 members");
+      }
+
+      const [created] = await tx
+        .insert(groupsTable)
+        .values({
+          ...sanitizeFields({ ...parsed.data, memberIds, requestIds }),
+          status: "matched",
+        })
+        .returning();
+
+      for (const requestId of requestIds) {
+        const [matched] = await tx
+          .update(requestsTable)
+          .set({ status: "matched" })
+          .where(and(eq(requestsTable.id, requestId), eq(requestsTable.status, "pending")))
+          .returning({ id: requestsTable.id });
+        if (!matched) throw new GroupValidationError("A selected request is no longer pending");
+      }
+      for (const invite of acceptedInvites) {
+        const [finalized] = await tx
+          .update(requestInvitationsTable)
+          .set({ status: "finalized", updatedAt: new Date() })
+          .where(
+            and(
+              eq(requestInvitationsTable.id, invite.id),
+              eq(requestInvitationsTable.status, "accepted"),
+            ),
+          )
+          .returning({ id: requestInvitationsTable.id });
+        if (!finalized) throw new GroupValidationError("An accepted invitation changed before finalization");
+      }
+      return created;
+    });
+  } catch (error) {
+    if (error instanceof GroupValidationError) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
 
   await writeAdminAuditLog(req, {
     action: "group.create",
@@ -340,15 +449,6 @@ router.post("/groups", requireAdmin, async (req, res) => {
     targetId: group.id,
     after: group,
   });
-
-  if (parsed.data.requestIds?.length) {
-    for (const reqId of parsed.data.requestIds) {
-      await db
-        .update(requestsTable)
-        .set({ status: "matched" })
-        .where(eq(requestsTable.id, reqId));
-    }
-  }
 
   res.status(201).json(group);
 });

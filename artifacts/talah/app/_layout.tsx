@@ -34,6 +34,7 @@ function RootLayoutNav() {
       <Stack.Screen name="index" />
       <Stack.Screen name="app-intro" />
       <Stack.Screen name="login" />
+      <Stack.Screen name="invite" />
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="request" />

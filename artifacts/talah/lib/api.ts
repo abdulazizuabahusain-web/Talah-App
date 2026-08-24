@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 
-import type { User, TalahRequest, Group } from "@/lib/types";
+import type { User, TalahRequest, Group, RequestInvitation } from "@/lib/types";
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/$/, "");
@@ -155,6 +155,7 @@ export interface ApiRequest {
   status: "pending" | "matched" | "cancelled";
   groupId: string | null;
   createdAt: string;
+  invitation?: RequestInvitation | null;
 }
 
 export type ApiGroupMember = Pick<
@@ -282,6 +283,7 @@ export function toRequest(r: ApiRequest): TalahRequest {
     status: r.status,
     groupId: nullToUndefined(r.groupId),
     createdAt: ts(r.createdAt),
+    invitation: r.invitation,
   };
 }
 
@@ -334,9 +336,22 @@ export const api = {
     preferredTime: "morning" | "afternoon" | "evening";
     area: string;
     venueId?: string | null;
+    friendEmail?: string;
   }) => req<ApiRequest>("/requests", { method: "POST", body }),
   cancelRequest: (id: string) =>
     req<{ ok: boolean }>(`/requests/${id}`, { method: "DELETE" }),
+
+  getInvitations: () => req<RequestInvitation[]>("/invitations"),
+  claimInvitation: (token: string) =>
+    req<RequestInvitation>("/invitations/claim", {
+      method: "POST",
+      body: { token },
+    }),
+  respondToInvitation: (id: string, response: "accepted" | "declined") =>
+    req<RequestInvitation>(`/invitations/${id}/respond`, {
+      method: "POST",
+      body: { response },
+    }),
 
   // Groups
   getGroups: () => req<ApiGroup[]>("/groups"),

@@ -69,6 +69,32 @@ export interface CreateRequest {
   preferredDate: string;
   preferredTime: CreateRequestPreferredTime;
   area: string;
+  friendEmail?: string;
+}
+
+export type RequestInvitationStatus =
+  (typeof RequestInvitationStatus)[keyof typeof RequestInvitationStatus];
+
+export const RequestInvitationStatus = {
+  pending: "pending",
+  accepted: "accepted",
+  declined: "declined",
+  expired: "expired",
+  finalized: "finalized",
+} as const;
+
+export interface RequestInvitation {
+  id: string;
+  requestId: string;
+  requesterId: string;
+  invitedEmail: string;
+  /** @nullable */
+  inviteeUserId?: string | null;
+  status: RequestInvitationStatus;
+  expiresAt: string;
+  /** @nullable */
+  respondedAt?: string | null;
+  createdAt: string;
 }
 
 export interface Group {
@@ -119,6 +145,22 @@ export type VerifyEmailLoginCodeBody = {
 export type VerifyEmailLoginCode200 = {
   token: string;
   user: User;
+};
+
+export type ClaimInvitationBody = {
+  token: string;
+};
+
+export type RespondToInvitationBodyResponse =
+  (typeof RespondToInvitationBodyResponse)[keyof typeof RespondToInvitationBodyResponse];
+
+export const RespondToInvitationBodyResponse = {
+  accepted: "accepted",
+  declined: "declined",
+} as const;
+
+export type RespondToInvitationBody = {
+  response: RespondToInvitationBodyResponse;
 };
 
 export type GetAdminAuditLogsParams = {

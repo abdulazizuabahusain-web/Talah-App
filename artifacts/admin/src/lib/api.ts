@@ -211,6 +211,13 @@ export interface MeetupRequest {
   area: string;
   status: string;
   createdAt: string;
+  invitation?: {
+    id: string;
+    invitedEmail: string;
+    inviteeUserId: string | null;
+    status: "pending" | "accepted" | "declined" | "expired" | "finalized";
+    expiresAt: string;
+  } | null;
 }
 
 export interface Group {

@@ -13,4 +13,5 @@ export interface CreateRequest {
   preferredDate: string;
   preferredTime: CreateRequestPreferredTime;
   area: string;
+  friendEmail?: string;
 }

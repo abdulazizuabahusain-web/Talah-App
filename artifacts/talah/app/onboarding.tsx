@@ -21,6 +21,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useT } from "@/lib/i18n";
 import { computeScores } from "@/lib/types";
+import { api } from "@/lib/api";
 import type {
   ConversationStyle,
   Gender,
@@ -169,6 +170,11 @@ const VIBE_SECTION_START = 6;
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function OnboardingScreen() {
+  const { invite } = useLocalSearchParams<{ invite?: string }>();
+  return invite === "1" ? <InviteOnboardingScreen /> : <FullOnboardingScreen />;
+}
+
+function FullOnboardingScreen() {
   const colors = useColors();
   const t = useT();
   const insets = useSafeAreaInsets();
@@ -900,6 +906,64 @@ export default function OnboardingScreen() {
             </AppText>
           </Pressable>
         )}
+      </View>
+    </View>
+  );
+}
+
+function InviteOnboardingScreen() {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { currentUser, updateCurrentUser } = useApp();
+  const [nickname, setNickname] = useState(currentUser?.nickname ?? "");
+  const [gender, setGender] = useState<Gender | null>(currentUser?.gender ?? null);
+  const [city, setCity] = useState(currentUser?.city ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (nickname.trim().length < 2 || !gender || city.trim().length < 2) return;
+    setSaving(true);
+    try {
+      await updateCurrentUser({
+        nickname: nickname.trim(),
+        gender,
+        city: city.trim(),
+        onboarded: true,
+      });
+      router.replace("/(tabs)/invitations");
+    } catch (error) {
+      Alert.alert("تعذر إكمال الملف", error instanceof Error ? error.message : "حاولي مرة أخرى.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={{ paddingHorizontal: 24, paddingTop: insets.top + 32, gap: 10 }}>
+        <AppText variant="h2" weight="bold">انضمي إلى طلعة صديقتك</AppText>
+        <AppText variant="body" color={colors.mutedForeground}>
+          نحتاج هذه المعلومات الأساسية لتأكيد ملاءمة الدعوة. أسئلة الشخصية اختيارية لاحقاً إذا رغبتِ في مطابقة طلعة العادية.
+        </AppText>
+      </View>
+      <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }}>
+        <Input label="الاسم" placeholder="اسمك" value={nickname} onChangeText={setNickname} />
+        <View style={{ gap: 8 }}>
+          <AppText variant="body" weight="semibold">نوع طلعة</AppText>
+          <View style={{ gap: 10 }}>
+            <BigOption selected={gender === "woman"} label="سيدات" onPress={() => setGender("woman")} />
+            <BigOption selected={gender === "man"} label="رجال" onPress={() => setGender("man")} />
+          </View>
+        </View>
+        <Input label="المدينة" placeholder="مثال: الرياض" value={city} onChangeText={setCity} />
+      </ScrollView>
+      <View style={{ padding: 20, paddingBottom: insets.bottom + 12 }}>
+        <Button
+          label="متابعة إلى الدعوة"
+          onPress={save}
+          loading={saving}
+          disabled={nickname.trim().length < 2 || !gender || city.trim().length < 2}
+        />
       </View>
     </View>
   );
