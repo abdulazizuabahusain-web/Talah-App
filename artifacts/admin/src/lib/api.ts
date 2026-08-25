@@ -15,11 +15,12 @@ export interface Paginated<T> {
   hasMore: boolean;
 }
 
-function toQuery(params?: { limit?: number; offset?: number }): string {
+function toQuery(params?: { limit?: number; offset?: number; q?: string }): string {
   if (!params) return "";
   const q = new URLSearchParams();
   if (params.limit !== undefined) q.set("limit", String(params.limit));
   if (params.offset !== undefined) q.set("offset", String(params.offset));
+  if (params.q !== undefined && params.q !== "") q.set("q", params.q);
   const s = q.toString();
   return s ? `?${s}` : "";
 }
@@ -155,8 +156,8 @@ export const api = {
       body: JSON.stringify({ adminNotes }),
     }),
 
-  getWaitlist: () =>
-    request<{ data: WaitlistSignup[]; total: number }>("/admin/waitlist"),
+  getWaitlist: (params?: { q?: string }) =>
+    request<{ data: WaitlistSignup[]; total: number }>(`/admin/waitlist${toQuery(params)}`),
 };
 
 // ── Types (mirror the DB schema) ─────────────────────────────────────────────

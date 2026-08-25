@@ -24,6 +24,7 @@ import {
 import { createAdminToken, isAdminToken } from "../lib/adminSessions";
 import { sendPushToMany } from "../lib/push";
 import { requireAdmin } from "../middlewares/requireAuth";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -156,7 +157,7 @@ router.post("/login", adminLoginLimiter, async (req, res) => {
     res.status(401).json({ error: "Invalid PIN" });
     return;
   }
-  const token = createAdminToken();
+  const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
   res.json({ token });
 });
 
@@ -178,35 +179,38 @@ router.get("/users", requireAdmin, async (req, res) => {
   const [rows, [{ count }]] = await Promise.all([
     db
       .select()
-      .from(usersTable)
-      .orderBy(usersTable.createdAt)
-      .limit(limit)
-      .offset(offset),
-    db.select({ count: sql<number>`count(*)::int` }).from(usersTable),
+      .from(waitlistSignupsTable)
+      .where(filter)
+      .orderBy(desc(waitlistSignupsTable.createdAt)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(waitlistSignupsTable)
+      .where(filter),
   ]);
   res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
 });
 
 router.patch("/users/:id", requireAdmin, async (req, res) => {
-  const parsed = AdminPatchUserBody.safeParse(req.body);
+  const parsed = CompatBody.safeParse(req.body);
   if (!parsed.success) {
     res
       .status(400)
-      .json({ error: "Invalid user update", details: parsed.error.issues });
+      .json({ error: "Invalid request update", details: parsed.error.issues });
     return;
   }
 
-  const [before] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, req.params["id"] as string))
-    .limit(1);
+  const [before] = await db.select().from(venuesTable).where(eq(venuesTable.id, id)).limit(1);
 
   const sanitized = sanitizeFields(parsed.data);
   const [updated] = await db
-    .update(usersTable)
-    .set(sanitized)
-    .where(eq(usersTable.id, req.params["id"] as string))
+    .update(talahTypeChangeRequestsTable)
+    .set({
+      status: "rejected",
+      reviewedAt: new Date(),
+      reviewedBy: "admin",
+      adminNotes: adminNotes ?? null,
+    })
+    .where(eq(talahTypeChangeRequestsTable.id, id))
     .returning();
   if (!updated) {
     res.status(404).json({ error: "User not found" });
@@ -224,11 +228,7 @@ router.patch("/users/:id", requireAdmin, async (req, res) => {
 
 router.delete("/users/:id", requireAdmin, async (req, res) => {
   const userId = req.params["id"] as string;
-  const [before] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, userId))
-    .limit(1);
+  const [before] = await db.select().from(venuesTable).where(eq(venuesTable.id, id)).limit(1);
   await db.delete(usersTable).where(eq(usersTable.id, userId));
   await writeAdminAuditLog(req, {
     action: "user.delete",
@@ -255,11 +255,13 @@ router.get("/requests", requireAdmin, async (req, res) => {
   const [rows, [{ count }]] = await Promise.all([
     db
       .select()
-      .from(requestsTable)
-      .orderBy(requestsTable.createdAt)
-      .limit(limit)
-      .offset(offset),
-    db.select({ count: sql<number>`count(*)::int` }).from(requestsTable),
+      .from(waitlistSignupsTable)
+      .where(filter)
+      .orderBy(desc(waitlistSignupsTable.createdAt)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(waitlistSignupsTable)
+      .where(filter),
   ]);
   const enriched = await Promise.all(
     rows.map(async (request) => {
@@ -277,7 +279,7 @@ router.get("/requests", requireAdmin, async (req, res) => {
 });
 
 router.patch("/requests/:id", requireAdmin, async (req, res) => {
-  const parsed = AdminPatchRequestBody.safeParse(req.body);
+  const parsed = CompatBody.safeParse(req.body);
   if (!parsed.success) {
     res
       .status(400)
@@ -285,17 +287,18 @@ router.patch("/requests/:id", requireAdmin, async (req, res) => {
     return;
   }
 
-  const [before] = await db
-    .select()
-    .from(requestsTable)
-    .where(eq(requestsTable.id, req.params["id"] as string))
-    .limit(1);
+  const [before] = await db.select().from(venuesTable).where(eq(venuesTable.id, id)).limit(1);
 
   const sanitized = sanitizeFields(parsed.data);
   const [updated] = await db
-    .update(requestsTable)
-    .set(sanitized)
-    .where(eq(requestsTable.id, req.params["id"] as string))
+    .update(talahTypeChangeRequestsTable)
+    .set({
+      status: "rejected",
+      reviewedAt: new Date(),
+      reviewedBy: "admin",
+      adminNotes: adminNotes ?? null,
+    })
+    .where(eq(talahTypeChangeRequestsTable.id, id))
     .returning();
   if (!updated) {
     res.status(404).json({ error: "Not found" });
@@ -318,11 +321,13 @@ router.get("/groups", requireAdmin, async (req, res) => {
   const [rows, [{ count }]] = await Promise.all([
     db
       .select()
-      .from(groupsTable)
-      .orderBy(groupsTable.createdAt)
-      .limit(limit)
-      .offset(offset),
-    db.select({ count: sql<number>`count(*)::int` }).from(groupsTable),
+      .from(waitlistSignupsTable)
+      .where(filter)
+      .orderBy(desc(waitlistSignupsTable.createdAt)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(waitlistSignupsTable)
+      .where(filter),
   ]);
   res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
 });
@@ -343,7 +348,7 @@ const CreateGroupBody = z
 class GroupValidationError extends Error {}
 
 router.post("/groups", requireAdmin, async (req, res) => {
-  const parsed = CreateGroupBody.safeParse(req.body);
+  const parsed = CompatBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid group data" });
     return;
@@ -404,13 +409,7 @@ router.post("/groups", requireAdmin, async (req, res) => {
         throw new GroupValidationError("A group with an invited friend must contain 4–5 members");
       }
 
-      const [created] = await tx
-        .insert(groupsTable)
-        .values({
-          ...sanitizeFields({ ...parsed.data, memberIds, requestIds }),
-          status: "matched",
-        })
-        .returning();
+  const [created] = await db.insert(venuesTable).values(parsed.data).returning();
 
       for (const requestId of requestIds) {
         const [matched] = await tx
@@ -454,14 +453,10 @@ router.post("/groups", requireAdmin, async (req, res) => {
 });
 
 router.patch("/groups/:id", requireAdmin, async (req, res) => {
-  const groupId = req.params["id"] as string;
-  const [before] = await db
-    .select()
-    .from(groupsTable)
-    .where(eq(groupsTable.id, groupId))
-    .limit(1);
-
-  const parsed = AdminPatchGroupBody.safeParse(req.body);
+  const groupId = req.params["groupId"] as string;
+  const [before] = await db.select().from(venuesTable).where(eq(venuesTable.id, id)).limit(1);
+  if (!before) { res.status(404).json({ error: "Not found" }); return; }
+  const parsed = CompatBody.safeParse(req.body);
   if (!parsed.success) {
     res
       .status(400)
@@ -471,9 +466,14 @@ router.patch("/groups/:id", requireAdmin, async (req, res) => {
 
   const sanitized = sanitizeFields(parsed.data);
   const [updated] = await db
-    .update(groupsTable)
-    .set(sanitized)
-    .where(eq(groupsTable.id, groupId))
+    .update(talahTypeChangeRequestsTable)
+    .set({
+      status: "rejected",
+      reviewedAt: new Date(),
+      reviewedBy: "admin",
+      adminNotes: adminNotes ?? null,
+    })
+    .where(eq(talahTypeChangeRequestsTable.id, id))
     .returning();
   if (!updated) {
     res.status(404).json({ error: "Not found" });
@@ -682,34 +682,27 @@ router.get("/requests/:id/candidates", requireAdmin, async (req, res) => {
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 router.get("/feedback", requireAdmin, async (_req, res) => {
-  const rows = await db
-    .select({
-      id: feedbackTable.id,
-      groupId: feedbackTable.groupId,
-      fromUserId: feedbackTable.fromUserId,
-      comfortRating: feedbackTable.comfortRating,
-      groupFit: feedbackTable.groupFit,
-      wouldJoinAgain: feedbackTable.wouldJoinAgain,
-      venueRating: feedbackTable.venueRating,
-      venueSuitable: feedbackTable.venueSuitable,
-      safetyConcern: feedbackTable.safetyConcern,
-      safetyConcernDetails: feedbackTable.safetyConcernDetails,
-      comment: feedbackTable.comment,
-      connections: feedbackTable.connections,
-      createdAt: feedbackTable.createdAt,
-      userNickname: usersTable.nickname,
-      userGender: usersTable.gender,
-      userCity: usersTable.city,
-      groupCity: groupsTable.city,
-      groupArea: groupsTable.area,
-      groupMeetupType: groupsTable.meetupType,
-      groupVenue: groupsTable.venue,
-      groupMeetupAt: groupsTable.meetupAt,
-    })
-    .from(feedbackTable)
-    .leftJoin(usersTable, eq(feedbackTable.fromUserId, usersTable.id))
-    .leftJoin(groupsTable, eq(feedbackTable.groupId, groupsTable.id))
-    .orderBy(desc(feedbackTable.createdAt));
+  const rows = await db.execute(sql`
+    SELECT
+      to_char(date_series.day, 'YYYY-MM-DD') AS date,
+      COALESCE(counts.count, 0)::int          AS count
+    FROM (
+      SELECT generate_series(
+        current_date - (${days} - 1) * interval '1 day',
+        current_date,
+        interval '1 day'
+      )::date AS day
+    ) AS date_series
+    LEFT JOIN (
+      SELECT created_at::date AS day, count(*)::int AS count
+      FROM waitlist_signups
+      WHERE created_at >= current_date - (${days} - 1) * interval '1 day'
+      GROUP BY created_at::date
+    ) AS counts ON counts.day = date_series.day
+    ORDER BY date_series.day
+  `);
+
+  const q = (req.query["q"] as string | undefined)?.trim() ?? "";
   res.json(rows);
 });
 
@@ -726,26 +719,27 @@ router.get("/groups/:groupId/feedback", requireAdmin, async (req, res) => {
     return;
   }
 
-  const rows = await db
-    .select({
-      id: feedbackTable.id,
-      fromUserId: feedbackTable.fromUserId,
-      comfortRating: feedbackTable.comfortRating,
-      groupFit: feedbackTable.groupFit,
-      wouldJoinAgain: feedbackTable.wouldJoinAgain,
-      venueRating: feedbackTable.venueRating,
-      venueSuitable: feedbackTable.venueSuitable,
-      safetyConcern: feedbackTable.safetyConcern,
-      safetyConcernDetails: feedbackTable.safetyConcernDetails,
-      comment: feedbackTable.comment,
-      createdAt: feedbackTable.createdAt,
-      userNickname: usersTable.nickname,
-      userGender: usersTable.gender,
-    })
-    .from(feedbackTable)
-    .leftJoin(usersTable, eq(feedbackTable.fromUserId, usersTable.id))
-    .where(eq(feedbackTable.groupId, groupId))
-    .orderBy(feedbackTable.createdAt);
+  const rows = await db.execute(sql`
+    SELECT
+      to_char(date_series.day, 'YYYY-MM-DD') AS date,
+      COALESCE(counts.count, 0)::int          AS count
+    FROM (
+      SELECT generate_series(
+        current_date - (${days} - 1) * interval '1 day',
+        current_date,
+        interval '1 day'
+      )::date AS day
+    ) AS date_series
+    LEFT JOIN (
+      SELECT created_at::date AS day, count(*)::int AS count
+      FROM waitlist_signups
+      WHERE created_at >= current_date - (${days} - 1) * interval '1 day'
+      GROUP BY created_at::date
+    ) AS counts ON counts.day = date_series.day
+    ORDER BY date_series.day
+  `);
+
+  const q = (req.query["q"] as string | undefined)?.trim() ?? "";
 
   const count = rows.length;
   const comfortRatings = rows.map((r) => r.comfortRating);
@@ -775,10 +769,27 @@ router.get("/groups/:groupId/feedback", requireAdmin, async (req, res) => {
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 router.get("/reports", requireAdmin, async (_req, res) => {
-  const rows = await db
-    .select()
-    .from(reportsTable)
-    .orderBy(desc(reportsTable.createdAt));
+  const rows = await db.execute(sql`
+    SELECT
+      to_char(date_series.day, 'YYYY-MM-DD') AS date,
+      COALESCE(counts.count, 0)::int          AS count
+    FROM (
+      SELECT generate_series(
+        current_date - (${days} - 1) * interval '1 day',
+        current_date,
+        interval '1 day'
+      )::date AS day
+    ) AS date_series
+    LEFT JOIN (
+      SELECT created_at::date AS day, count(*)::int AS count
+      FROM waitlist_signups
+      WHERE created_at >= current_date - (${days} - 1) * interval '1 day'
+      GROUP BY created_at::date
+    ) AS counts ON counts.day = date_series.day
+    ORDER BY date_series.day
+  `);
+
+  const q = (req.query["q"] as string | undefined)?.trim() ?? "";
   res.json(rows);
 });
 
@@ -790,12 +801,17 @@ router.patch("/reports/:id", requireAdmin, async (req, res) => {
     res.status(400).json({ error: `status must be one of: ${allowed.join(", ")}` });
     return;
   }
-  const [before] = await db.select().from(reportsTable).where(eq(reportsTable.id, id)).limit(1);
+  const [before] = await db.select().from(venuesTable).where(eq(venuesTable.id, id)).limit(1);
   if (!before) { res.status(404).json({ error: "Not found" }); return; }
   const [updated] = await db
-    .update(reportsTable)
-    .set({ status: status as string })
-    .where(eq(reportsTable.id, id))
+    .update(talahTypeChangeRequestsTable)
+    .set({
+      status: "rejected",
+      reviewedAt: new Date(),
+      reviewedBy: "admin",
+      adminNotes: adminNotes ?? null,
+    })
+    .where(eq(talahTypeChangeRequestsTable.id, id))
     .returning();
   await writeAdminAuditLog(req, { action: "report.update_status", targetTable: "reports", targetId: id, before, after: updated });
   res.json(updated);
@@ -814,12 +830,32 @@ const VenueBody = z.object({
 });
 
 router.get("/venues", requireAdmin, async (_req, res) => {
-  const rows = await db.select().from(venuesTable).orderBy(venuesTable.city, venuesTable.name);
+  const rows = await db.execute(sql`
+    SELECT
+      to_char(date_series.day, 'YYYY-MM-DD') AS date,
+      COALESCE(counts.count, 0)::int          AS count
+    FROM (
+      SELECT generate_series(
+        current_date - (${days} - 1) * interval '1 day',
+        current_date,
+        interval '1 day'
+      )::date AS day
+    ) AS date_series
+    LEFT JOIN (
+      SELECT created_at::date AS day, count(*)::int AS count
+      FROM waitlist_signups
+      WHERE created_at >= current_date - (${days} - 1) * interval '1 day'
+      GROUP BY created_at::date
+    ) AS counts ON counts.day = date_series.day
+    ORDER BY date_series.day
+  `);
+
+  const q = (req.query["q"] as string | undefined)?.trim() ?? "";
   res.json(rows);
 });
 
 router.post("/venues", requireAdmin, async (req, res) => {
-  const parsed = VenueBody.safeParse(req.body);
+  const parsed = CompatBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid venue data", details: parsed.error.issues }); return; }
   const [created] = await db.insert(venuesTable).values(parsed.data).returning();
   await writeAdminAuditLog(req, { action: "venue.create", targetTable: "venues", targetId: created.id, before: null, after: created });
@@ -830,18 +866,27 @@ router.patch("/venues/:id", requireAdmin, async (req, res) => {
   const id = req.params["id"] as string;
   const [before] = await db.select().from(venuesTable).where(eq(venuesTable.id, id)).limit(1);
   if (!before) { res.status(404).json({ error: "Not found" }); return; }
-  const parsed = VenueBody.partial().safeParse(req.body);
+  const parsed = CompatBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid venue data", details: parsed.error.issues }); return; }
   const [updated] = await db
-    .update(venuesTable)
-    .set({ ...parsed.data, updatedAt: new Date() })
-    .where(eq(venuesTable.id, id))
+    .update(talahTypeChangeRequestsTable)
+    .set({
+      status: "rejected",
+      reviewedAt: new Date(),
+      reviewedBy: "admin",
+      adminNotes: adminNotes ?? null,
+    })
+    .where(eq(talahTypeChangeRequestsTable.id, id))
     .returning();
-  await writeAdminAuditLog(req, { action: "venue.update", targetTable: "venues", targetId: id, before, after: updated });
+
+  await writeAdminAuditLog(req, { action: "approve_talah_type_change", targetTable: "talah_type_change_requests", targetId: id, before: changeReq, after: updated });
+  await writeAdminAuditLog(req, { action: "update_user_gender", targetTable: "users", targetId: changeReq.userId, before: { gender: userBefore?.gender }, after: { gender: changeReq.requestedGender } });
+
   res.json(updated);
 });
 
-router.delete("/venues/:id", requireAdmin, async (req, res) => {
+// POST /api/admin/talah-type-change-requests/:id/reject
+router.post("/talah-type-change-requests/:id/reject", requireAdmin, async (req, res) => {
   const id = req.params["id"] as string;
   const [before] = await db.select().from(venuesTable).where(eq(venuesTable.id, id)).limit(1);
   if (!before) { res.status(404).json({ error: "Not found" }); return; }
@@ -962,30 +1007,40 @@ router.get("/audit-logs", requireAdmin, async (req, res) => {
   const [rows, [{ count }]] = await Promise.all([
     db
       .select()
-      .from(adminAuditLogsTable)
-      .orderBy(adminAuditLogsTable.createdAt)
-      .limit(limit)
-      .offset(offset),
-    db.select({ count: sql<number>`count(*)::int` }).from(adminAuditLogsTable),
+      .from(waitlistSignupsTable)
+      .where(filter)
+      .orderBy(desc(waitlistSignupsTable.createdAt)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(waitlistSignupsTable)
+      .where(filter),
   ]);
   res.json({ data: rows, total: count, hasMore: offset + rows.length < count });
 });
 
 // ── Surveys ───────────────────────────────────────────────────────────────────
 router.get("/surveys", requireAdmin, async (_req, res) => {
-  const rows = await db
-    .select({
-      id: surveysTable.id,
-      userId: surveysTable.userId,
-      type: surveysTable.type,
-      responses: surveysTable.responses,
-      createdAt: surveysTable.createdAt,
-      nickname: usersTable.nickname,
-      city: usersTable.city,
-    })
-    .from(surveysTable)
-    .leftJoin(usersTable, eq(surveysTable.userId, usersTable.id))
-    .orderBy(sql`${surveysTable.createdAt} DESC`);
+  const rows = await db.execute(sql`
+    SELECT
+      to_char(date_series.day, 'YYYY-MM-DD') AS date,
+      COALESCE(counts.count, 0)::int          AS count
+    FROM (
+      SELECT generate_series(
+        current_date - (${days} - 1) * interval '1 day',
+        current_date,
+        interval '1 day'
+      )::date AS day
+    ) AS date_series
+    LEFT JOIN (
+      SELECT created_at::date AS day, count(*)::int AS count
+      FROM waitlist_signups
+      WHERE created_at >= current_date - (${days} - 1) * interval '1 day'
+      GROUP BY created_at::date
+    ) AS counts ON counts.day = date_series.day
+    ORDER BY date_series.day
+  `);
+
+  const q = (req.query["q"] as string | undefined)?.trim() ?? "";
   res.json(rows);
 });
 
@@ -1161,7 +1216,7 @@ router.post("/talah-type-change-requests/:id/approve", requireAdmin, async (req,
   const [updated] = await db
     .update(talahTypeChangeRequestsTable)
     .set({
-      status: "approved",
+      status: "rejected",
       reviewedAt: new Date(),
       reviewedBy: "admin",
       adminNotes: adminNotes ?? null,
@@ -1232,20 +1287,27 @@ router.get("/analytics/waitlist-growth", requireAdmin, async (req, res) => {
     ) AS counts ON counts.day = date_series.day
     ORDER BY date_series.day
   `);
-  res.json(rows.rows as { date: string; count: number }[]);
-});
 
-// ── Waitlist ──────────────────────────────────────────────────────────────────
-// GET /api/admin/waitlist — return all signups newest-first with total count
-router.get("/waitlist", requireAdmin, async (req, res) => {
+  const q = (req.query["q"] as string | undefined)?.trim() ?? "";
   const [rows, [{ count }]] = await Promise.all([
     db
       .select()
       .from(waitlistSignupsTable)
+      .where(filter)
       .orderBy(desc(waitlistSignupsTable.createdAt)),
-    db.select({ count: sql<number>`count(*)::int` }).from(waitlistSignupsTable),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(waitlistSignupsTable)
+      .where(filter),
   ]);
   res.json({ data: rows, total: count });
 });
 
 export default router;
+
+  const filter = q
+    ? or(
+        ilike(waitlistSignupsTable.name, `%${q}%`),
+        ilike(waitlistSignupsTable.phone, `%${q}%`),
+      )
+    : undefined;

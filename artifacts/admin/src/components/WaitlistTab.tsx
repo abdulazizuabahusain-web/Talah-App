@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, Search, X } from "lucide-react";
-import { type WaitlistSignup } from "@/lib/api";
+import { api, type WaitlistSignup } from "@/lib/api";
 
 interface Props {
   signups: WaitlistSignup[];
@@ -57,19 +57,54 @@ function Highlight({ text, query }: { text: string; query: string }) {
   );
 }
 
-export default function WaitlistTab({ signups, total }: Props) {
+export default function WaitlistTab({ signups: initialSignups, total: initialTotal }: Props) {
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState<WaitlistSignup[]>(initialSignups);
+  const [total, setTotal] = useState(initialTotal);
+  const [loading, setLoading] = useState(false);
+
+  // Keep results in sync when parent refreshes initial data and there's no active search
+  useEffect(() => {
+    if (query.trim() === "") {
+      setResults(initialSignups);
+      setTotal(initialTotal);
+    }
+  }, [initialSignups, initialTotal, query]);
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleQueryChange(value: string) {
+    setQuery(value);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    const trimmed = value.trim();
+
+    if (trimmed === "") {
+      setResults(initialSignups);
+      setTotal(initialTotal);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await api.getWaitlist({ q: trimmed });
+        setResults(res.data);
+        setTotal(res.total);
+      } catch {
+        // keep current results on error
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+  }
 
   const trimmed = query.trim();
-  const filtered = trimmed
-    ? signups.filter(
-        (s) =>
-          s.name.toLowerCase().includes(trimmed.toLowerCase()) ||
-          s.phone.toLowerCase().includes(trimmed.toLowerCase()),
-      )
-    : signups;
+  const isSearching = trimmed !== "";
 
-  if (signups.length === 0) {
+  if (initialSignups.length === 0 && !isSearching) {
     return (
       <p className="text-muted-foreground text-center py-12">
         No waitlist signups yet.
@@ -82,12 +117,8 @@ export default function WaitlistTab({ signups, total }: Props) {
       {/* Header row */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-muted-foreground">
-          {trimmed ? (
+          {isSearching ? (
             <>
-              <span className="font-semibold text-foreground">
-                {filtered.length}
-              </span>{" "}
-              of{" "}
               <span className="font-semibold text-foreground">{total}</span>{" "}
               {total === 1 ? "signup" : "signups"} match
             </>
@@ -99,7 +130,7 @@ export default function WaitlistTab({ signups, total }: Props) {
           )}
         </p>
         <button
-          onClick={() => exportCsv(signups)}
+          onClick={() => exportCsv(results)}
           className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors font-medium"
         >
           <Download className="w-4 h-4" />
@@ -113,13 +144,13 @@ export default function WaitlistTab({ signups, total }: Props) {
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => handleQueryChange(e.target.value)}
           placeholder="Search by name or phone…"
           className="w-full pl-9 pr-9 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-ring transition-shadow"
         />
         {query && (
           <button
-            onClick={() => setQuery("")}
+            onClick={() => handleQueryChange("")}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Clear search"
           >
@@ -149,7 +180,14 @@ export default function WaitlistTab({ signups, total }: Props) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
+                    <span className="inline-block w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin align-middle mr-2" />
+                    Searching…
+                  </td>
+                </tr>
+              ) : results.length === 0 ? (
                 <tr>
                   <td
                     colSpan={4}
@@ -159,7 +197,7 @@ export default function WaitlistTab({ signups, total }: Props) {
                   </td>
                 </tr>
               ) : (
-                filtered.map((s) => (
+                results.map((s) => (
                   <tr
                     key={s.id}
                     className="hover:bg-muted/30 transition-colors"
