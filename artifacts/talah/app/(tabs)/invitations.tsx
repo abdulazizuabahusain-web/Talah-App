@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
 
 import { AppText } from "@/components/AppText";
@@ -21,6 +22,9 @@ const STATUS_AR: Record<RequestInvitation["status"], string> = {
 export default function InvitationsScreen() {
   const colors = useColors();
   const { currentUser } = useApp();
+  const { invitationId: invitationIdParam } = useLocalSearchParams<{
+    invitationId?: string;
+  }>();
   const [items, setItems] = useState<RequestInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
@@ -39,6 +43,18 @@ export default function InvitationsScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const invitationId = Array.isArray(invitationIdParam)
+    ? invitationIdParam[0]
+    : invitationIdParam;
+  const orderedItems = useMemo(() => {
+    if (!invitationId) return items;
+    return [...items].sort((a, b) => {
+      if (a.id === invitationId) return -1;
+      if (b.id === invitationId) return 1;
+      return 0;
+    });
+  }, [invitationId, items]);
 
   const respond = async (id: string, response: "accepted" | "declined") => {
     setWorking(id);
@@ -68,8 +84,9 @@ export default function InvitationsScreen() {
               </AppText>
             </Card>
           ) : (
-            items.map((invite) => {
+            orderedItems.map((invite) => {
               const isRequester = invite.requesterId === currentUser?.id;
+              const isFocused = invite.id === invitationId;
               const expires = new Date(invite.expiresAt).toLocaleString("ar-SA-u-ca-gregory", {
                 day: "numeric",
                 month: "short",
@@ -77,11 +94,23 @@ export default function InvitationsScreen() {
                 minute: "2-digit",
               });
               return (
-                <Card key={invite.id}>
+                <Card
+                  key={invite.id}
+                  style={
+                    isFocused
+                      ? { borderColor: colors.accent, borderWidth: 2 }
+                      : undefined
+                  }
+                >
                   <View style={{ gap: 10 }}>
                     <AppText variant="title" weight="semibold">
                       {isRequester ? "دعوة صديقتك" : "تمت دعوتك إلى طلعة"}
                     </AppText>
+                    {isFocused && (
+                      <AppText variant="caption" color={colors.accent} weight="semibold">
+                        هذه هي الدعوة التي فتحتِها
+                      </AppText>
+                    )}
                     <AppText variant="bodySmall" color={colors.mutedForeground}>
                       {isRequester
                         ? `تم إرسال الدعوة إلى ${invite.invitedEmail}`

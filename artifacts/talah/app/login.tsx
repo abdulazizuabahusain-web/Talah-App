@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,6 +20,9 @@ export default function LoginScreen() {
   const t = useT();
   const insets = useSafeAreaInsets();
   const { sendLoginCode, verifyLoginCode } = useApp();
+  const { inviteToken: inviteTokenParam } = useLocalSearchParams<{
+    inviteToken?: string;
+  }>();
 
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -58,12 +61,42 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const user = await verifyLoginCode(normalizedEmail, code);
+      const inviteToken = Array.isArray(inviteTokenParam)
+        ? inviteTokenParam[0]
+        : inviteTokenParam;
+
       if (user.onboarded) {
-        router.replace("/(tabs)");
+        if (inviteToken) {
+          let invitationId: string | undefined;
+          try {
+            const invitation = await api.claimInvitation(inviteToken);
+            invitationId = invitation.id;
+          } catch {
+            // Keep the existing email-matching list fallback if the token
+            // cannot be claimed (for example, it belongs to another email).
+          }
+          router.replace(
+            invitationId
+              ? {
+                  pathname: "/(tabs)/invitations",
+                  params: { invitationId },
+                }
+              : "/(tabs)/invitations",
+          );
+        } else {
+          router.replace("/(tabs)");
+        }
       } else {
         const invitations = await api.getInvitations().catch(() => []);
         const hasPendingInvite = invitations.some((invite) => invite.status === "pending");
-        router.replace(hasPendingInvite ? "/onboarding?invite=1" : "/onboarding");
+        if (inviteToken || hasPendingInvite) {
+          const query = inviteToken
+            ? `&inviteToken=${encodeURIComponent(inviteToken)}`
+            : "";
+          router.replace(`/onboarding?invite=1${query}` as "/onboarding");
+        } else {
+          router.replace("/onboarding");
+        }
       }
     } catch {
       setError(t("invalid_login_code"));

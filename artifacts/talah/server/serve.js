@@ -21,6 +21,8 @@ const STATIC_PAGE_TEMPLATE_PATH = path.resolve(
   "static-page.html",
 );
 const basePath = (process.env.BASE_PATH || "/").replace(/\/+$/, "");
+const IOS_APP_ID = "5YXF6Z9843.com.abdulaziz.talah";
+const APP_STORE_LINK = "https://apps.apple.com/app/id6786908048";
 
 const PRIVACY_POLICY_TEXT_EN = `Tal'ah is built on one principle: your privacy comes first. No user can browse your profile, and direct contact between users is not permitted until both sides mutually reveal after a meetup.
 
@@ -143,6 +145,59 @@ function serveLandingPage(req, res, landingPageTemplate, appName) {
   res.end(html);
 }
 
+function serveAppleAppSiteAssociation(res) {
+  const body = JSON.stringify({
+    applinks: {
+      details: [
+        {
+          appID: IOS_APP_ID,
+          paths: ["/invite", "/invite/*"],
+        },
+      ],
+    },
+  });
+  res.writeHead(200, {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "public, max-age=3600",
+  });
+  res.end(body);
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function serveInviteFallback(req, res, url) {
+  const forwardedProto = req.headers["x-forwarded-proto"] || "https";
+  const host = req.headers["x-forwarded-host"] || req.headers["host"];
+  const inviteUrl = `${forwardedProto}://${host}${url.pathname}${url.search}`;
+  const safeInviteUrl = escapeHtml(inviteUrl);
+  const html = `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-itunes-app" content="app-id=6786908048, app-argument=${safeInviteUrl}">
+  <title>دعوة إلى طلعة</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; box-sizing: border-box; background: #f5f0e8; color: #1a1a1a; font-family: Arial, sans-serif; }
+    main { width: min(100%, 420px); padding: 32px; box-sizing: border-box; text-align: center; background: #fff; border-radius: 20px; }
+    h1 { margin: 0 0 12px; color: #3d4a2e; }
+    p { line-height: 1.7; color: #625b4f; }
+    a { display: inline-block; margin-top: 12px; padding: 12px 20px; border-radius: 10px; background: #3d4a2e; color: #fff; text-decoration: none; }
+  </style>
+</head>
+<body><main><h1>لديك دعوة إلى طلعة</h1><p>حمّلي التطبيق من App Store، ثم افتحي رابط الدعوة مرة أخرى للعودة إلى الدعوة المحددة.</p><a href="${APP_STORE_LINK}">تحميل التطبيق</a></main></body>
+</html>`;
+  res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+  res.end(html);
+}
+
 function serveStaticFile(urlPath, res) {
   // Normalise and strip leading ".." segments, then verify the resolved path
   // stays inside STATIC_ROOT — prevents path-traversal attacks.
@@ -177,6 +232,17 @@ const server = http.createServer((req, res) => {
 
   if (basePath && pathname.startsWith(basePath)) {
     pathname = pathname.slice(basePath.length) || "/";
+  }
+
+  if (
+    pathname === "/.well-known/apple-app-site-association" ||
+    pathname === "/apple-app-site-association"
+  ) {
+    return serveAppleAppSiteAssociation(res);
+  }
+
+  if (pathname === "/invite") {
+    return serveInviteFallback(req, res, url);
   }
 
   if (pathname === "/" || pathname === "/manifest") {

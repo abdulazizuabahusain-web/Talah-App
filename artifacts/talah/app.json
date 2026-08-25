@@ -18,6 +18,10 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.abdulaziz.talah",
       "buildNumber": "10",
+      "associatedDomains": [
+        "applinks:talahapp.com",
+        "applinks:www.talahapp.com"
+      ],
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
@@ -26,7 +30,30 @@
       }
     },
     "android": {
-      "useNextNotificationsApi": true
+      "package": "com.abdulaziz.talah",
+      "useNextNotificationsApi": true,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "talahapp.com",
+              "pathPrefix": "/invite"
+            },
+            {
+              "scheme": "https",
+              "host": "www.talahapp.com",
+              "pathPrefix": "/invite"
+            }
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"

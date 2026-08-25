@@ -915,6 +915,9 @@ function InviteOnboardingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { currentUser, updateCurrentUser } = useApp();
+  const { inviteToken: inviteTokenParam } = useLocalSearchParams<{
+    inviteToken?: string;
+  }>();
   const [nickname, setNickname] = useState(currentUser?.nickname ?? "");
   const [gender, setGender] = useState<Gender | null>(currentUser?.gender ?? null);
   const [city, setCity] = useState(currentUser?.city ?? "");
@@ -930,6 +933,21 @@ function InviteOnboardingScreen() {
         city: city.trim(),
         onboarded: true,
       });
+      const inviteToken = Array.isArray(inviteTokenParam)
+        ? inviteTokenParam[0]
+        : inviteTokenParam;
+      if (inviteToken) {
+        try {
+          const invitation = await api.claimInvitation(inviteToken);
+          router.replace({
+            pathname: "/(tabs)/invitations",
+            params: { invitationId: invitation.id },
+          });
+          return;
+        } catch {
+          // The invitation list still matches by the authenticated email.
+        }
+      }
       router.replace("/(tabs)/invitations");
     } catch (error) {
       Alert.alert("تعذر إكمال الملف", error instanceof Error ? error.message : "حاولي مرة أخرى.");
