@@ -9,6 +9,7 @@ import { logger } from "../lib/logger";
 import { sanitizeFields } from "../lib/sanitize";
 import {
   db,
+  pool,
   feedbackTable,
   groupsTable,
   reportsTable,
@@ -24,6 +25,10 @@ import {
 import { createAdminToken, isAdminToken } from "../lib/adminSessions";
 import { sendPushToMany } from "../lib/push";
 import { requireAdmin } from "../middlewares/requireAuth";
+import {
+  finalizeGroupWithInvitations,
+  InvitationFinalizationError,
+} from "../lib/invitationLifecycle";
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
 const router = Router();
@@ -345,10 +350,8 @@ const CreateGroupBody = z
   })
   .strict();
 
-class GroupValidationError extends Error {}
-
 router.post("/groups", requireAdmin, async (req, res) => {
-  const parsed = CompatBody.safeParse(req.body);
+  const parsed = CreateGroupBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid group data" });
     return;
@@ -357,85 +360,12 @@ router.post("/groups", requireAdmin, async (req, res) => {
   const requestIds = [...new Set(parsed.data.requestIds ?? [])];
   let group;
   try {
-    group = await db.transaction(async (tx) => {
-      if (requestIds.length > 0) {
-        const openRequests = await tx
-          .select({ id: requestsTable.id })
-          .from(requestsTable)
-          .where(and(inArray(requestsTable.id, requestIds), eq(requestsTable.status, "pending")));
-        if (openRequests.length !== requestIds.length) {
-          throw new GroupValidationError("Every selected request must still be pending");
-        }
-        await tx
-          .update(requestInvitationsTable)
-          .set({ status: "expired", updatedAt: new Date() })
-          .where(
-            and(
-              inArray(requestInvitationsTable.requestId, requestIds),
-              eq(requestInvitationsTable.status, "pending"),
-            ),
-          );
-      }
-
-      const acceptedInvites =
-        requestIds.length > 0
-          ? await tx
-              .select()
-              .from(requestInvitationsTable)
-              .where(
-                and(
-                  inArray(requestInvitationsTable.requestId, requestIds),
-                  eq(requestInvitationsTable.status, "accepted"),
-                ),
-              )
-          : [];
-      const acceptedInviteeIds = acceptedInvites
-        .map((invite) => invite.inviteeUserId)
-        .filter((id): id is string => !!id);
-      const memberIds = [...new Set([...parsed.data.memberIds, ...acceptedInviteeIds])];
-      if (acceptedInvites.length > 0) {
-        const invitedRequesters = await tx
-          .select({ id: requestsTable.id, userId: requestsTable.userId })
-          .from(requestsTable)
-          .where(inArray(requestsTable.id, acceptedInvites.map((invite) => invite.requestId)));
-        if (invitedRequesters.some((request) => !memberIds.includes(request.userId))) {
-          throw new GroupValidationError("The requester must be included with an accepted invited friend");
-        }
-      }
-      if (memberIds.length < 3 || memberIds.length > 5) {
-        throw new GroupValidationError("Groups must contain 3–5 members");
-      }
-      if (acceptedInviteeIds.length > 0 && memberIds.length < 4) {
-        throw new GroupValidationError("A group with an invited friend must contain 4–5 members");
-      }
-
-  const [created] = await db.insert(venuesTable).values(parsed.data).returning();
-
-      for (const requestId of requestIds) {
-        const [matched] = await tx
-          .update(requestsTable)
-          .set({ status: "matched" })
-          .where(and(eq(requestsTable.id, requestId), eq(requestsTable.status, "pending")))
-          .returning({ id: requestsTable.id });
-        if (!matched) throw new GroupValidationError("A selected request is no longer pending");
-      }
-      for (const invite of acceptedInvites) {
-        const [finalized] = await tx
-          .update(requestInvitationsTable)
-          .set({ status: "finalized", updatedAt: new Date() })
-          .where(
-            and(
-              eq(requestInvitationsTable.id, invite.id),
-              eq(requestInvitationsTable.status, "accepted"),
-            ),
-          )
-          .returning({ id: requestInvitationsTable.id });
-        if (!finalized) throw new GroupValidationError("An accepted invitation changed before finalization");
-      }
-      return created;
+    group = await finalizeGroupWithInvitations(pool, {
+      ...sanitizeFields(parsed.data),
+      requestIds,
     });
   } catch (error) {
-    if (error instanceof GroupValidationError) {
+    if (error instanceof InvitationFinalizationError) {
       res.status(400).json({ error: error.message });
       return;
     }

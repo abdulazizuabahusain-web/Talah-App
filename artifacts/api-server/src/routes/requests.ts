@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   db,
   groupsTable,
+  pool,
   requestInvitationsTable,
   requestsTable,
   usersTable,
@@ -14,6 +15,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { normalizeEmail } from "../lib/auth";
 import { sendFriendInvitationEmail } from "../lib/email";
 import { sendPushToMany } from "../lib/push";
+import { cancelRequestAndExpireInvitations } from "../lib/invitationLifecycle";
 
 const router = Router();
 
@@ -210,24 +212,11 @@ router.delete("/:id", requireAuth, async (req, res) => {
     return;
   }
 
-  const [cancelled] = await db
-    .update(requestsTable)
-    .set({ status: "cancelled" })
-    .where(and(eq(requestsTable.id, row.id), eq(requestsTable.status, "pending")))
-    .returning({ id: requestsTable.id });
-  if (!cancelled) {
+  const wasCancelled = await cancelRequestAndExpireInvitations(pool, row.id);
+  if (!wasCancelled) {
     res.status(409).json({ error: "This request is no longer open" });
     return;
   }
-  await db
-    .update(requestInvitationsTable)
-    .set({ status: "expired", updatedAt: new Date() })
-    .where(
-      and(
-        eq(requestInvitationsTable.requestId, row.id),
-        ne(requestInvitationsTable.status, "finalized"),
-      ),
-    );
 
   // If this request was part of a group, remove it from the group's membership arrays.
   // If the group drops below 3 members, revert it to "cancelled".

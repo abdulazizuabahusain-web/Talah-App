@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   db,
   groupsTable,
+  pool,
   requestInvitationsTable,
   requestsTable,
   usersTable,
@@ -13,6 +14,10 @@ import { normalizeEmail } from "../lib/auth";
 import { sendFriendInvitationEmail } from "../lib/email";
 import { sendPushToMany } from "../lib/push";
 import { requireAuth } from "../middlewares/requireAuth";
+import {
+  expirePendingInvitations,
+  respondToInvitation,
+} from "../lib/invitationLifecycle";
 
 const router = Router();
 const EXPIRY_MS = 48 * 60 * 60 * 1000;
@@ -22,15 +27,7 @@ function hashToken(token: string) {
 }
 
 async function expireInvites() {
-  await db
-    .update(requestInvitationsTable)
-    .set({ status: "expired", updatedAt: new Date() })
-    .where(
-      and(
-        eq(requestInvitationsTable.status, "pending"),
-        lte(requestInvitationsTable.expiresAt, new Date()),
-      ),
-    );
+  await expirePendingInvitations(pool);
 }
 
 async function hardSafetyCheck(requestId: string, inviteeId: string) {
@@ -191,26 +188,21 @@ router.post("/:id/respond", requireAuth, async (req, res) => {
       return;
     }
   }
-  const [updated] = await db
-    .update(requestInvitationsTable)
-    .set({
-      status: parsed.data.response,
-      inviteeUserId: req.user!.id,
-      respondedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(requestInvitationsTable.id, invite.id),
-        eq(requestInvitationsTable.status, "pending"),
-        gt(requestInvitationsTable.expiresAt, new Date()),
-      ),
-    )
-    .returning();
-  if (!updated) {
+  const wasUpdated = await respondToInvitation(
+    pool,
+    invite.id,
+    req.user!.id,
+    parsed.data.response,
+  );
+  if (!wasUpdated) {
     res.status(409).json({ error: "Invitation is no longer available" });
     return;
   }
+  const [updated] = await db
+    .select()
+    .from(requestInvitationsTable)
+    .where(eq(requestInvitationsTable.id, invite.id))
+    .limit(1);
   const { tokenHash: _token, ...safe } = updated;
   res.json(safe);
 });
