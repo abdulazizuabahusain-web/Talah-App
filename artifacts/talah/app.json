@@ -3,7 +3,7 @@
     "name": "Tal'ah",
     "slug": "talah",
     "owner": "abdulaziz-abahusain",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "talah",
@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.abdulaziz.talah",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "associatedDomains": [
         "applinks:talahapp.com",
         "applinks:www.talahapp.com"
