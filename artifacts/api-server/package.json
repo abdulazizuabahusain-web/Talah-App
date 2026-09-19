@@ -8,7 +8,7 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --experimental-strip-types --test \"src/**/*.test.ts\""
+    "test": "node ./build-tests.mjs && node --experimental-strip-types --test \"src/lib/**/*.test.ts\" \"src/routes/invitations.test.ts\" \".test-dist/*.test.mjs\""
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
